@@ -1,6 +1,7 @@
 
 "use client";
 
+import { useState } from "react";
 import { useCollection, useFirestore, useUser, useDoc, useMemoFirebase, useAuth } from "@/firebase";
 import { collection, query, where, doc, serverTimestamp } from "firebase/firestore";
 import { Hash, Settings, ChevronDown, LogOut, Loader2, Plus, Mic, Headphones } from "lucide-react";
@@ -8,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { ProfileDialog } from "@/components/profile/profile-dialog";
 
 interface ChannelSidebarProps {
   serverId: string | null;
@@ -19,6 +21,7 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
   const db = useFirestore();
   const auth = useAuth();
   const { user } = useUser();
+  const [profileOpen, setProfileOpen] = useState(false);
 
   const serverRef = useMemoFirebase(() => (serverId ? doc(db, "servers", serverId) : null), [db, serverId]);
   const { data: server } = useDoc(serverRef);
@@ -33,13 +36,11 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
   const handleLogout = () => {
     if (user && db && auth.currentUser) {
       const userRef = doc(db, "users", user.uid);
-      // Set offline before actual sign out to avoid permission errors
       setDocumentNonBlocking(userRef, {
         onlineStatus: "offline",
         lastSeen: serverTimestamp()
       }, { merge: true });
     }
-    // Small delay to ensure the firestore write starts before local auth is cleared
     setTimeout(() => auth.signOut(), 100);
   };
 
@@ -54,7 +55,10 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
 
           <div className="flex-1 overflow-y-auto py-4 space-y-4 custom-scrollbar">
             {isLoading ? (
-              <div className="px-6 flex items-center gap-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /><span className="text-xs">Loading...</span></div>
+              <div className="px-6 flex items-center gap-2 text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span className="text-xs">Loading...</span>
+              </div>
             ) : (
               <div className="px-2 space-y-4">
                 <div>
@@ -67,7 +71,12 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
                       <button 
                         key={c.id} 
                         onClick={() => onSelectChannel(c.id)}
-                        className={cn("w-full flex items-center px-2 py-1.5 rounded-md text-sm transition-all", c.id === activeChannelId ? "bg-primary/10 text-primary font-semibold" : "text-muted-foreground hover:bg-gray-100")}
+                        className={cn(
+                          "w-full flex items-center px-2 py-1.5 rounded-md text-sm transition-all",
+                          c.id === activeChannelId 
+                            ? "bg-primary/10 text-primary font-semibold" 
+                            : "text-muted-foreground hover:bg-gray-100"
+                        )}
                       >
                         <Hash className="h-4 w-4 mr-2" />
                         <span className="truncate">{c.name}</span>
@@ -102,12 +111,16 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
             </div>
           </div>
           <div className="flex gap-0.5">
-            <Button variant="ghost" size="icon" className="h-7 w-7"><Mic className="h-3.5 w-3.5" /></Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7"><Headphones className="h-3.5 w-3.5" /></Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleLogout}><LogOut className="h-3.5 w-3.5 text-red-400" /></Button>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setProfileOpen(true)}>
+              <Settings className="h-3.5 w-3.5" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleLogout}>
+              <LogOut className="h-3.5 w-3.5 text-red-400" />
+            </Button>
           </div>
         </div>
       </div>
+      <ProfileDialog open={profileOpen} onOpenChange={setProfileOpen} />
     </aside>
   );
 }

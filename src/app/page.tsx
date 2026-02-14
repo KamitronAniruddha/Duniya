@@ -19,7 +19,6 @@ export default function ConnectVerseApp() {
   const [activeServerId, setActiveServerId] = useState<string | null>(null);
   const [activeChannelId, setActiveChannelId] = useState<string | null>(null);
 
-  // Auto-select first channel when server changes
   const channelsQuery = useMemoFirebase(() => {
     if (!db || !activeServerId) return null;
     return query(collection(db, "channels"), where("serverId", "==", activeServerId));
@@ -33,14 +32,12 @@ export default function ConnectVerseApp() {
     }
   }, [channels, activeChannelId]);
 
-  // Handle Online Status - Safe check for Auth session
   useEffect(() => {
     if (!user || !db) return;
 
     const userRef = doc(db, "users", user.uid);
     
     const updateStatus = (status: "online" | "idle" | "offline") => {
-      // Only attempt write if auth session still exists to avoid permission errors
       if (!auth.currentUser) return;
       
       setDocumentNonBlocking(userRef, {
@@ -69,7 +66,6 @@ export default function ConnectVerseApp() {
     return () => {
       window.removeEventListener('visibilitychange', handleVisibility);
       window.removeEventListener('beforeunload', handleUnload);
-      // Only set offline if we are still the same user and signed in
       if (auth.currentUser?.uid === user.uid) {
         updateStatus("offline");
       }
@@ -114,7 +110,7 @@ export default function ConnectVerseApp() {
         />
       </main>
 
-      <div className="hidden lg:block shrink-0 h-full">
+      <div className="hidden lg:block shrink-0 h-full max-h-full">
         <AISuggestionPanel channelId={activeChannelId} />
       </div>
     </div>
