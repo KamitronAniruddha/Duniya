@@ -28,10 +28,11 @@ export default function ConnectVerseApp() {
   const [showMembers, setShowMembers] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Refs for notification tracking
+  // Refs for tracking and cleanup
   const prevServerIdsRef = useRef<string[]>([]);
   const prevMembersRef = useRef<string[]>([]);
   const lastMessageIdsRef = useRef<Record<string, string>>({});
+  const channelUnsubsRef = useRef<Map<string, () => void>>(new Map());
   const hasLoadedInitialData = useRef(false);
 
   const userRef = useMemoFirebase(() => (user ? doc(db, "users", user.uid) : null), [db, user?.uid]);
@@ -40,63 +41,92 @@ export default function ConnectVerseApp() {
   const activeServerRef = useMemoFirebase(() => (activeServerId ? doc(db, "servers", activeServerId) : null), [db, activeServerId]);
   const { data: serverData } = useDoc(activeServerRef);
 
-  // Global message listener for the active server
+  // Optimized notification listener management
   useEffect(() => {
-    if (!db || !activeServerId || !user || !hasLoadedInitialData.current) return;
+    if (!db || !activeServerId || !user || !hasLoadedInitialData.current) {
+      // Cleanup all inner listeners if server becomes inactive
+      channelUnsubsRef.current.forEach(unsub => unsub());
+      channelUnsubsRef.current.clear();
+      return;
+    }
 
     const channelsQuery = query(collection(db, "channels"), where("serverId", "==", activeServerId));
     
     const unsubChannels = onSnapshot(channelsQuery, (snapshot) => {
+      const currentChannelIdsInSnapshot = snapshot.docs.map(d => d.id);
+      
+      // 1. Remove listeners for channels that no longer exist
+      channelUnsubsRef.current.forEach((unsub, id) => {
+        if (!currentChannelIdsInSnapshot.includes(id)) {
+          unsub();
+          channelUnsubsRef.current.delete(id);
+        }
+      });
+
+      // 2. Add listeners for new channels
       snapshot.docs.forEach((channelDoc) => {
         const channelId = channelDoc.id;
         const channelName = channelDoc.data().name;
 
-        const messagesQuery = query(
-          collection(db, "messages", channelId, "chatMessages"),
-          orderBy("createdAt", "desc"),
-          limit(1)
-        );
+        if (!channelUnsubsRef.current.has(channelId)) {
+          const messagesQuery = query(
+            collection(db, "messages", channelId, "chatMessages"),
+            orderBy("createdAt", "desc"),
+            limit(1)
+          );
 
-        onSnapshot(messagesQuery, async (msgSnapshot) => {
-          if (msgSnapshot.empty) return;
-          const lastMsg = msgSnapshot.docs[0].data();
-          const lastMsgId = msgSnapshot.docs[0].id;
+          const unsubMsg = onSnapshot(messagesQuery, async (msgSnapshot) => {
+            if (msgSnapshot.empty) return;
+            const lastMsg = msgSnapshot.docs[0].data();
+            const lastMsgId = msgSnapshot.docs[0].id;
 
-          if (
-            lastMsg.senderId !== user.uid && 
-            lastMessageIdsRef.current[channelId] && 
-            lastMessageIdsRef.current[channelId] !== lastMsgId &&
-            activeChannelId !== channelId
-          ) {
-            const senderRef = doc(db, "users", lastMsg.senderId);
-            const senderSnap = await getDoc(senderRef);
-            const senderName = senderSnap.exists() ? senderSnap.data().username : "Someone";
+            // Only notify if:
+            // - It's not our message
+            // - We've seen this channel before (avoid initial load popups)
+            // - It's a new message ID we haven't seen this session
+            // - We aren't currently looking at the channel
+            if (
+              lastMsg.senderId !== user.uid && 
+              lastMessageIdsRef.current[channelId] && 
+              lastMessageIdsRef.current[channelId] !== lastMsgId &&
+              activeChannelId !== channelId
+            ) {
+              const senderRef = doc(db, "users", lastMsg.senderId);
+              const senderSnap = await getDoc(senderRef);
+              const senderName = senderSnap.exists() ? senderSnap.data().username : "Someone";
 
-            const { dismiss } = toast({
-              title: `New Message in #${channelName}`,
-              description: `@${senderName}: ${lastMsg.text.length > 60 ? lastMsg.text.substring(0, 60) + "..." : lastMsg.text}`,
-              action: (
-                <Button 
-                  size="sm" 
-                  onClick={() => {
-                    setActiveChannelId(channelId);
-                    dismiss();
-                  }}
-                >
-                  Reply
-                </Button>
-              ),
-            });
-          }
-          lastMessageIdsRef.current[channelId] = lastMsgId;
-        });
+              const { dismiss } = toast({
+                title: `New Message in #${channelName}`,
+                description: `@${senderName}: ${lastMsg.text.length > 60 ? lastMsg.text.substring(0, 60) + "..." : lastMsg.text}`,
+                action: (
+                  <Button 
+                    size="sm" 
+                    onClick={() => {
+                      setActiveChannelId(channelId);
+                      dismiss();
+                    }}
+                  >
+                    Reply
+                  </Button>
+                ),
+              });
+            }
+            lastMessageIdsRef.current[channelId] = lastMsgId;
+          });
+
+          channelUnsubsRef.current.set(channelId, unsubMsg);
+        }
       });
     });
 
-    return () => unsubChannels();
+    return () => {
+      unsubChannels();
+      channelUnsubsRef.current.forEach(unsub => unsub());
+      channelUnsubsRef.current.clear();
+    };
   }, [db, activeServerId, user, activeChannelId, toast]);
 
-  // Monitor membership changes
+  // Monitor membership changes (Access Revoked / New Members)
   useEffect(() => {
     if (!userData) return;
     
