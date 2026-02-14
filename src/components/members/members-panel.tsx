@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { cn } from "@/lib/utils";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { UserProfilePopover } from "@/components/profile/user-profile-popover";
 
 interface MembersPanelProps {
   serverId: string;
@@ -247,30 +248,35 @@ function MemberItem({
 }) {
   return (
     <div className="flex items-center gap-2 p-2 rounded-md hover:bg-gray-100 transition-colors group cursor-default relative">
-      <div className="relative">
-        <Avatar className="h-8 w-8 border border-white shadow-sm">
-          <AvatarImage src={member.photoURL} />
-          <AvatarFallback className="bg-primary/10 text-primary text-[10px] font-bold">
-            {member.username?.[0]?.toUpperCase() || <UserIcon className="h-3 w-3" />}
-          </AvatarFallback>
-        </Avatar>
-        <div className={cn(
-          "absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-gray-50",
-          member.onlineStatus === "online" ? "bg-green-500" : "bg-gray-300"
-        )} />
-      </div>
+      <UserProfilePopover userId={member.id}>
+        <button className="relative transition-transform hover:scale-110">
+          <Avatar className="h-8 w-8 border border-white shadow-sm">
+            <AvatarImage src={member.photoURL} />
+            <AvatarFallback className="bg-primary/10 text-primary text-[10px] font-bold">
+              {member.username?.[0]?.toUpperCase() || <UserIcon className="h-3 w-3" />}
+            </AvatarFallback>
+          </Avatar>
+          <div className={cn(
+            "absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-gray-50",
+            member.onlineStatus === "online" ? "bg-green-500" : "bg-gray-300"
+          )} />
+        </button>
+      </UserProfilePopover>
+      
       <div className="flex flex-col min-w-0 flex-1">
-        <div className="flex items-center gap-1 min-w-0">
-          <span className={cn(
-            "text-xs font-bold truncate leading-none",
-            member.onlineStatus === "online" ? "text-foreground" : "text-muted-foreground"
-          )}>
-            {member.username}
-          </span>
-          {isOwner && (
-            <ShieldCheck className="h-3 w-3 text-orange-500 shrink-0" title="Server Owner" />
-          )}
-        </div>
+        <UserProfilePopover userId={member.id}>
+          <button className="flex items-center gap-1 min-w-0 w-full text-left">
+            <span className={cn(
+              "text-xs font-bold truncate leading-none hover:text-primary transition-colors",
+              member.onlineStatus === "online" ? "text-foreground" : "text-muted-foreground"
+            )}>
+              {member.username}
+            </span>
+            {isOwner && (
+              <ShieldCheck className="h-3 w-3 text-orange-500 shrink-0" title="Server Owner" />
+            )}
+          </button>
+        </UserProfilePopover>
         {member.bio && (
           <span className="text-[10px] text-muted-foreground truncate leading-none mt-0.5">
             {member.bio}

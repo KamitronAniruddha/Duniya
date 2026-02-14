@@ -36,6 +36,10 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
   const [newChannelName, setNewChannelName] = useState("");
   const [isCreating, setIsCreating] = useState(false);
 
+  // Fetch Firestore user doc for synced photoURL and bio
+  const userDocRef = useMemoFirebase(() => (user ? doc(db, "users", user.uid) : null), [db, user?.uid]);
+  const { data: userData } = useDoc(userDocRef);
+
   const serverRef = useMemoFirebase(() => (serverId && user ? doc(db, "servers", serverId) : null), [db, serverId, user?.uid]);
   const { data: server } = useDoc(serverRef);
 
@@ -174,15 +178,18 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 min-w-0">
             <div className="relative">
-              <Avatar className="h-8 w-8 ring-1 ring-border">
-                <AvatarImage src={user?.photoURL || ""} />
-                <AvatarFallback className="bg-primary text-white text-[10px] font-bold">{user?.displayName?.[0] || "?"}</AvatarFallback>
+              <Avatar className="h-8 w-8 ring-1 ring-border shadow-sm">
+                <AvatarImage src={userData?.photoURL || ""} />
+                <AvatarFallback className="bg-primary text-white text-[10px] font-bold">{userData?.username?.[0]?.toUpperCase() || "?"}</AvatarFallback>
               </Avatar>
-              <div className="absolute bottom-0 right-0 h-2.5 w-2.5 bg-green-500 rounded-full border-2 border-white" />
+              <div className={cn(
+                "absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white",
+                userData?.onlineStatus === "online" ? "bg-green-500" : "bg-gray-300"
+              )} />
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="text-xs font-bold truncate leading-none mb-0.5">{user?.displayName || "User"}</span>
-              <span className="text-[10px] text-muted-foreground truncate leading-none">Online</span>
+              <span className="text-xs font-bold truncate leading-none mb-0.5">{userData?.username || "Loading..."}</span>
+              <span className="text-[10px] text-muted-foreground truncate leading-none capitalize">{userData?.onlineStatus || "offline"}</span>
             </div>
           </div>
           <div className="flex gap-0.5">

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useAuth, useFirestore, useUser } from "@/firebase";
+import { useState, useEffect } from "react";
+import { useAuth, useFirestore, useUser, useDoc, useMemoFirebase } from "@/firebase";
 import { updateProfile, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "firebase/auth";
 import { doc } from "firebase/firestore";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, User, Lock, Camera } from "lucide-react";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface ProfileDialogProps {
   open: boolean;
@@ -25,10 +26,21 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
   const db = useFirestore();
   const { toast } = useToast();
 
+  const userDocRef = useMemoFirebase(() => (user ? doc(db, "users", user.uid) : null), [db, user?.uid]);
+  const { data: userData } = useDoc(userDocRef);
+
   const [isLoading, setIsLoading] = useState(false);
-  const [username, setUsername] = useState(user?.displayName || "");
-  const [photoURL, setPhotoURL] = useState(user?.photoURL || "");
-  const [bio, setBio] = useState(""); // Bio is stored in Firestore
+  const [username, setUsername] = useState("");
+  const [photoURL, setPhotoURL] = useState("");
+  const [bio, setBio] = useState("");
+
+  useEffect(() => {
+    if (userData) {
+      setUsername(userData.username || "");
+      setPhotoURL(userData.photoURL || "");
+      setBio(userData.bio || "");
+    }
+  }, [userData]);
 
   // Password change state
   const [oldPassword, setOldPassword] = useState("");
@@ -112,6 +124,17 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
           
           <TabsContent value="profile">
             <form onSubmit={handleUpdateProfile} className="space-y-4 py-4">
+              <div className="flex flex-col items-center justify-center gap-4 mb-4">
+                <Avatar className="h-20 w-20 ring-2 ring-primary ring-offset-2">
+                  <AvatarImage src={photoURL} />
+                  <AvatarFallback className="text-2xl bg-muted text-muted-foreground">{username?.[0]?.toUpperCase() || "?"}</AvatarFallback>
+                </Avatar>
+                <div className="text-center">
+                  <h4 className="font-bold">@{username}</h4>
+                  <p className="text-xs text-muted-foreground">{user?.email}</p>
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="username">Username</Label>
                 <div className="relative">
