@@ -8,9 +8,10 @@ import { ChatWindow } from "@/components/chat/chat-window";
 import { AuthScreen } from "@/components/auth/auth-screen";
 import { MembersPanel } from "@/components/members/members-panel";
 import { DuniyaPanel } from "@/components/duniya/duniya-panel";
+import { AdminDashboard } from "@/components/admin/admin-dashboard";
 import { useUser, useFirestore, useCollection, useMemoFirebase, useAuth, useDoc } from "@/firebase";
 import { doc, serverTimestamp, collection, query, where, getDoc, onSnapshot, orderBy, limit } from "firebase/firestore";
-import { Loader2, Menu, Heart } from "lucide-react";
+import { Loader2, Menu, Heart, ShieldAlert } from "lucide-react";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -22,154 +23,19 @@ export default function ConnectVerseApp() {
   const auth = useAuth();
   const { toast } = useToast();
   
-  const [activeServerId, setActiveServerId] = useState<string | null>(null);
+  const [activeCommunityId, setActiveCommunityId] = useState<string | null>(null);
   const [activeChannelId, setActiveChannelId] = useState<string | null>(null);
-  const [isDuniyaActive, setIsDuniyaActive] = useState(false);
+  const [view, setView] = useState<"chat" | "duniya" | "admin">("chat");
   const [showMembers, setShowMembers] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Refs for tracking and cleanup
-  const prevServerIdsRef = useRef<string[]>([]);
-  const prevMembersRef = useRef<string[]>([]);
-  const lastMessageIdsRef = useRef<Record<string, string>>({});
-  const channelUnsubsRef = useRef<Map<string, () => void>>(new Map());
-  const hasLoadedInitialData = useRef(false);
+  // Admin check for Aniruddha
+  const isAdminUser = user?.email === "aniruddha@duniya.app";
 
   const userRef = useMemoFirebase(() => (user ? doc(db, "users", user.uid) : null), [db, user?.uid]);
   const { data: userData } = useDoc(userRef);
 
-  // Critical fix: Gate server ref with user auth to prevent permission errors on logout
-  const activeServerRef = useMemoFirebase(() => (activeServerId && user ? doc(db, "servers", activeServerId) : null), [db, activeServerId, user?.uid]);
-  const { data: serverData } = useDoc(activeServerRef);
-
-  // Optimized notification listener management
-  useEffect(() => {
-    // Explicitly cleanup all listeners if conditions aren't met
-    const cleanupAll = () => {
-      channelUnsubsRef.current.forEach(unsub => unsub());
-      channelUnsubsRef.current.clear();
-      lastMessageIdsRef.current = {};
-    };
-
-    if (!db || !activeServerId || !user || isDuniyaActive) {
-      cleanupAll();
-      return;
-    }
-
-    const channelsQuery = query(collection(db, "channels"), where("serverId", "==", activeServerId));
-    
-    const unsubChannels = onSnapshot(channelsQuery, (snapshot) => {
-      const currentChannelIdsInSnapshot = snapshot.docs.map(d => d.id);
-      
-      // 1. Remove listeners for channels that no longer exist
-      channelUnsubsRef.current.forEach((unsub, id) => {
-        if (!currentChannelIdsInSnapshot.includes(id)) {
-          unsub();
-          channelUnsubsRef.current.delete(id);
-          delete lastMessageIdsRef.current[id];
-        }
-      });
-
-      // 2. Add listeners for new channels
-      snapshot.docs.forEach((channelDoc) => {
-        const channelId = channelDoc.id;
-        const channelName = channelDoc.data().name;
-
-        if (!channelUnsubsRef.current.has(channelId)) {
-          const messagesQuery = query(
-            collection(db, "messages", channelId, "chatMessages"),
-            orderBy("createdAt", "desc"),
-            limit(1)
-          );
-
-          const unsubMsg = onSnapshot(messagesQuery, async (msgSnapshot) => {
-            if (msgSnapshot.empty) return;
-            const lastMsgDoc = msgSnapshot.docs[0];
-            const lastMsg = lastMsgDoc.data();
-            const lastMsgId = lastMsgDoc.id;
-
-            if (
-              lastMsg.senderId !== user.uid && 
-              lastMessageIdsRef.current[channelId] && 
-              lastMessageIdsRef.current[channelId] !== lastMsgId &&
-              activeChannelId !== channelId
-            ) {
-              const senderRef = doc(db, "users", lastMsg.senderId);
-              const senderSnap = await getDoc(senderRef);
-              const senderName = senderSnap.exists() ? senderSnap.data().username : "Someone";
-
-              const { dismiss } = toast({
-                title: `New Message in #${channelName}`,
-                description: `@${senderName}: ${lastMsg.text.length > 60 ? lastMsg.text.substring(0, 60) + "..." : lastMsg.text}`,
-                action: (
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={() => {
-                      setActiveChannelId(channelId);
-                      dismiss();
-                    }}
-                  >
-                    Reply
-                  </Button>
-                ),
-              });
-            }
-            lastMessageIdsRef.current[channelId] = lastMsgId;
-          });
-
-          channelUnsubsRef.current.set(channelId, unsubMsg);
-        }
-      });
-    }, (err) => {
-      // Don't log permission errors here, they are handled by the gatekeeper
-    });
-
-    return () => {
-      unsubChannels();
-      cleanupAll();
-    };
-  }, [db, activeServerId, user, activeChannelId, toast, isDuniyaActive]);
-
-  // Monitor membership changes
-  useEffect(() => {
-    if (!userData) return;
-    
-    const currentServerIds = userData.serverIds || [];
-    const prevServerIds = prevServerIdsRef.current;
-
-    if (hasLoadedInitialData.current && activeServerId && prevServerIds.length > 0) {
-      if (prevServerIds.includes(activeServerId) && !currentServerIds.includes(activeServerId)) {
-        toast({
-          variant: "destructive",
-          title: "Access Revoked",
-          description: "You have been removed from the server.",
-        });
-        setActiveServerId(null);
-        setActiveChannelId(null);
-      }
-    }
-    prevServerIdsRef.current = currentServerIds;
-
-    if (serverData) {
-      const currentMembers = serverData.members || [];
-      const prevMembers = prevMembersRef.current;
-
-      if (hasLoadedInitialData.current && prevMembers.length > 0 && currentMembers.length > prevMembers.length) {
-        const newMemberId = currentMembers.find(id => !prevMembers.includes(id));
-        if (newMemberId && newMemberId !== user?.uid) {
-          toast({
-            title: "New Member!",
-            description: "Someone new just joined the server. Say hello!",
-          });
-        }
-      }
-      prevMembersRef.current = currentMembers;
-    }
-
-    hasLoadedInitialData.current = true;
-  }, [userData?.serverIds, serverData?.members, activeServerId, toast, user?.uid, userData]);
-
+  // Presence logic
   useEffect(() => {
     if (!user || !db || !auth.currentUser) return;
 
@@ -178,7 +44,7 @@ export default function ConnectVerseApp() {
       if (!auth.currentUser) return;
       setDocumentNonBlocking(userRef, {
         onlineStatus: status,
-        lastSeen: serverTimestamp()
+        lastOnlineAt: new Date().toISOString()
       }, { merge: true });
     };
 
@@ -214,25 +80,32 @@ export default function ConnectVerseApp() {
     <div className="flex h-[100dvh] w-full bg-background overflow-hidden selection:bg-primary/20">
       <div className="hidden md:flex shrink-0 h-full overflow-hidden border-r border-border">
         <ServerSidebar 
-          activeServerId={activeServerId} 
-          isDuniyaActive={isDuniyaActive}
+          activeServerId={activeCommunityId} 
+          isDuniyaActive={view === "duniya"}
+          isAdminActive={view === "admin"}
           onSelectServer={(id) => {
             if (id === "duniya") {
-              setIsDuniyaActive(true);
-              setActiveServerId(null);
+              setView("duniya");
+              setActiveCommunityId(null);
+              setActiveChannelId(null);
+            } else if (id === "admin") {
+              setView("admin");
+              setActiveCommunityId(null);
               setActiveChannelId(null);
             } else {
-              setIsDuniyaActive(false);
-              setActiveServerId(id);
+              setView("chat");
+              setActiveCommunityId(id);
               setActiveChannelId(null);
             }
           }} 
         />
-        <ChannelSidebar 
-          serverId={activeServerId} 
-          activeChannelId={activeChannelId}
-          onSelectChannel={setActiveChannelId}
-        />
+        {view === "chat" && (
+          <ChannelSidebar 
+            serverId={activeCommunityId} 
+            activeChannelId={activeChannelId}
+            onSelectChannel={setActiveChannelId}
+          />
+        )}
       </div>
 
       <main className="flex-1 flex flex-col min-w-0 h-full relative overflow-hidden">
@@ -246,32 +119,40 @@ export default function ConnectVerseApp() {
             <SheetContent side="left" className="p-0 flex w-[300px] border-none">
               <SheetHeader className="sr-only">
                 <SheetTitle>Navigation Menu</SheetTitle>
-                <SheetDescription>Select servers and channels to chat.</SheetDescription>
+                <SheetDescription>Select communities and channels.</SheetDescription>
               </SheetHeader>
               <div className="flex h-full w-full overflow-hidden bg-background">
                 <ServerSidebar 
-                  activeServerId={activeServerId} 
-                  isDuniyaActive={isDuniyaActive}
+                  activeServerId={activeCommunityId} 
+                  isDuniyaActive={view === "duniya"}
+                  isAdminActive={view === "admin"}
                   onSelectServer={(id) => {
                     if (id === "duniya") {
-                      setIsDuniyaActive(true);
-                      setActiveServerId(null);
+                      setView("duniya");
+                      setActiveCommunityId(null);
+                      setActiveChannelId(null);
+                    } else if (id === "admin") {
+                      setView("admin");
+                      setActiveCommunityId(null);
                       setActiveChannelId(null);
                     } else {
-                      setIsDuniyaActive(false);
-                      setActiveServerId(id);
+                      setView("chat");
+                      setActiveCommunityId(id);
                       setActiveChannelId(null);
                     }
+                    setIsMobileMenuOpen(false);
                   }} 
                 />
-                <ChannelSidebar 
-                  serverId={activeServerId} 
-                  activeChannelId={activeChannelId}
-                  onSelectChannel={(id) => {
-                    setActiveChannelId(id);
-                    setIsMobileMenuOpen(false);
-                  }}
-                />
+                {view === "chat" && (
+                  <ChannelSidebar 
+                    serverId={activeCommunityId} 
+                    activeChannelId={activeChannelId}
+                    onSelectChannel={(id) => {
+                      setActiveChannelId(id);
+                      setIsMobileMenuOpen(false);
+                    }}
+                  />
+                )}
               </div>
             </SheetContent>
           </Sheet>
@@ -279,30 +160,31 @@ export default function ConnectVerseApp() {
         </div>
         
         <div className="flex-1 min-h-0 flex relative overflow-hidden bg-background">
-          {isDuniyaActive ? (
+          {view === "duniya" ? (
             <DuniyaPanel onJoinSuccess={(id) => {
-              setIsDuniyaActive(false);
-              setActiveServerId(id);
+              setView("chat");
+              setActiveCommunityId(id);
             }} />
+          ) : view === "admin" ? (
+            <AdminDashboard />
           ) : (
             <div className="flex-1 flex min-w-0 h-full overflow-hidden">
               <ChatWindow 
                 channelId={activeChannelId}
-                serverId={activeServerId}
+                serverId={activeCommunityId}
                 showMembers={showMembers}
                 onToggleMembers={() => setShowMembers(!showMembers)}
               />
               
-              {showMembers && activeServerId && (
+              {showMembers && activeCommunityId && (
                 <div className="hidden lg:block h-full border-l shadow-2xl bg-background shrink-0 overflow-hidden">
-                  <MembersPanel serverId={activeServerId} />
+                  <MembersPanel serverId={activeCommunityId} />
                 </div>
               )}
             </div>
           )}
         </div>
         
-        {/* Persistent footer credit */}
         <div className="hidden md:flex justify-center py-1 bg-background border-t">
           <div className="flex items-center gap-1 text-[8px] font-black uppercase tracking-[0.3em] text-muted-foreground/40">
             <span>Made by Aniruddha with love</span>
