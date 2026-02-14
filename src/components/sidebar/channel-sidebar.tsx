@@ -1,9 +1,10 @@
+
 "use client";
 
 import { useState } from "react";
 import { useCollection, useFirestore, useUser, useDoc, useMemoFirebase, useAuth } from "@/firebase";
-import { collection, query, where, doc } from "firebase/firestore";
-import { Hash, Settings, ChevronDown, LogOut, Loader2, Plus, Timer, Globe, Mail } from "lucide-react";
+import { collection, query, doc } from "firebase/firestore";
+import { Hash, Settings, ChevronDown, LogOut, Loader2, Plus, Timer, Globe, Mail, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -51,7 +52,7 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
   const { data: channels, isLoading } = useCollection(channelsQuery);
 
   const isOwner = community?.ownerId === user?.uid;
-  const isAdmin = isOwner || community?.admins?.includes(user?.uid);
+  const isAdmin = isOwner || community?.admins?.includes(user?.uid) || user?.email === "aniruddha@duniya.app";
 
   const handleLogout = () => {
     auth.signOut();
@@ -101,16 +102,16 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-60" align="start">
               {isAdmin && (
-                <DropdownMenuItem onClick={() => setDisappearingOpen(true)} className="gap-2">
-                  <Timer className="h-4 w-4 text-orange-500" /> Disappearing Messages
-                </DropdownMenuItem>
+                <>
+                  <DropdownMenuItem onClick={() => setServerSettingsOpen(true)} className="gap-2">
+                    <Settings className="h-4 w-4" /> Community Settings
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setDisappearingOpen(true)} className="gap-2">
+                    <Timer className="h-4 w-4 text-orange-500" /> Disappearing Messages
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                </>
               )}
-              {isOwner && (
-                <DropdownMenuItem onClick={() => setServerSettingsOpen(true)} className="gap-2">
-                  <Settings className="h-4 w-4" /> Community Settings
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuSeparator />
               <DropdownMenuItem className="text-destructive font-bold">Leave Community</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -40,7 +41,6 @@ const DISAPPEARING_OPTIONS = [
 export function ServerSettingsDialog({ open, onOpenChange, serverId }: ServerSettingsDialogProps) {
   const db = useFirestore();
   const { toast } = useToast();
-  // Corrected path from 'servers' to 'communities'
   const serverRef = useMemoFirebase(() => (serverId ? doc(db, "communities", serverId) : null), [db, serverId]);
   const { data: server } = useDoc(serverRef);
 
@@ -84,6 +84,7 @@ export function ServerSettingsDialog({ open, onOpenChange, serverId }: ServerSet
         icon: icon.trim(),
         description: description.trim(),
         isBroadcasted: isBroadcasted,
+        isPublic: isBroadcasted, // Link public directory with broadcasting
         broadcastExpiry: broadcastExpiry,
         disappearingMessagesDuration: disappearingDuration,
       });
