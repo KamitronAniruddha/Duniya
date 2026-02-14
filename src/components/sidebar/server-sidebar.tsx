@@ -2,8 +2,8 @@
 "use client";
 
 import { useState } from "react";
-import { useCollection, useFirestore, useUser, useMemoFirebase } from "@/firebase";
-import { collection, query, where, serverTimestamp, doc, arrayUnion, getDocs, limit } from "firebase/firestore";
+import { useCollection, useFirestore, useUser, useMemoFirebase, errorEmitter, FirestorePermissionError } from "@/firebase";
+import { collection, query, where, serverTimestamp, doc, arrayUnion, getDocs, limit, writeBatch } from "firebase/firestore";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -46,34 +46,48 @@ export function ServerSidebar({ activeServerId, onSelectServer }: ServerSidebarP
     setIsLoading(true);
     
     try {
+      const batch = writeBatch(db);
+      
       const serverRef = doc(collection(db, "servers"));
       const serverId = serverRef.id;
       const joinCode = generateJoinCode();
       
-      setDocumentNonBlocking(serverRef, {
+      const serverData = {
         id: serverId,
         name: name.trim(),
-        icon: `https://picsum.photos/seed/${Math.random()}/200`,
+        icon: `https://picsum.photos/seed/${serverId}/200`,
         ownerId: user.uid,
         admins: [],
         joinCode: joinCode,
         members: [user.uid],
         createdAt: serverTimestamp()
-      }, { merge: true });
+      };
+      batch.set(serverRef, serverData);
 
       const channelRef = doc(collection(db, "channels"));
-      setDocumentNonBlocking(channelRef, {
+      const channelData = {
         id: channelRef.id,
         serverId: serverId,
         name: "general",
         type: "text",
         createdAt: serverTimestamp()
-      }, { merge: true });
+      };
+      batch.set(channelRef, channelData);
 
       const userRef = doc(db, "users", user.uid);
-      setDocumentNonBlocking(userRef, {
+      batch.update(userRef, {
         serverIds: arrayUnion(serverId)
-      }, { merge: true });
+      });
+
+      // Commit the atomic batch
+      batch.commit().catch(async (error) => {
+        const permissionError = new FirestorePermissionError({
+          path: serverRef.path,
+          operation: 'create',
+          requestResourceData: serverData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+      });
 
       toast({ title: "Server Created", description: `Welcome to ${name}! Join code: ${joinCode}` });
       setName("");
