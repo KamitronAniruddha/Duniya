@@ -6,10 +6,10 @@ import { useCollection, useFirestore, useUser, useDoc, useMemoFirebase } from "@
 import { collection, query, orderBy, limit, doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { MessageBubble } from "./message-bubble";
 import { MessageInput } from "./message-input";
-import { TypingIndicator } from "./typing-indicator";
-import { Hash, Phone, Video, Search, Pin, Users, MoreHorizontal, Loader2 } from "lucide-react";
+import { Hash, Phone, Video, Users, MoreHorizontal, Loader2, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useToast } from "@/hooks/use-toast";
 
 interface ChatWindowProps {
   channelId: string | null;
@@ -19,6 +19,7 @@ interface ChatWindowProps {
 export function ChatWindow({ channelId, serverId }: ChatWindowProps) {
   const db = useFirestore();
   const { user } = useUser();
+  const { toast } = useToast();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const channelRef = useMemoFirebase(() => (channelId ? doc(db, "channels", channelId) : null), [db, channelId]);
@@ -48,62 +49,92 @@ export function ChatWindow({ channelId, serverId }: ChatWindowProps) {
       createdAt: serverTimestamp(),
       edited: false,
       seenBy: [user.uid]
+    }).catch((error) => {
+      toast({
+        variant: "destructive",
+        title: "Failed to send",
+        description: error.message || "Something went wrong",
+      });
     });
   };
 
   useEffect(() => {
+    // Scroll to bottom on new messages
     if (scrollRef.current) {
-      scrollRef.current.scrollTo({
-        top: scrollRef.current.scrollHeight,
-        behavior: 'smooth'
-      });
+      const scrollContainer = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (scrollContainer) {
+        scrollContainer.scrollTo({
+          top: scrollContainer.scrollHeight,
+          behavior: 'smooth'
+        });
+      }
     }
   }, [messages]);
 
+  if (!serverId) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 p-6">
+        <div className="text-center max-w-sm">
+          <div className="w-24 h-24 bg-primary/10 rounded-3xl mx-auto mb-8 flex items-center justify-center shadow-inner">
+            <MessageCircle className="h-12 w-12 text-primary" />
+          </div>
+          <h2 className="text-3xl font-extrabold mb-4 tracking-tight">Create your first server</h2>
+          <p className="text-muted-foreground text-lg leading-relaxed">
+            ConnectVerse is better with friends. Join an existing server or start your own community!
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   if (!channelId) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center bg-gray-50">
-        <div className="text-center p-12 max-w-md">
-          <div className="w-20 h-20 bg-gray-200 rounded-3xl mx-auto mb-6 flex items-center justify-center">
-            <Hash className="h-10 w-10 text-muted-foreground" />
-          </div>
-          <h2 className="text-2xl font-bold mb-2">Welcome to ConnectVerse</h2>
-          <p className="text-muted-foreground">Choose a channel from the left to start chatting with your community.</p>
+      <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 h-full p-6">
+        <div className="text-center">
+          <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground font-medium italic">Selecting best channel for you...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-gray-50 h-full">
-      <header className="h-14 px-6 border-b flex items-center justify-between bg-white shrink-0">
+    <div className="flex-1 flex flex-col bg-gray-50 h-full overflow-hidden">
+      <header className="h-14 px-6 border-b flex items-center justify-between bg-white shrink-0 z-10 shadow-sm">
         <div className="flex items-center space-x-2 overflow-hidden">
           <Hash className="h-5 w-5 text-muted-foreground shrink-0" />
           <h2 className="font-bold text-sm truncate">{channel?.name || "Loading..."}</h2>
         </div>
 
         <div className="flex items-center space-x-1 sm:space-x-3">
-          <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground">
+          <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:bg-gray-100">
             <Phone className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground">
+          <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:bg-gray-100">
             <Video className="h-4 w-4" />
           </Button>
           <div className="hidden md:flex h-4 w-px bg-border mx-1" />
-          <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground">
+          <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:bg-gray-100">
             <Users className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground">
+          <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:bg-gray-100">
             <MoreHorizontal className="h-4 w-4" />
           </Button>
         </div>
       </header>
 
-      <ScrollArea className="flex-1 px-6">
-        <div ref={scrollRef} className="py-6 max-w-6xl mx-auto">
+      <ScrollArea ref={scrollRef} className="flex-1 h-full">
+        <div className="py-6 px-6 max-w-6xl mx-auto">
           {messagesLoading ? (
-            <div className="flex justify-center py-10">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            <div className="flex flex-col items-center justify-center py-20 space-y-4">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground">Loading message history...</p>
+            </div>
+          ) : messages?.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center opacity-40 grayscale">
+              <Hash className="h-16 w-16 mb-4" />
+              <h3 className="text-xl font-bold">Welcome to #{channel?.name}</h3>
+              <p>This is the start of this channel. Say hi!</p>
             </div>
           ) : (
             <div className="space-y-1">
