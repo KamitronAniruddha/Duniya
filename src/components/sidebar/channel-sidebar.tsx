@@ -1,21 +1,19 @@
-
 "use client";
 
 import { useState } from "react";
 import { useCollection, useFirestore, useUser, useDoc, useMemoFirebase, useAuth } from "@/firebase";
-import { collection, query, where, doc, serverTimestamp, updateDoc } from "firebase/firestore";
-import { Hash, Settings, ChevronDown, LogOut, Loader2, Plus, Edit2, Copy, Share2, Timer, Heart, Link as LinkIcon, Sparkles, Globe, Mail } from "lucide-react";
+import { collection, query, where, doc } from "firebase/firestore";
+import { Hash, Settings, ChevronDown, LogOut, Loader2, Plus, Timer, Globe, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { ProfileDialog } from "@/components/profile/profile-dialog";
 import { ServerSettingsDialog } from "@/components/servers/server-settings-dialog";
-import { ChannelSettingsDialog } from "@/components/channels/channel-settings-dialog";
 import { DisappearingMessagesDialog } from "@/components/servers/disappearing-messages-dialog";
 import { ContactFormDialog } from "@/components/contact/contact-form-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
@@ -36,7 +34,6 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
   const [serverSettingsOpen, setServerSettingsOpen] = useState(false);
   const [disappearingOpen, setDisappearingOpen] = useState(false);
   const [createChannelOpen, setCreateChannelOpen] = useState(false);
-  const [editChannelId, setEditChannelId] = useState<string | null>(null);
   const [newChannelName, setNewChannelName] = useState("");
   const [isCreating, setIsCreating] = useState(false);
 
@@ -85,7 +82,7 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
   };
 
   return (
-    <aside className="w-64 bg-card border-r border-border flex flex-col h-full overflow-hidden shrink-0 z-20">
+    <aside className="w-64 bg-card border-r border-border flex flex-col h-full overflow-hidden shrink-0 z-20 shadow-inner">
       {serverId && user ? (
         <>
           <DropdownMenu>
@@ -128,43 +125,49 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
                   </Button>
                 )}
               </div>
-              <div className="space-y-1">
-                {channels?.map(c => (
-                  <div key={c.id} className="group flex items-center gap-1">
-                    <button 
-                      onClick={() => onSelectChannel(c.id)}
-                      className={cn(
-                        "flex-1 flex items-center px-3 py-2 rounded-xl text-sm transition-all text-left",
-                        c.id === activeChannelId ? "bg-primary text-white font-bold shadow-lg" : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                      )}
-                    >
-                      <Hash className="h-4 w-4 mr-2.5 opacity-50" />
-                      <span className="truncate">{c.name}</span>
-                    </button>
-                  </div>
-                ))}
+              <div className="space-y-1 relative">
+                {channels?.map(c => {
+                  const isActive = c.id === activeChannelId;
+                  return (
+                    <div key={c.id} className="group flex items-center gap-1 relative">
+                      {isActive && <div className="absolute left-[-12px] w-1 h-6 bg-primary rounded-r-full animate-in slide-in-from-left duration-300" />}
+                      <button 
+                        onClick={() => onSelectChannel(c.id)}
+                        className={cn(
+                          "flex-1 flex items-center px-3 py-2 rounded-xl text-sm transition-all text-left",
+                          isActive ? "bg-primary text-white font-bold shadow-lg" : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                        )}
+                      >
+                        <Hash className="h-4 w-4 mr-2.5 opacity-50" />
+                        <span className="truncate">{c.name}</span>
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
         </>
       ) : (
         <div className="flex-1 flex flex-col items-center justify-center p-8 text-center opacity-40">
-          <Globe className="h-8 w-8 text-muted-foreground mb-4" />
-          <p className="text-[10px] font-black uppercase tracking-[0.2em]">Select a Community</p>
+          <div className="p-4 bg-muted rounded-full mb-4">
+            <Globe className="h-8 w-8 text-muted-foreground" />
+          </div>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Select a Community</p>
         </div>
       )}
 
       <div className="p-4 bg-muted/40 border-t flex flex-col gap-4 shrink-0">
         <ContactFormDialog trigger={
-          <Button variant="outline" size="sm" className="w-full gap-2 text-[10px] font-bold uppercase tracking-wider h-8">
+          <Button variant="outline" size="sm" className="w-full gap-2 text-[10px] font-bold uppercase tracking-wider h-8 border-dashed">
             <Mail className="h-3 w-3" /> Contact Support
           </Button>
         } />
         
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="relative cursor-pointer" onClick={() => setProfileOpen(true)}>
-              <Avatar className="h-10 w-10 shadow-md">
+            <div className="relative cursor-pointer group/avatar" onClick={() => setProfileOpen(true)}>
+              <Avatar className="h-10 w-10 shadow-md transition-transform group-hover/avatar:scale-105 border-2 border-transparent group-hover/avatar:border-primary/20">
                 <AvatarImage src={userData?.photoURL || undefined} />
                 <AvatarFallback className="bg-primary text-white font-black">{userData?.username?.[0]?.toUpperCase()}</AvatarFallback>
               </Avatar>

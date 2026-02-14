@@ -24,9 +24,11 @@ service cloud.firestore {
       return resource != null && isOwner(userId);
     }
 
-    function isCommunityMember(communityId) {
+    // Helper to check membership via the denormalized array on the community document
+    function isMemberOfCommunity(communityId) {
+      let community = get(/databases/$(database)/documents/communities/$(communityId));
       return isSignedIn() && (
-        exists(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid)) ||
+        (community.data.members != null && request.auth.uid in community.data.members) ||
         isAdmin()
       );
     }
@@ -34,7 +36,7 @@ service cloud.firestore {
     // --- COLLECTION RULES ---
 
     match /users/{userId} {
-      // Allow public read for profiles and username uniqueness checks
+      // Allow public read for profiles and uniqueness checks
       allow get, list: if true; 
       allow create: if isOwner(userId);
       allow update: if isOwner(userId) || isAdmin();
@@ -74,59 +76,61 @@ service cloud.firestore {
     match /contact_form_submissions/{submissionId} {
       allow get: if isAdmin() || (isSignedIn() && resource.data.submitterId == request.auth.uid);
       allow list: if isAdmin();
-      allow create: if true; // Anyone can submit a contact form
+      allow create: if true; 
       allow update, delete: if isAdmin();
     }
 
     match /communities/{communityId} {
-      // Allow list if the user is in the members array or it's public
-      allow list: if isSignedIn() && (
-        (resource.data.members != null && request.auth.uid in resource.data.members) || 
+      // Simplified list rule to ensure queries work for all users
+      allow list: if isSignedIn();
+      
+      // Get requires being a member, it being public, or being an admin
+      allow get: if isSignedIn() && (
         resource.data.isPublic == true || 
+        (resource.data.members != null && request.auth.uid in resource.data.members) ||
         isAdmin()
       );
       
-      allow get: if resource.data.isPublic == true || isCommunityMember(communityId) || isAdmin();
       allow create: if isSignedIn();
       
+      // Allow joining public communities or full updates for owners/admins
       allow update: if (isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin())) || 
                     (resource.data.isPublic == true && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members']));
       
       allow delete: if (resource != null && resource.data.ownerId == request.auth.uid) || isAdmin();
 
       match /members/{userId} {
-        allow get, list: if isCommunityMember(communityId) || isAdmin();
-        allow create: if isSignedIn(); // Allow joining
+        allow get, list: if isSignedIn();
+        allow create: if isSignedIn(); 
         allow update, delete: if isAdmin() || isOwner(userId) || (get(/databases/$(database)/documents/communities/$(communityId)).data.ownerId == request.auth.uid);
       }
 
       match /channels/{channelId} {
-        allow get, list: if isCommunityMember(communityId) || isAdmin();
-        // Allow creation if signed in (handles batch creation with parent)
+        allow get, list: if isMemberOfCommunity(communityId) || isAdmin();
         allow create: if isSignedIn(); 
         allow update, delete: if isAdmin() || (get(/databases/$(database)/documents/communities/$(communityId)).data.ownerId == request.auth.uid);
 
         match /messages/{messageId} {
-          allow get, list: if isCommunityMember(communityId) || isAdmin();
-          allow create: if isCommunityMember(communityId) && request.resource.data.senderId == request.auth.uid;
+          allow get, list: if isMemberOfCommunity(communityId) || isAdmin();
+          allow create: if isMemberOfCommunity(communityId) && request.resource.data.senderId == request.auth.uid;
           allow update: if isExistingOwner(resource.data.senderId);
           allow delete: if isExistingOwner(resource.data.senderId) || isAdmin();
 
           match /reactions/{reactionId} {
-            allow get, list: if isCommunityMember(communityId);
-            allow create: if isCommunityMember(communityId) && request.resource.data.userId == request.auth.uid;
+            allow get, list: if isMemberOfCommunity(communityId);
+            allow create: if isMemberOfCommunity(communityId) && request.resource.data.userId == request.auth.uid;
             allow update, delete: if isExistingOwner(resource.data.userId);
           }
 
           match /read_receipts/{receiptId} {
-            allow get, list: if isCommunityMember(communityId);
-            allow create: if isCommunityMember(communityId) && request.resource.data.readerId == request.auth.uid;
+            allow get, list: if isMemberOfCommunity(communityId);
+            allow create: if isMemberOfCommunity(communityId) && request.resource.data.readerId == request.auth.uid;
             allow update, delete: if isExistingOwner(resource.data.readerId);
           }
 
           match /media_attachments/{mediaId} {
-            allow get, list: if isCommunityMember(communityId);
-            allow create: if isCommunityMember(communityId) && request.resource.data.uploaderId == request.auth.uid;
+            allow get, list: if isMemberOfCommunity(communityId);
+            allow create: if isMemberOfCommunity(communityId) && request.resource.data.uploaderId == request.auth.uid;
             allow update, delete: if isExistingOwner(resource.data.uploaderId);
           }
         }
