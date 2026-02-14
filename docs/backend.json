@@ -58,7 +58,15 @@
         "createdAt": { "type": "string", "format": "date-time" },
         "edited": { "type": "boolean" },
         "reactions": { "type": "object" },
-        "seenBy": { "type": "array", "items": { "type": "string" } }
+        "seenBy": { "type": "array", "items": { "type": "string" } },
+        "replyTo": {
+          "type": "object",
+          "properties": {
+            "messageId": { "type": "string" },
+            "senderName": { "type": "string" },
+            "text": { "type": "string" }
+          }
+        }
       },
       "required": ["id", "senderId", "text", "createdAt"]
     }

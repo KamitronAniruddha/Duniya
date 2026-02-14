@@ -1,8 +1,9 @@
+
 "use client";
 
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { useCollection, useFirestore, useUser, useDoc, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy, limit, doc, serverTimestamp } from "firebase/firestore";
+import { collection, query, orderBy, limit, doc, serverTimestamp, getDoc } from "firebase/firestore";
 import { MessageBubble } from "./message-bubble";
 import { MessageInput } from "./message-input";
 import { Hash, Phone, Video, Users, Loader2, MessageCircle } from "lucide-react";
@@ -23,6 +24,8 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const [replyingTo, setReplyingTo] = useState<any | null>(null);
+
   const channelRef = useMemoFirebase(() => (channelId && user ? doc(db, "channels", channelId) : null), [db, channelId, user?.uid]);
   const { data: channel } = useDoc(channelRef);
 
@@ -37,17 +40,37 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
 
   const { data: messages, isLoading: messagesLoading } = useCollection(messagesQuery);
 
-  const handleSendMessage = (text: string) => {
+  const handleSendMessage = async (text: string) => {
     if (!db || !channelId || !user) return;
+    
     const messageRef = doc(collection(db, "messages", channelId, "chatMessages"));
+    
+    let replyData = null;
+    if (replyingTo) {
+      // Get the sender's username for the reply reference
+      const senderRef = doc(db, "users", replyingTo.senderId);
+      const senderSnap = await getDoc(senderRef);
+      const senderName = senderSnap.exists() ? senderSnap.data().username : "Someone";
+
+      replyData = {
+        messageId: replyingTo.id,
+        senderName: senderName,
+        text: replyingTo.text.length > 100 ? replyingTo.text.substring(0, 100) + "..." : replyingTo.text
+      };
+    }
+
     setDocumentNonBlocking(messageRef, {
       id: messageRef.id,
       senderId: user.uid,
       text,
       createdAt: serverTimestamp(),
       edited: false,
-      seenBy: [user.uid]
+      seenBy: [user.uid],
+      ...(replyData && { replyTo: replyData })
     }, { merge: true });
+
+    setReplyingTo(null);
+    inputRef.current?.focus();
   };
 
   useEffect(() => {
@@ -124,7 +147,11 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
               <MessageBubble 
                 key={msg.id} 
                 message={msg} 
-                isMe={msg.senderId === user?.uid} 
+                isMe={msg.senderId === user?.uid}
+                onReply={() => {
+                  setReplyingTo(msg);
+                  inputRef.current?.focus();
+                }}
               />
             ))
           )}
@@ -132,7 +159,12 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
       </div>
 
       <div className="shrink-0 bg-white border-t">
-        <MessageInput onSendMessage={handleSendMessage} inputRef={inputRef} />
+        <MessageInput 
+          onSendMessage={handleSendMessage} 
+          inputRef={inputRef}
+          replyingTo={replyingTo}
+          onCancelReply={() => setReplyingTo(null)}
+        />
       </div>
     </div>
   );

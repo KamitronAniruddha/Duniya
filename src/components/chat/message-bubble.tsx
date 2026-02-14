@@ -6,6 +6,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useDoc, useFirestore, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
 import { UserProfilePopover } from "@/components/profile/user-profile-popover";
+import { Reply, CornerDownRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface MessageBubbleProps {
   message: {
@@ -13,11 +15,17 @@ interface MessageBubbleProps {
     senderId: string;
     text: string;
     createdAt: any;
+    replyTo?: {
+      messageId: string;
+      senderName: string;
+      text: string;
+    };
   };
   isMe: boolean;
+  onReply?: () => void;
 }
 
-export function MessageBubble({ message, isMe }: MessageBubbleProps) {
+export function MessageBubble({ message, isMe, onReply }: MessageBubbleProps) {
   const db = useFirestore();
   const userRef = useMemoFirebase(() => doc(db, "users", message.senderId), [db, message.senderId]);
   const { data: sender } = useDoc(userRef);
@@ -27,10 +35,10 @@ export function MessageBubble({ message, isMe }: MessageBubbleProps) {
     : "";
 
   return (
-    <div className={cn("flex w-full py-1 group", isMe ? "justify-end" : "justify-start")}>
+    <div className={cn("flex w-full py-0.5 group items-end", isMe ? "flex-row-reverse" : "flex-row")}>
       {!isMe && (
         <UserProfilePopover userId={message.senderId}>
-          <button className="h-8 w-8 mt-0.5 mr-2 shrink-0 transition-transform hover:scale-105">
+          <button className="h-8 w-8 mb-1 mr-2 shrink-0 transition-transform hover:scale-105">
             <Avatar className="h-full w-full shadow-sm border border-border">
               <AvatarImage src={sender?.photoURL || undefined} />
               <AvatarFallback className="text-[10px] font-bold bg-primary text-white">
@@ -41,29 +49,66 @@ export function MessageBubble({ message, isMe }: MessageBubbleProps) {
         </UserProfilePopover>
       )}
       
-      <div className={cn("flex flex-col max-w-[75%]", isMe ? "items-end" : "items-start")}>
+      <div className={cn("flex flex-col max-w-[70%] relative", isMe ? "items-end" : "items-start")}>
         {!isMe && (
           <UserProfilePopover userId={message.senderId}>
-            <button className="text-[11px] font-bold text-muted-foreground ml-1 mb-0.5 hover:text-primary transition-colors">
-              {sender?.username || "Loading..."}
+            <button className="text-[10px] font-bold text-muted-foreground ml-1 mb-0.5 hover:text-primary transition-colors">
+              {sender?.username || "..."}
             </button>
           </UserProfilePopover>
         )}
         
         <div className={cn(
-          "px-3.5 py-2 rounded-2xl text-sm shadow-sm transition-shadow hover:shadow-md",
+          "px-3 py-2 rounded-2xl text-sm shadow-sm transition-shadow group-hover:shadow-md relative",
           isMe 
-            ? "bg-primary text-primary-foreground rounded-tr-none" 
-            : "bg-white text-foreground rounded-tl-none border border-border"
+            ? "bg-primary text-primary-foreground rounded-br-none" 
+            : "bg-white text-foreground rounded-bl-none border border-border"
         )}>
-          <p className="whitespace-pre-wrap break-words">{message.text}</p>
+          {/* Reply Reference (Quoted Message) */}
+          {message.replyTo && (
+            <div className={cn(
+              "mb-2 p-2 rounded-lg border-l-4 text-xs bg-black/5 flex flex-col gap-0.5",
+              isMe ? "border-white/30" : "border-primary/50"
+            )}>
+              <span className={cn(
+                "font-bold text-[10px] flex items-center gap-1",
+                isMe ? "text-white/80" : "text-primary"
+              )}>
+                <CornerDownRight className="h-3 w-3" />
+                {message.replyTo.senderName}
+              </span>
+              <p className={cn(
+                "line-clamp-2 italic",
+                isMe ? "text-white/70" : "text-muted-foreground"
+              )}>
+                {message.replyTo.text}
+              </p>
+            </div>
+          )}
+
+          <p className="whitespace-pre-wrap break-words leading-relaxed">{message.text}</p>
           <div className={cn(
-            "text-[9px] mt-1 text-right leading-none",
-            isMe ? "text-primary-foreground/70" : "text-muted-foreground"
+            "text-[9px] mt-1 text-right leading-none opacity-70",
+            isMe ? "text-primary-foreground" : "text-muted-foreground"
           )}>
             {timestamp}
           </div>
         </div>
+      </div>
+
+      {/* Reply Action Button */}
+      <div className={cn(
+        "mb-2 mx-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center",
+        isMe ? "mr-1" : "ml-1"
+      )}>
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="h-6 w-6 rounded-full hover:bg-gray-100"
+          onClick={onReply}
+        >
+          <Reply className="h-3 w-3 text-muted-foreground" />
+        </Button>
       </div>
     </div>
   );
