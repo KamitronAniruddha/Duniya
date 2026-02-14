@@ -6,11 +6,12 @@ import { useCollection, useFirestore, useUser, useDoc, useMemoFirebase } from "@
 import { collection, query, orderBy, limit, doc, serverTimestamp, getDoc, Timestamp } from "firebase/firestore";
 import { MessageBubble } from "./message-bubble";
 import { MessageInput } from "./message-input";
-import { Hash, Phone, Video, Users, Loader2, MessageCircle, Timer } from "lucide-react";
+import { Hash, Phone, Video, Users, Loader2, MessageCircle, Timer, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { DisappearingMessagesDialog } from "@/components/servers/disappearing-messages-dialog";
 
 interface ChatWindowProps {
   channelId: string | null;
@@ -32,6 +33,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [replyingTo, setReplyingTo] = useState<any | null>(null);
+  const [isDisappearingDialogOpen, setIsDisappearingDialogOpen] = useState(false);
 
   const channelRef = useMemoFirebase(() => (channelId && user ? doc(db, "channels", channelId) : null), [db, channelId, user?.uid]);
   const { data: channel } = useDoc(channelRef);
@@ -49,6 +51,11 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
   }, [db, channelId, user?.uid]);
 
   const { data: rawMessages, isLoading: messagesLoading } = useCollection(messagesQuery);
+
+  const isAdmin = useMemo(() => {
+    if (!server || !user) return false;
+    return server.ownerId === user.uid || server.admins?.includes(user.uid);
+  }, [server, user]);
 
   // Filter messages that the user has "Deleted for me" AND messages that have expired
   const messages = useMemo(() => {
@@ -161,21 +168,39 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
         <div className="flex items-center gap-2 min-w-0">
           <Hash className="h-5 w-5 text-muted-foreground shrink-0" />
           <h2 className="font-bold text-sm truncate">{channel?.name || "..."}</h2>
-          {server?.disappearingMessagesDuration && server.disappearingMessagesDuration !== "off" && (
-            <TooltipProvider>
-              <Tooltip delayDuration={0}>
-                <TooltipTrigger asChild>
-                  <div className="p-1 bg-primary/10 rounded-full cursor-help">
-                    <Timer className="h-3 w-3 text-primary" />
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="text-xs">Disappearing messages are ON ({server.disappearingMessagesDuration})</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
+          
+          <TooltipProvider>
+            <Tooltip delayDuration={0}>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className={cn(
+                    "h-7 px-2 gap-1.5 rounded-full text-[10px] font-bold uppercase transition-all",
+                    server?.disappearingMessagesDuration && server.disappearingMessagesDuration !== "off"
+                      ? "bg-primary/10 text-primary hover:bg-primary/20"
+                      : "text-muted-foreground hover:bg-gray-100"
+                  )}
+                  onClick={() => isAdmin && setIsDisappearingDialogOpen(true)}
+                  disabled={!isAdmin && (!server?.disappearingMessagesDuration || server.disappearingMessagesDuration === "off")}
+                >
+                  <Timer className={cn("h-3.5 w-3.5", server?.disappearingMessagesDuration !== "off" && "animate-pulse")} />
+                  <span className="hidden xs:inline">
+                    {server?.disappearingMessagesDuration && server.disappearingMessagesDuration !== "off" 
+                      ? server.disappearingMessagesDuration 
+                      : "Off"}
+                  </span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="text-xs">
+                  {isAdmin ? "Click to change disappearing messages" : "Disappearing messages are " + (server?.disappearingMessagesDuration || "off")}
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
+        
         <div className="flex items-center gap-1">
           <Button variant="ghost" size="icon" className="h-8 w-8 hidden sm:inline-flex">
             <Phone className="h-4 w-4 text-muted-foreground" />
@@ -239,6 +264,14 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
           onCancelReply={() => setReplyingTo(null)}
         />
       </div>
+
+      {serverId && (
+        <DisappearingMessagesDialog 
+          open={isDisappearingDialogOpen}
+          onOpenChange={setIsDisappearingDialogOpen}
+          serverId={serverId}
+        />
+      )}
     </div>
   );
 }

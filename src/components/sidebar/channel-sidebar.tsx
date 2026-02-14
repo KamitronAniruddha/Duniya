@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { useCollection, useFirestore, useUser, useDoc, useMemoFirebase, useAuth } from "@/firebase";
 import { collection, query, where, doc, serverTimestamp } from "firebase/firestore";
-import { Hash, Settings, ChevronDown, LogOut, Loader2, Plus, Users, Check, Edit2, Copy, Share2 } from "lucide-react";
+import { Hash, Settings, ChevronDown, LogOut, Loader2, Plus, Users, Check, Edit2, Copy, Share2, Timer } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { ProfileDialog } from "@/components/profile/profile-dialog";
 import { ServerSettingsDialog } from "@/components/servers/server-settings-dialog";
 import { ChannelSettingsDialog } from "@/components/channels/channel-settings-dialog";
+import { DisappearingMessagesDialog } from "@/components/servers/disappearing-messages-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -32,6 +33,7 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
   
   const [profileOpen, setProfileOpen] = useState(false);
   const [serverSettingsOpen, setServerSettingsOpen] = useState(false);
+  const [disappearingOpen, setDisappearingOpen] = useState(false);
   const [createChannelOpen, setCreateChannelOpen] = useState(false);
   const [editChannelId, setEditChannelId] = useState<string | null>(null);
   const [newChannelName, setNewChannelName] = useState("");
@@ -110,12 +112,19 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
               </header>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56">
+              {isAdmin && (
+                <DropdownMenuItem onClick={() => setDisappearingOpen(true)} className="flex items-center gap-2">
+                  <Timer className="h-4 w-4 text-primary" />
+                  Disappearing Messages
+                </DropdownMenuItem>
+              )}
               {isOwner && (
                 <DropdownMenuItem onClick={() => setServerSettingsOpen(true)}>
                   <Settings className="h-4 w-4 mr-2" />
                   Server Settings
                 </DropdownMenuItem>
               )}
+              <DropdownMenuSeparator />
               {server?.joinCode && (
                 <DropdownMenuItem onClick={copyJoinCode}>
                   <Share2 className="h-4 w-4 mr-2" />
@@ -256,6 +265,7 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
 
       <ProfileDialog open={profileOpen} onOpenChange={setProfileOpen} />
       {serverId && <ServerSettingsDialog open={serverSettingsOpen} onOpenChange={setServerSettingsOpen} serverId={serverId} />}
+      {serverId && <DisappearingMessagesDialog open={disappearingOpen} onOpenChange={setDisappearingOpen} serverId={serverId} />}
       {editChannelId && (
         <ChannelSettingsDialog 
           open={!!editChannelId} 
