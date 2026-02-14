@@ -27,6 +27,7 @@ export default function ConnectVerseApp() {
 
   // Track previous serverIds to detect removal
   const prevServerIdsRef = useRef<string[]>([]);
+  const hasLoadedInitialData = useRef(false);
 
   const userRef = useMemoFirebase(() => (user ? doc(db, "users", user.uid) : null), [db, user?.uid]);
   const { data: userData } = useDoc(userRef);
@@ -45,18 +46,27 @@ export default function ConnectVerseApp() {
     const currentIds = userData.serverIds || [];
     const prevIds = prevServerIdsRef.current;
 
-    // Detect if the active server was removed from the user's list
-    if (activeServerId && !currentIds.includes(activeServerId)) {
-      toast({
-        variant: "destructive",
-        title: "Access Revoked",
-        description: "You have been removed from the server by an administrator.",
-      });
-      setActiveServerId(null);
-      setActiveChannelId(null);
+    // Only trigger removal alert if we had previous server data (i.e., not the first load)
+    // and the active server was in that previous list but is now missing.
+    if (hasLoadedInitialData.current && activeServerId) {
+      const wasInServer = prevIds.includes(activeServerId);
+      const isInServerNow = currentIds.includes(activeServerId);
+
+      if (wasInServer && !isInServerNow) {
+        toast({
+          variant: "destructive",
+          title: "Access Revoked",
+          description: "You have been removed from the server by an administrator.",
+        });
+        setActiveServerId(null);
+        setActiveChannelId(null);
+      }
     }
 
-    prevServerIdsRef.current = currentIds;
+    if (currentIds.length > 0 || hasLoadedInitialData.current === false) {
+      prevServerIdsRef.current = currentIds;
+      hasLoadedInitialData.current = true;
+    }
   }, [userData?.serverIds, activeServerId, toast]);
 
   useEffect(() => {
