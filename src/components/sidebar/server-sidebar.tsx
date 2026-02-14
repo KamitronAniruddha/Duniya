@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { setDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 interface ServerSidebarProps {
   activeServerId: string | null;
@@ -63,11 +63,11 @@ export function ServerSidebar({ activeServerId, onSelectServer }: ServerSidebarP
         createdAt: serverTimestamp()
       }, { merge: true });
 
-      // 3. Update User Server List
+      // 3. Update User Server List (Using set with merge to avoid 'no document' error)
       const userRef = doc(db, "users", user.uid);
-      updateDocumentNonBlocking(userRef, {
+      setDocumentNonBlocking(userRef, {
         serverIds: arrayUnion(serverId)
-      });
+      }, { merge: true });
 
       toast({ title: "Server Created", description: `Welcome to ${name}!` });
       setName("");

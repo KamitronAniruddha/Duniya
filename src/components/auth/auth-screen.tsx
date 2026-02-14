@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { useAuth, useFirestore, errorEmitter, FirestorePermissionError } from "@/firebase";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from "firebase/auth";
-import { doc, getDocs, collection, query, where, serverTimestamp, setDoc } from "firebase/firestore";
+import { doc, getDocs, collection, query, where, serverTimestamp } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,7 +36,7 @@ export function AuthScreen() {
         if (password !== confirmPassword) throw new Error("Passwords do not match");
         if (username.length < 3) throw new Error("Username must be at least 3 characters");
 
-        // 1. Check uniqueness of username (Allowed by rules for public read)
+        // 1. Check uniqueness of username
         const q = query(collection(db, "users"), where("username", "==", username.toLowerCase()));
         try {
           const querySnapshot = await getDocs(q);
@@ -60,7 +60,7 @@ export function AuthScreen() {
         // 3. Update Auth profile
         await updateProfile(user, { displayName: username });
 
-        // 4. Create Firestore user document (Non-blocking)
+        // 4. Create Firestore user document
         const userRef = doc(db, "users", user.uid);
         const userData = {
           id: user.uid,
