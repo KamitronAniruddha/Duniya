@@ -1,4 +1,3 @@
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -11,16 +10,20 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      // Allow public read for username uniqueness checks during signup
-      allow read: if true;
+      // Allow read for auth checks and profile lookups
+      allow read: if isSignedIn();
       allow create, update: if isOwner(userId);
     }
 
     match /servers/{serverId} {
       // Allow read if user is a member
-      allow read: if isSignedIn() && request.auth.uid in resource.data.members;
+      allow read: if isSignedIn() && (request.auth.uid in resource.data.members);
       allow create: if isSignedIn();
-      allow update, delete: if isSignedIn() && request.auth.uid == resource.data.ownerId;
+      allow update: if isSignedIn() && (
+        request.auth.uid == resource.data.ownerId || 
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members']))
+      );
+      allow delete: if isSignedIn() && request.auth.uid == resource.data.ownerId;
     }
 
     match /channels/{channelId} {

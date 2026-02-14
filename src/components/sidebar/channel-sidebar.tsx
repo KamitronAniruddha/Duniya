@@ -3,12 +3,14 @@
 import { useState } from "react";
 import { useCollection, useFirestore, useUser, useDoc, useMemoFirebase, useAuth } from "@/firebase";
 import { collection, query, where, doc, serverTimestamp } from "firebase/firestore";
-import { Hash, Settings, ChevronDown, LogOut, Loader2, Plus, Mic, Headphones } from "lucide-react";
+import { Hash, Settings, ChevronDown, LogOut, Loader2, Plus, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { ProfileDialog } from "@/components/profile/profile-dialog";
+import { ServerSettingsDialog } from "@/components/servers/server-settings-dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 interface ChannelSidebarProps {
   serverId: string | null;
@@ -21,6 +23,7 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
   const auth = useAuth();
   const { user } = useUser();
   const [profileOpen, setProfileOpen] = useState(false);
+  const [serverSettingsOpen, setServerSettingsOpen] = useState(false);
 
   const serverRef = useMemoFirebase(() => (serverId ? doc(db, "servers", serverId) : null), [db, serverId]);
   const { data: server } = useDoc(serverRef);
@@ -31,6 +34,8 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
   }, [db, serverId]);
 
   const { data: channels, isLoading } = useCollection(channelsQuery);
+
+  const isOwner = server?.ownerId === user?.uid;
 
   const handleLogout = () => {
     if (user && db && auth.currentUser) {
@@ -47,10 +52,31 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
     <aside className="w-60 bg-white border-r border-border flex flex-col h-full overflow-hidden shrink-0">
       {serverId ? (
         <>
-          <header className="h-14 px-4 border-b flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer shrink-0">
-            <h2 className="font-bold truncate text-sm">{server?.name || "..."}</h2>
-            <ChevronDown className="h-4 w-4 text-muted-foreground" />
-          </header>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <header className="h-14 px-4 border-b flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer shrink-0">
+                <h2 className="font-bold truncate text-sm">{server?.name || "..."}</h2>
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              </header>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56">
+              {isOwner && (
+                <DropdownMenuItem onClick={() => setServerSettingsOpen(true)}>
+                  <Settings className="h-4 w-4 mr-2" />
+                  Server Settings
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem onClick={() => {
+                navigator.clipboard.writeText(serverId);
+                alert("Server ID copied! Share this with friends to let them join.");
+              }}>
+                <Users className="h-4 w-4 mr-2" />
+                Copy Server ID
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="text-destructive">Leave Server</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <div className="flex-1 overflow-y-auto py-4 space-y-4 custom-scrollbar">
             {isLoading ? (
@@ -63,7 +89,7 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
                 <div>
                   <div className="px-2 mb-1 flex items-center justify-between group">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">Text Channels</span>
-                    <Plus className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 cursor-pointer" />
+                    {isOwner && <Plus className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 cursor-pointer" />}
                   </div>
                   <div className="space-y-0.5">
                     {channels?.filter(c => c.type === 'text').map(c => (
@@ -120,6 +146,7 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
         </div>
       </div>
       <ProfileDialog open={profileOpen} onOpenChange={setProfileOpen} />
+      {serverId && <ServerSettingsDialog open={serverSettingsOpen} onOpenChange={setServerSettingsOpen} serverId={serverId} />}
     </aside>
   );
 }

@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import { useCollection, useFirestore, useUser, useMemoFirebase } from "@/firebase";
-import { collection, query, where, serverTimestamp, doc, arrayUnion } from "firebase/firestore";
+import { collection, query, where, serverTimestamp, doc, arrayUnion, getDoc } from "firebase/firestore";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Plus, Loader2 } from "lucide-react";
+import { Plus, Loader2, Compass } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,22 +24,23 @@ export function ServerSidebar({ activeServerId, onSelectServer }: ServerSidebarP
   const { user } = useUser();
   const { toast } = useToast();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
   const [name, setName] = useState("");
-  const [isCreating, setIsCreating] = useState(false);
+  const [joinId, setJoinId] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const serversQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
     return query(collection(db, "servers"), where("members", "array-contains", user.uid));
   }, [db, user?.uid]);
 
-  const { data: servers, isLoading } = useCollection(serversQuery);
+  const { data: servers, isLoading: isServersLoading } = useCollection(serversQuery);
 
   const handleCreateServer = () => {
     if (!name.trim() || !user || !db) return;
-    setIsCreating(true);
+    setIsLoading(true);
     
     try {
-      // 1. Create Server Doc with Pre-generated ID
       const serverRef = doc(collection(db, "servers"));
       const serverId = serverRef.id;
       
@@ -52,7 +53,6 @@ export function ServerSidebar({ activeServerId, onSelectServer }: ServerSidebarP
         createdAt: serverTimestamp()
       }, { merge: true });
 
-      // 2. Create Default Channel
       const channelRef = doc(collection(db, "channels"));
       setDocumentNonBlocking(channelRef, {
         id: channelRef.id,
@@ -62,7 +62,6 @@ export function ServerSidebar({ activeServerId, onSelectServer }: ServerSidebarP
         createdAt: serverTimestamp()
       }, { merge: true });
 
-      // 3. Update User Server List (Using set with merge to avoid 'no document' error)
       const userRef = doc(db, "users", user.uid);
       setDocumentNonBlocking(userRef, {
         serverIds: arrayUnion(serverId)
@@ -75,7 +74,39 @@ export function ServerSidebar({ activeServerId, onSelectServer }: ServerSidebarP
     } catch (e: any) {
       toast({ variant: "destructive", title: "Error", description: e.message });
     } finally {
-      setIsCreating(false);
+      setIsLoading(false);
+    }
+  };
+
+  const handleJoinServer = async () => {
+    if (!joinId.trim() || !user || !db) return;
+    setIsLoading(true);
+
+    try {
+      const serverRef = doc(db, "servers", joinId.trim());
+      const serverSnap = await getDoc(serverRef);
+
+      if (!serverSnap.exists()) {
+        throw new Error("Server not found. Please check the ID.");
+      }
+
+      setDocumentNonBlocking(serverRef, {
+        members: arrayUnion(user.uid)
+      }, { merge: true });
+
+      const userRef = doc(db, "users", user.uid);
+      setDocumentNonBlocking(userRef, {
+        serverIds: arrayUnion(joinId.trim())
+      }, { merge: true });
+
+      toast({ title: "Joined Server", description: "You have joined the community!" });
+      setJoinId("");
+      setIsJoinModalOpen(false);
+      onSelectServer(joinId.trim());
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Join Error", description: e.message });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -96,7 +127,7 @@ export function ServerSidebar({ activeServerId, onSelectServer }: ServerSidebarP
 
         <div className="w-8 h-[2px] bg-sidebar-accent/50 rounded-full shrink-0" />
 
-        {isLoading ? (
+        {isServersLoading ? (
           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground/50" />
         ) : (
           servers?.map(s => (
@@ -128,12 +159,33 @@ export function ServerSidebar({ activeServerId, onSelectServer }: ServerSidebarP
             <div className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label>Server Name</Label>
-                <Input value={name} onChange={(e) => setName(e.target.value)} disabled={isCreating} />
+                <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="My Cool Server" disabled={isLoading} />
               </div>
             </div>
             <DialogFooter>
               <Button variant="ghost" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-              <Button onClick={handleCreateServer} disabled={isCreating || !name.trim()}>Create</Button>
+              <Button onClick={handleCreateServer} disabled={isLoading || !name.trim()}>Create</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={isJoinModalOpen} onOpenChange={setIsJoinModalOpen}>
+          <DialogTrigger asChild>
+            <button className="w-12 h-12 flex items-center justify-center rounded-[24px] hover:rounded-[16px] bg-sidebar-accent hover:bg-primary text-primary hover:text-white transition-all">
+              <Compass className="h-6 w-6" />
+            </button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Join a Server</DialogTitle></DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Server ID</Label>
+                <Input value={joinId} onChange={(e) => setJoinId(e.target.value)} placeholder="Enter the unique server ID" disabled={isLoading} />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setIsJoinModalOpen(false)}>Cancel</Button>
+              <Button onClick={handleJoinServer} disabled={isLoading || !joinId.trim()}>Join Server</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

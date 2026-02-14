@@ -39,7 +39,6 @@ export default function ConnectVerseApp() {
     const userRef = doc(db, "users", user.uid);
     
     const updateStatus = (status: "online" | "idle" | "offline") => {
-      // Ensure user is still authed before updating
       if (!auth.currentUser) return;
       
       setDocumentNonBlocking(userRef, {
@@ -73,7 +72,7 @@ export default function ConnectVerseApp() {
 
   if (isUserLoading) {
     return (
-      <div className="h-screen w-full flex items-center justify-center bg-background">
+      <div className="h-[100dvh] w-full flex items-center justify-center bg-background">
         <div className="text-center space-y-4">
           <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto" />
           <p className="text-sm font-medium text-muted-foreground">Connecting to Verse...</p>
