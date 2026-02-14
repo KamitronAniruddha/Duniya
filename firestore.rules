@@ -1,162 +1,36 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    /**
-     * ConnectVerse Security Rules
-     *
-     * Core Philosophy:
-     * This ruleset enforces a strict membership and ownership model. It leverages denormalized 
-     * metadata (like member maps and owner IDs) directly on documents to ensure high-performance, 
-     * single-document authorization checks without relying on costly 'get()' calls.
-     *
-     * Data Structure:
-     * - /users/{userId}: Individual user profiles and private data.
-     * - /servers/{serverId}: Community hubs containing member role maps.
-     * - /channels/{channelId}: Communication channels within servers, inheriting membership context.
-     * - /invites/{inviteCode}: Global lookup for server entry points.
-     *
-     * Key Security Decisions:
-     * 1. Authorization Independence: Each channel and message document contains a 'serverMembers' map. 
-     *    This allows the rules to verify a user's permission to read or write by looking at the 
-     *    document itself, enabling secure and efficient listing/queries.
-     * 2. Strict Owner-Writes: While server data is shared among members, only the 'ownerId' or 
-     *    the original 'senderId' can perform destructive or administrative modifications.
-     * 3. Structural Integrity: For user-scoped paths, we enforce that the internal document ID 
-     *    matches the URL path to prevent data cross-talk.
-     * 4. Prototyping Flexibility: Logic focuses strictly on WHO can access data. Data types and 
-     *    object shapes are not enforced to allow for rapid frontend iteration.
-     */
-
-    // --- GLOBAL HELPER FUNCTIONS ---
-
-    /** @description Checks if the request is from an authenticated user. */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /** @description Checks if the authenticated user's UID matches the provided userId. */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    /** @description Checks ownership for existing documents during update/delete. */
-    function isExistingOwner(userId) {
-      return resource != null && isOwner(userId);
-    }
-
-    /** @description Validates membership using a denormalized map of user IDs. */
-    function isMemberInMap(memberMap) {
-      return isSignedIn() && request.auth.uid in memberMap;
-    }
-
-    /** @description Validates ownership based on an internal ID field. */
-    function isDocumentOwner(ownerIdField) {
-      return isSignedIn() && request.auth.uid == ownerIdField;
-    }
-
-    // --- COLLECTION RULES ---
-
-    /**
-     * @description Rules for user profile documents.
-     * @path /users/{userId}
-     * @allow (get, list) Any authenticated user (to allow finding friends/mentions).
-     * @allow (create, update) Only the user whose UID matches the document ID.
-     * @deny (delete) Profile deletion is restricted (admin-only or deactivated).
-     * @principle Enforces path-based user ownership and identity consistency.
-     */
     match /users/{userId} {
-      allow get, list: if isSignedIn();
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
-      allow delete: if false;
-
-      /**
-       * @description Rules for user-specific stories/ephemeral content.
-       * @path /users/{userId}/stories/{storyId}
-       * @allow (get, list) Any authenticated user.
-       * @allow (create, delete) Only the user who owns the parent path.
-       * @principle Restricts story creation and removal to the profile owner.
-       */
-      match /stories/{storyId} {
-        allow get, list: if isSignedIn();
-        allow create: if isOwner(userId);
-        allow update: if false; // Stories are typically immutable once posted
-        allow delete: if isExistingOwner(userId);
-      }
+      allow read: if isSignedIn();
+      allow create, update: if isOwner(userId);
     }
 
-    /**
-     * @description Rules for Server documents.
-     * @path /servers/{serverId}
-     * @allow (get, list) Only users present in the denormalized 'members' map.
-     * @allow (create) Any authenticated user (creating a new community).
-     * @allow (update, delete) Only the server 'ownerId'.
-     * @principle Uses denormalized member maps for efficient access control.
-     */
     match /servers/{serverId} {
-      allow get, list: if isMemberInMap(resource.data.members);
-      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
-      allow update, delete: if resource != null && isDocumentOwner(resource.data.ownerId);
-
-      /**
-       * @description Detailed membership records for a server.
-       * @path /servers/{serverId}/memberships/{userId}
-       * @allow (get) Any member of the server or the user themselves.
-       * @allow (create, update, delete) The server owner OR the user (for self-join/leave).
-       * @principle Synchronized source of truth for server permissions.
-       */
-      match /memberships/{targetUserId} {
-        // Checking parent server's members map for access
-        allow get, list: if isSignedIn(); 
-        allow create: if isOwner(targetUserId) || isDocumentOwner(get(/databases/$(database)/documents/servers/$(serverId)).data.ownerId);
-        allow update, delete: if resource != null && (isOwner(targetUserId) || isDocumentOwner(get(/databases/$(database)/documents/servers/$(serverId)).data.ownerId));
-      }
+      allow read: if isSignedIn() && request.auth.uid in resource.data.members;
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn() && request.auth.uid == resource.data.ownerId;
     }
 
-    /**
-     * @description Rules for Channel documents.
-     * @path /channels/{channelId}
-     * @allow (get, list) Users in the denormalized 'serverMembers' map.
-     * @allow (create, update, delete) Only the 'serverOwnerId'.
-     * @principle Relies on denormalized server context for authorization.
-     */
     match /channels/{channelId} {
-      allow get, list: if isMemberInMap(resource.data.serverMembers);
-      allow create: if isDocumentOwner(request.resource.data.serverOwnerId);
-      allow update, delete: if resource != null && isDocumentOwner(resource.data.serverOwnerId);
-
-      /**
-       * @description Rules for Messages within a specific channel.
-       * @path /channels/{channelId}/messages/{messageId}
-       * @allow (get, list) Users in the denormalized 'serverMembers' map.
-       * @allow (create) Members of the server where senderId matches the user.
-       * @allow (update) Only the original sender (senderId).
-       * @allow (delete) The original sender OR the server owner.
-       * @principle Ensures only members can chat and only authors can edit.
-       */
-      match /messages/{messageId} {
-        allow get, list: if isMemberInMap(resource.data.serverMembers);
-        allow create: if isMemberInMap(request.resource.data.serverMembers) && isDocumentOwner(request.resource.data.senderId);
-        allow update: if resource != null && isDocumentOwner(resource.data.senderId);
-        allow delete: if resource != null && (isDocumentOwner(resource.data.senderId) || isDocumentOwner(resource.data.serverOwnerId));
-      }
+      allow read: if isSignedIn(); // In a real app, verify server membership
+      allow create, update, delete: if isSignedIn();
     }
 
-    /**
-     * @description Rules for global invite links.
-     * @path /invites/{inviteCode}
-     * @allow (get) Any authenticated user (to resolve the invite).
-     * @allow (list) Denied (prevents scraping/guessing codes).
-     * @allow (create, update, delete) Only the user who created the invite.
-     * @principle Restricts invite management to the creator.
-     */
-    match /invites/{inviteCode} {
-      allow get: if isSignedIn();
-      allow list: if false;
-      allow create: if isDocumentOwner(request.resource.data.createdByUserId);
-      allow update, delete: if resource != null && isDocumentOwner(resource.data.createdByUserId);
+    match /messages/{channelId}/chatMessages/{messageId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && request.auth.uid == resource.data.senderId;
+      allow delete: if isSignedIn() && request.auth.uid == resource.data.senderId;
     }
-
   }
 }

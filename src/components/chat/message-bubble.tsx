@@ -1,27 +1,48 @@
+
+"use client";
+
 import { cn } from "@/lib/utils";
-import { Message, User } from "@/lib/mock-data";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Check, CheckCheck } from "lucide-react";
+import { useDoc, useFirestore, useMemoFirebase } from "@/firebase";
+import { doc } from "firebase/firestore";
+
+interface Message {
+  id: string;
+  senderId: string;
+  text: string;
+  createdAt: any;
+  status?: string;
+}
 
 interface MessageBubbleProps {
   message: Message;
-  sender: User;
   isMe: boolean;
 }
 
-export function MessageBubble({ message, sender, isMe }: MessageBubbleProps) {
+export function MessageBubble({ message, isMe }: MessageBubbleProps) {
+  const db = useFirestore();
+  const userRef = useMemoFirebase(() => doc(db, "users", message.senderId), [db, message.senderId]);
+  const { data: sender } = useDoc(userRef);
+
+  const timestamp = message.createdAt?.toDate() 
+    ? message.createdAt.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    : "...";
+
   return (
     <div className={cn("flex w-full mb-4 group", isMe ? "justify-end" : "justify-start")}>
       {!isMe && (
         <Avatar className="h-8 w-8 mt-1 mr-2 shrink-0">
-          <AvatarImage src={sender.avatar} />
-          <AvatarFallback>{sender.name[0]}</AvatarFallback>
+          <AvatarImage src={sender?.photoURL || ""} />
+          <AvatarFallback>{sender?.username?.[0] || "?"}</AvatarFallback>
         </Avatar>
       )}
       
       <div className={cn("flex flex-col max-w-[70%]", isMe ? "items-end" : "items-start")}>
         {!isMe && (
-          <span className="text-xs font-semibold mb-1 ml-1 text-muted-foreground">{sender.name}</span>
+          <span className="text-xs font-semibold mb-1 ml-1 text-muted-foreground">
+            {sender?.username || "Loading..."}
+          </span>
         )}
         
         <div className={cn(
@@ -30,31 +51,18 @@ export function MessageBubble({ message, sender, isMe }: MessageBubbleProps) {
             ? "bg-primary text-primary-foreground rounded-tr-none" 
             : "bg-white text-foreground rounded-tl-none border border-border"
         )}>
-          <p className="text-sm leading-relaxed">{message.content}</p>
+          <p className="text-sm leading-relaxed">{message.text}</p>
           
           <div className={cn(
             "flex items-center space-x-1 mt-1 text-[10px]",
             isMe ? "text-primary-foreground/70" : "text-muted-foreground"
           )}>
-            <span>{message.timestamp}</span>
+            <span>{timestamp}</span>
             {isMe && (
               <span>
-                {message.status === 'read' ? (
-                  <CheckCheck className="h-3 w-3" />
-                ) : (
-                  <Check className="h-3 w-3" />
-                )}
+                <CheckCheck className="h-3 w-3" />
               </span>
             )}
-          </div>
-
-          {/* Hidden Action Toolbar - Visible on Hover */}
-          <div className={cn(
-            "absolute top-0 opacity-0 group-hover:opacity-100 transition-opacity bg-white border shadow-md rounded-lg flex items-center px-2 py-1 space-x-2 -mt-4",
-            isMe ? "right-0" : "left-0"
-          )}>
-             <button className="text-xs hover:bg-gray-100 p-1 rounded">Reply</button>
-             <button className="text-xs hover:bg-gray-100 p-1 rounded">React</button>
           </div>
         </div>
       </div>

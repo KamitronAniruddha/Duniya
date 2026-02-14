@@ -1,34 +1,51 @@
+
 "use client";
 
 import { useState } from "react";
 import { ServerSidebar } from "@/components/sidebar/server-sidebar";
 import { ChannelSidebar } from "@/components/sidebar/channel-sidebar";
 import { ChatWindow } from "@/components/chat/chat-window";
-import { AISuggestionPanel } from "@/components/ai/ai-suggestion-panel";
-import { MOCK_SERVERS, CURRENT_USER, MOCK_MESSAGES, Message } from "@/lib/mock-data";
+import { AuthScreen } from "@/components/auth/auth-screen";
+import { useUser } from "@/firebase";
+import { Loader2 } from "lucide-react";
 
 export default function ConnectVerseApp() {
-  const [activeServer] = useState(MOCK_SERVERS[0]);
-  const [activeChannel] = useState(activeServer.channels[0]);
-  const [messages, setMessages] = useState<Message[]>(MOCK_MESSAGES);
+  const { user, isUserLoading } = useUser();
+  const [activeServerId, setActiveServerId] = useState<string | null>(null);
+  const [activeChannelId, setActiveChannelId] = useState<string | null>(null);
+
+  if (isUserLoading) {
+    return (
+      <div className="h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <AuthScreen />;
+  }
 
   return (
     <div className="flex h-screen bg-background overflow-hidden text-foreground">
-      {/* 1st Column: Discord-style Server Sidebar */}
-      <ServerSidebar />
-
-      {/* 2nd Column: Channel/Direct Messages List */}
-      <ChannelSidebar server={activeServer} currentUser={CURRENT_USER} />
-
-      {/* 3rd Column: Main Chat Window */}
-      <ChatWindow 
-        channel={activeChannel} 
-        currentUser={CURRENT_USER} 
-        onUpdateMessages={(newMsgs) => setMessages(newMsgs)} 
+      <ServerSidebar 
+        activeServerId={activeServerId} 
+        onSelectServer={(id) => {
+          setActiveServerId(id);
+          setActiveChannelId(null);
+        }} 
       />
 
-      {/* 4th Column: Contextual AI Suggestions (GenAI) */}
-      <AISuggestionPanel messages={messages} />
+      <ChannelSidebar 
+        serverId={activeServerId} 
+        activeChannelId={activeChannelId}
+        onSelectChannel={setActiveChannelId}
+      />
+
+      <ChatWindow 
+        channelId={activeChannelId}
+        serverId={activeServerId}
+      />
     </div>
   );
 }
