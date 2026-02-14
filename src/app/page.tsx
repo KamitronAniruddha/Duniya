@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -10,7 +9,7 @@ import { AISuggestionPanel } from "@/components/ai/ai-suggestion-panel";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { doc, serverTimestamp, collection, query, where } from "firebase/firestore";
 import { Loader2 } from "lucide-react";
-import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 export default function ConnectVerseApp() {
   const { user, isUserLoading } = useUser();
@@ -32,17 +31,17 @@ export default function ConnectVerseApp() {
     }
   }, [channels, activeChannelId]);
 
-  // Handle Online Status
+  // Handle Online Status - Using setDocumentNonBlocking to avoid "no document" errors
   useEffect(() => {
     if (!user || !db) return;
 
     const userRef = doc(db, "users", user.uid);
     
     const updateStatus = (status: "online" | "idle" | "offline") => {
-      updateDocumentNonBlocking(userRef, {
+      setDocumentNonBlocking(userRef, {
         onlineStatus: status,
         lastSeen: serverTimestamp()
-      });
+      }, { merge: true });
     };
 
     updateStatus("online");
@@ -100,12 +99,14 @@ export default function ConnectVerseApp() {
         onSelectChannel={setActiveChannelId}
       />
 
-      <ChatWindow 
-        channelId={activeChannelId}
-        serverId={activeServerId}
-      />
+      <div className="flex-1 flex flex-col min-w-0">
+        <ChatWindow 
+          channelId={activeChannelId}
+          serverId={activeServerId}
+        />
+      </div>
 
-      <div className="hidden lg:block">
+      <div className="hidden lg:block shrink-0">
         <AISuggestionPanel channelId={activeChannelId} />
       </div>
     </div>

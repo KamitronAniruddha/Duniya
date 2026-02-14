@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useCollection, useFirestore, useUser, useDoc, useMemoFirebase, useAuth } from "@/firebase";
@@ -7,7 +6,7 @@ import { Hash, Settings, ChevronDown, LogOut, Loader2, Plus, Mic, Headphones } f
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 interface ChannelSidebarProps {
   serverId: string | null;
@@ -33,10 +32,11 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
   const handleLogout = () => {
     if (user && db) {
       const userRef = doc(db, "users", user.uid);
-      updateDocumentNonBlocking(userRef, {
+      // Use setDocumentNonBlocking for logout status to ensure it hits Firestore safely
+      setDocumentNonBlocking(userRef, {
         onlineStatus: "offline",
         lastSeen: serverTimestamp()
-      });
+      }, { merge: true });
     }
     auth.signOut();
   };

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useRef, useEffect } from "react";
@@ -37,7 +36,6 @@ export function ChatWindow({ channelId, serverId }: ChatWindowProps) {
   const handleSendMessage = (text: string) => {
     if (!db || !channelId || !user) return;
     
-    // Pre-generate ID for non-blocking set
     const messageRef = doc(collection(db, "messages", channelId, "chatMessages"));
     
     setDocumentNonBlocking(messageRef, {
@@ -50,7 +48,6 @@ export function ChatWindow({ channelId, serverId }: ChatWindowProps) {
     }, { merge: true });
   };
 
-  // Auto-scroll logic
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -74,7 +71,7 @@ export function ChatWindow({ channelId, serverId }: ChatWindowProps) {
   }
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-white overflow-hidden">
+    <div className="flex-1 flex flex-col h-full min-h-0 bg-white overflow-hidden">
       <header className="h-14 border-b flex items-center justify-between px-4 shrink-0">
         <div className="flex items-center gap-2 min-w-0">
           <Hash className="h-5 w-5 text-muted-foreground shrink-0" />
