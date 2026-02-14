@@ -40,7 +40,8 @@
     @apply border-border;
   }
   html, body {
-    @apply h-screen overflow-hidden antialiased m-0 p-0;
+    height: 100dvh;
+    @apply overflow-hidden antialiased m-0 p-0;
   }
   body {
     @apply bg-background text-foreground font-body;

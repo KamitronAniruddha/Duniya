@@ -50,20 +50,22 @@ export function ChatWindow({ channelId, serverId }: ChatWindowProps) {
 
   useEffect(() => {
     if (scrollRef.current) {
-      // Small timeout to ensure DOM layout has completed
-      const timeoutId = setTimeout(() => {
+      // Use requestAnimationFrame to ensure the scroll happens after the browser has painted
+      const scrollDown = () => {
         if (scrollRef.current) {
           scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
         }
-      }, 50);
+      };
+      
+      const timeoutId = setTimeout(scrollDown, 100);
       return () => clearTimeout(timeoutId);
     }
   }, [messages]);
 
   if (!serverId) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 h-full">
-        <div className="text-center max-w-sm px-6">
+      <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 h-full p-6">
+        <div className="text-center max-w-sm">
           <div className="w-20 h-20 bg-primary/10 rounded-3xl mx-auto mb-6 flex items-center justify-center">
             <MessageCircle className="h-10 w-10 text-primary" />
           </div>
@@ -77,7 +79,7 @@ export function ChatWindow({ channelId, serverId }: ChatWindowProps) {
   }
 
   return (
-    <div className="flex-1 flex flex-col h-full min-h-0 bg-white overflow-hidden relative">
+    <div className="flex-1 flex flex-col h-full bg-white overflow-hidden relative">
       <header className="h-14 border-b flex items-center justify-between px-4 shrink-0 bg-white z-10">
         <div className="flex items-center gap-2 min-w-0">
           <Hash className="h-5 w-5 text-muted-foreground shrink-0" />
@@ -91,12 +93,13 @@ export function ChatWindow({ channelId, serverId }: ChatWindowProps) {
         </div>
       </header>
 
-      {/* Message List area: flex-1 ensures it grows, overflow-y-auto ensures it scrolls */}
+      {/* Message List area: flex-1 ensures it grows, overflow-y-auto ensures it scrolls, min-h-0 is essential for nested flexbox scrolling */}
       <div 
         ref={scrollRef} 
         className="flex-1 overflow-y-auto scroll-smooth custom-scrollbar bg-gray-50/30 min-h-0"
       >
         <div className="p-4 flex flex-col gap-1 min-h-full">
+          {/* Spacer to push content down if there aren't many messages */}
           <div className="flex-1" />
           
           {messagesLoading ? (
@@ -121,7 +124,7 @@ export function ChatWindow({ channelId, serverId }: ChatWindowProps) {
         </div>
       </div>
 
-      {/* Message input area: fixed at the bottom via shrink-0 */}
+      {/* Message input area: shrink-0 ensures it stays at the bottom and doesn't get squashed */}
       <div className="shrink-0">
         <MessageInput onSendMessage={handleSendMessage} />
       </div>

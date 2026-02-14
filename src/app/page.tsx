@@ -39,6 +39,7 @@ export default function ConnectVerseApp() {
     const userRef = doc(db, "users", user.uid);
     
     const updateStatus = (status: "online" | "idle" | "offline") => {
+      // Ensure user is still authed before updating
       if (!auth.currentUser) return;
       
       setDocumentNonBlocking(userRef, {
@@ -67,9 +68,6 @@ export default function ConnectVerseApp() {
     return () => {
       window.removeEventListener('visibilitychange', handleVisibility);
       window.removeEventListener('beforeunload', handleUnload);
-      if (auth.currentUser?.uid === user.uid) {
-        updateStatus("offline");
-      }
     };
   }, [user, db, auth]);
 
@@ -89,7 +87,7 @@ export default function ConnectVerseApp() {
   }
 
   return (
-    <div className="flex h-screen w-full bg-background overflow-hidden selection:bg-primary/20">
+    <div className="flex h-[100dvh] w-full bg-background overflow-hidden selection:bg-primary/20">
       {/* Desktop Sidebars */}
       <div className="hidden md:flex shrink-0 h-full overflow-hidden border-r border-border">
         <ServerSidebar 
@@ -136,8 +134,8 @@ export default function ConnectVerseApp() {
           <span className="font-bold text-sm truncate">ConnectVerse</span>
         </div>
         
-        {/* Important: flex-1 min-h-0 ensures the child can shrink and scroll */}
-        <div className="flex-1 min-h-0 overflow-hidden">
+        {/* flex-1 min-h-0 is the secret to making internal scrolling work correctly in flexbox */}
+        <div className="flex-1 min-h-0 overflow-hidden relative">
           <ChatWindow 
             channelId={activeChannelId}
             serverId={activeServerId}
