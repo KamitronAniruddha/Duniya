@@ -3,7 +3,7 @@
 
 import { useRef, useEffect, useState, useMemo } from "react";
 import { useCollection, useFirestore, useUser, useDoc, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy, limit, doc } from "firebase/firestore";
+import { collection, query, orderBy, limit, doc, where } from "firebase/firestore";
 import { MessageBubble } from "./message-bubble";
 import { MessageInput } from "./message-input";
 import { Hash, Users, Loader2, MessageCircle } from "lucide-react";
@@ -34,6 +34,23 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
   const serverRef = useMemoFirebase(() => (serverId && user ? doc(db, "communities", serverId) : null), [db, serverId, user?.uid]);
   const { data: server } = useDoc(serverRef);
 
+  // Optimization: Fetch all members once instead of per-bubble
+  const membersQuery = useMemoFirebase(() => {
+    if (!db || !serverId || !user) return null;
+    return query(collection(db, "users"), where("serverIds", "array-contains", serverId));
+  }, [db, serverId, user?.uid]);
+
+  const { data: members } = useCollection(membersQuery);
+
+  // Create a high-performance lookup map for members
+  const memberMap = useMemo(() => {
+    if (!members) return {};
+    return members.reduce((acc, m) => {
+      acc[m.id] = m;
+      return acc;
+    }, {} as Record<string, any>);
+  }, [members]);
+
   const messagesQuery = useMemoFirebase(() => {
     if (!db || !channelId || !serverId || !user) return null;
     return query(
@@ -47,7 +64,6 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
 
   const messages = useMemo(() => {
     if (!rawMessages || !user) return [];
-    // Filter out messages that are fully deleted or specifically deleted for this user
     return rawMessages.filter(msg => !msg.fullyDeleted && !msg.deletedFor?.includes(user.uid));
   }, [rawMessages, user?.uid]);
 
@@ -66,7 +82,6 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
       sentAt: sentAt.toISOString(),
       ...(audioUrl && { audioUrl }),
       ...(videoUrl && { videoUrl }),
-      // Disappearing Message logic
       disappearingEnabled: disappearing?.enabled || false,
       disappearDuration: disappearing?.duration || 0,
       fullyDeleted: false,
@@ -176,6 +191,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
                       }}
                       channelId={channelId!}
                       serverId={serverId!}
+                      sender={memberMap[msg.senderId]} // Pass sender data as prop
                       isMe={msg.senderId === user?.uid}
                       onReply={() => setReplyingTo(msg)}
                       onQuoteClick={() => handleJumpToMessage(msg.replyTo?.messageId)}

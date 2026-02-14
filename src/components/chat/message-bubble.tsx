@@ -3,8 +3,8 @@
 
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useDoc, useFirestore, useMemoFirebase, useUser } from "@/firebase";
-import { doc, arrayUnion, deleteField, updateDoc } from "firebase/firestore";
+import { useFirestore, useUser } from "@/firebase";
+import { doc, arrayUnion, deleteField } from "firebase/firestore";
 import { UserProfilePopover } from "@/components/profile/user-profile-popover";
 import { Reply, CornerDownRight, Play, Pause, Volume2, MoreHorizontal, Trash2, Ban, Copy, Timer, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -29,7 +29,6 @@ interface MessageBubbleProps {
       senderName: string;
       text: string;
     };
-    // Disappearing message fields
     disappearingEnabled?: boolean;
     disappearDuration?: number;
     senderExpireAt?: string;
@@ -39,17 +38,16 @@ interface MessageBubbleProps {
   };
   channelId: string;
   serverId: string;
+  sender?: any; // Received from parent for performance
   isMe: boolean;
   onReply?: () => void;
   onQuoteClick?: () => void;
 }
 
-export function MessageBubble({ message, channelId, serverId, isMe, onReply, onQuoteClick }: MessageBubbleProps) {
+export function MessageBubble({ message, channelId, serverId, sender, isMe, onReply, onQuoteClick }: MessageBubbleProps) {
   const db = useFirestore();
   const { user } = useUser();
   const { toast } = useToast();
-  const userRef = useMemoFirebase(() => (db && message.senderId && user ? doc(db, "users", message.senderId) : null), [db, message.senderId, user?.uid]);
-  const { data: sender } = useDoc(userRef);
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -68,7 +66,7 @@ export function MessageBubble({ message, channelId, serverId, isMe, onReply, onQ
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [isDisappeared, setIsDisappeared] = useState(false);
 
-  // Formatting timestamp
+  // Optimization: Format timestamp once
   useEffect(() => {
     if (message.createdAt) {
       const date = typeof message.createdAt === 'string' ? new Date(message.createdAt) : message.createdAt.toDate?.() || new Date(message.createdAt);
@@ -91,7 +89,7 @@ export function MessageBubble({ message, channelId, serverId, isMe, onReply, onQ
         [`viewerExpireAt.${user.uid}`]: expireAt
       });
     }
-  }, [message.id, user, isMe, message.disappearingEnabled]);
+  }, [message.id, user?.uid, isMe, message.disappearingEnabled]);
 
   // Real-time Countdown logic
   useEffect(() => {
@@ -122,7 +120,7 @@ export function MessageBubble({ message, channelId, serverId, isMe, onReply, onQ
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [message.disappearingEnabled, message.senderExpireAt, message.viewerExpireAt, user, isMe, message.isDeleted, message.fullyDeleted]);
+  }, [message.disappearingEnabled, message.senderExpireAt, message.viewerExpireAt, user?.uid, isMe, message.isDeleted, message.fullyDeleted]);
 
   const handleTouchStart = (e: React.TouchEvent | React.MouseEvent) => {
     if (message.isDeleted || isDisappeared) return;
