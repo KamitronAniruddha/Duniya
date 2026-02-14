@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useRef, useEffect } from "react";
@@ -50,9 +51,14 @@ export function ChatWindow({ channelId, serverId }: ChatWindowProps) {
 
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      // Use requestAnimationFrame to ensure the DOM has painted the new message
+      requestAnimationFrame(() => {
+        if (scrollRef.current) {
+          scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }
+      });
     }
-  }, [messages, messagesLoading]);
+  }, [messages]);
 
   if (!serverId) {
     return (
@@ -72,7 +78,7 @@ export function ChatWindow({ channelId, serverId }: ChatWindowProps) {
 
   return (
     <div className="flex-1 flex flex-col h-full min-h-0 bg-white overflow-hidden">
-      <header className="h-14 border-b flex items-center justify-between px-4 shrink-0">
+      <header className="h-14 border-b flex items-center justify-between px-4 shrink-0 bg-white z-10">
         <div className="flex items-center gap-2 min-w-0">
           <Hash className="h-5 w-5 text-muted-foreground shrink-0" />
           <h2 className="font-bold text-sm truncate">{channel?.name || "..."}</h2>
@@ -87,7 +93,7 @@ export function ChatWindow({ channelId, serverId }: ChatWindowProps) {
 
       <div 
         ref={scrollRef} 
-        className="flex-1 overflow-y-auto scroll-smooth custom-scrollbar bg-gray-50/50"
+        className="flex-1 overflow-y-auto scroll-smooth custom-scrollbar bg-gray-50/50 relative"
       >
         <div className="p-4 flex flex-col gap-1 min-h-full">
           <div className="flex-1" />

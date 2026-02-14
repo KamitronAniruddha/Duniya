@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useCollection, useFirestore, useUser, useDoc, useMemoFirebase, useAuth } from "@/firebase";
@@ -30,15 +31,16 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
   const { data: channels, isLoading } = useCollection(channelsQuery);
 
   const handleLogout = () => {
-    if (user && db) {
+    if (user && db && auth.currentUser) {
       const userRef = doc(db, "users", user.uid);
-      // Use setDocumentNonBlocking for logout status to ensure it hits Firestore safely
+      // Set offline before actual sign out to avoid permission errors
       setDocumentNonBlocking(userRef, {
         onlineStatus: "offline",
         lastSeen: serverTimestamp()
       }, { merge: true });
     }
-    auth.signOut();
+    // Small delay to ensure the firestore write starts before local auth is cleared
+    setTimeout(() => auth.signOut(), 100);
   };
 
   return (

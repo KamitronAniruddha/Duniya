@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -6,7 +7,7 @@ import { ChannelSidebar } from "@/components/sidebar/channel-sidebar";
 import { ChatWindow } from "@/components/chat/chat-window";
 import { AuthScreen } from "@/components/auth/auth-screen";
 import { AISuggestionPanel } from "@/components/ai/ai-suggestion-panel";
-import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { useUser, useFirestore, useCollection, useMemoFirebase, useAuth } from "@/firebase";
 import { doc, serverTimestamp, collection, query, where } from "firebase/firestore";
 import { Loader2 } from "lucide-react";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
@@ -14,6 +15,7 @@ import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 export default function ConnectVerseApp() {
   const { user, isUserLoading } = useUser();
   const db = useFirestore();
+  const auth = useAuth();
   const [activeServerId, setActiveServerId] = useState<string | null>(null);
   const [activeChannelId, setActiveChannelId] = useState<string | null>(null);
 
@@ -31,13 +33,16 @@ export default function ConnectVerseApp() {
     }
   }, [channels, activeChannelId]);
 
-  // Handle Online Status - Using setDocumentNonBlocking to avoid "no document" errors
+  // Handle Online Status - Safe check for Auth session
   useEffect(() => {
     if (!user || !db) return;
 
     const userRef = doc(db, "users", user.uid);
     
     const updateStatus = (status: "online" | "idle" | "offline") => {
+      // Only attempt write if auth session still exists to avoid permission errors
+      if (!auth.currentUser) return;
+      
       setDocumentNonBlocking(userRef, {
         onlineStatus: status,
         lastSeen: serverTimestamp()
@@ -64,13 +69,16 @@ export default function ConnectVerseApp() {
     return () => {
       window.removeEventListener('visibilitychange', handleVisibility);
       window.removeEventListener('beforeunload', handleUnload);
-      updateStatus("offline");
+      // Only set offline if we are still the same user and signed in
+      if (auth.currentUser?.uid === user.uid) {
+        updateStatus("offline");
+      }
     };
-  }, [user, db]);
+  }, [user, db, auth]);
 
   if (isUserLoading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-background">
+      <div className="h-screen w-full flex items-center justify-center bg-background">
         <div className="text-center space-y-4">
           <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto" />
           <p className="text-sm font-medium text-muted-foreground">Connecting to Verse...</p>
@@ -99,14 +107,14 @@ export default function ConnectVerseApp() {
         onSelectChannel={setActiveChannelId}
       />
 
-      <div className="flex-1 flex flex-col min-w-0">
+      <main className="flex-1 flex flex-col min-w-0 h-full relative overflow-hidden bg-white">
         <ChatWindow 
           channelId={activeChannelId}
           serverId={activeServerId}
         />
-      </div>
+      </main>
 
-      <div className="hidden lg:block shrink-0">
+      <div className="hidden lg:block shrink-0 h-full">
         <AISuggestionPanel channelId={activeChannelId} />
       </div>
     </div>
