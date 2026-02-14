@@ -34,7 +34,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
     return query(
       collection(db, "messages", channelId, "chatMessages"),
       orderBy("createdAt", "asc"),
-      limit(50)
+      limit(100)
     );
   }, [db, channelId, user?.uid]);
 
@@ -71,6 +71,18 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
 
     setReplyingTo(null);
     inputRef.current?.focus();
+  };
+
+  const scrollToMessage = (messageId: string) => {
+    const element = document.getElementById(`message-${messageId}`);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Brief highlight effect
+      element.classList.add('bg-primary/10');
+      setTimeout(() => {
+        element.classList.remove('bg-primary/10');
+      }, 2000);
+    }
   };
 
   useEffect(() => {
@@ -152,6 +164,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
                   setReplyingTo(msg);
                   inputRef.current?.focus();
                 }}
+                onQuoteClick={scrollToMessage}
               />
             ))
           )}

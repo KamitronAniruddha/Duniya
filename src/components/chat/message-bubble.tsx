@@ -23,9 +23,10 @@ interface MessageBubbleProps {
   };
   isMe: boolean;
   onReply?: () => void;
+  onQuoteClick?: (messageId: string) => void;
 }
 
-export function MessageBubble({ message, isMe, onReply }: MessageBubbleProps) {
+export function MessageBubble({ message, isMe, onReply, onQuoteClick }: MessageBubbleProps) {
   const db = useFirestore();
   const userRef = useMemoFirebase(() => doc(db, "users", message.senderId), [db, message.senderId]);
   const { data: sender } = useDoc(userRef);
@@ -35,7 +36,13 @@ export function MessageBubble({ message, isMe, onReply }: MessageBubbleProps) {
     : "";
 
   return (
-    <div className={cn("flex w-full py-0.5 group items-end", isMe ? "flex-row-reverse" : "flex-row")}>
+    <div 
+      id={`message-${message.id}`}
+      className={cn(
+        "flex w-full py-0.5 group items-end transition-colors duration-500 rounded-lg", 
+        isMe ? "flex-row-reverse" : "flex-row"
+      )}
+    >
       {!isMe && (
         <UserProfilePopover userId={message.senderId}>
           <button className="h-8 w-8 mb-1 mr-2 shrink-0 transition-transform hover:scale-105">
@@ -66,10 +73,13 @@ export function MessageBubble({ message, isMe, onReply }: MessageBubbleProps) {
         )}>
           {/* Reply Reference (Quoted Message) */}
           {message.replyTo && (
-            <div className={cn(
-              "mb-2 p-2 rounded-lg border-l-4 text-xs bg-black/5 flex flex-col gap-0.5",
-              isMe ? "border-white/30" : "border-primary/50"
-            )}>
+            <button 
+              onClick={() => onQuoteClick?.(message.replyTo!.messageId)}
+              className={cn(
+                "w-full text-left mb-2 p-2 rounded-lg border-l-4 text-xs bg-black/5 flex flex-col gap-0.5 transition-opacity hover:opacity-80",
+                isMe ? "border-white/30" : "border-primary/50"
+              )}
+            >
               <span className={cn(
                 "font-bold text-[10px] flex items-center gap-1",
                 isMe ? "text-white/80" : "text-primary"
@@ -83,7 +93,7 @@ export function MessageBubble({ message, isMe, onReply }: MessageBubbleProps) {
               )}>
                 {message.replyTo.text}
               </p>
-            </div>
+            </button>
           )}
 
           <p className="whitespace-pre-wrap break-words leading-relaxed">{message.text}</p>
