@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -10,14 +9,10 @@ import { MembersPanel } from "@/components/members/members-panel";
 import { useUser, useFirestore, useCollection, useMemoFirebase, useAuth } from "@/firebase";
 import { doc, serverTimestamp, collection, query, where } from "firebase/firestore";
 import { Loader2, Menu } from "lucide-react";
-import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 
-/**
- * Main application entry point for ConnectVerse.
- * Manages server/channel selection and global layout with responsive sidebars.
- */
 export default function ConnectVerseApp() {
   const { user, isUserLoading } = useUser();
   const db = useFirestore();
@@ -26,7 +21,6 @@ export default function ConnectVerseApp() {
   const [activeChannelId, setActiveChannelId] = useState<string | null>(null);
   const [showMembers, setShowMembers] = useState(false);
 
-  // Fetch channels for the active server - only if user is logged in
   const channelsQuery = useMemoFirebase(() => {
     if (!db || !activeServerId || !user) return null;
     return query(collection(db, "channels"), where("serverId", "==", activeServerId));
@@ -34,26 +28,25 @@ export default function ConnectVerseApp() {
 
   const { data: channels } = useCollection(channelsQuery);
 
-  // Auto-select first channel when switching servers
   useEffect(() => {
     if (channels && channels.length > 0 && !activeChannelId) {
       setActiveChannelId(channels[0].id);
     }
   }, [channels, activeChannelId]);
 
-  // Handle online presence tracking
   useEffect(() => {
     if (!user || !db || !auth.currentUser) return;
 
     const userRef = doc(db, "users", user.uid);
     
     const updateStatus = (status: "online" | "idle" | "offline") => {
+      // Only attempt to update if we have a current session to avoid permission errors on logout
       if (!auth.currentUser) return;
       
-      setDocumentNonBlocking(userRef, {
+      updateDocumentNonBlocking(userRef, {
         onlineStatus: status,
         lastSeen: serverTimestamp()
-      }, { merge: true });
+      });
     };
 
     updateStatus("online");
@@ -112,7 +105,7 @@ export default function ConnectVerseApp() {
         />
       </div>
 
-      {/* Main Chat Area */}
+      {/* Main Container */}
       <main className="flex-1 flex flex-col min-w-0 h-full relative overflow-hidden bg-white">
         {/* Mobile Header */}
         <div className="md:hidden p-2 border-b flex items-center gap-2 bg-white shrink-0">
@@ -146,7 +139,8 @@ export default function ConnectVerseApp() {
           <span className="font-bold text-sm truncate">ConnectVerse</span>
         </div>
         
-        <div className="flex-1 min-h-0 overflow-hidden relative flex">
+        {/* Chat and Members Wrapper - Crucial flex-1 min-h-0 for scrolling */}
+        <div className="flex-1 min-h-0 flex relative overflow-hidden">
           <ChatWindow 
             channelId={activeChannelId}
             serverId={activeServerId}
@@ -155,7 +149,7 @@ export default function ConnectVerseApp() {
           />
           
           {showMembers && activeServerId && (
-            <div className="hidden lg:block">
+            <div className="hidden lg:block h-full border-l">
               <MembersPanel serverId={activeServerId} />
             </div>
           )}

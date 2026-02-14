@@ -10,16 +10,18 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      // Allow read for everyone to check username uniqueness during signup
+      // Allow read for everyone to check username uniqueness and show members
       allow read: if true;
-      allow create, update: if isOwner(userId);
+      // Allow owner to update everything
+      // Allow others to only update 'serverIds' (for inviting to servers)
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) || (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['serverIds', 'onlineStatus', 'lastSeen']));
     }
 
     match /servers/{serverId} {
-      // Allow read for any signed in user to discover/verify servers
       allow read: if isSignedIn();
       allow create: if isSignedIn();
-      // Allow update if owner OR if only the members list is being updated (for joining)
+      // Allow update if owner OR if only the members list is being updated (for joining/inviting)
       allow update: if isSignedIn() && (
         request.auth.uid == resource.data.ownerId || 
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members'])

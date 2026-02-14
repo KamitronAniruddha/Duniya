@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useRef, useEffect } from "react";
@@ -54,13 +53,12 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
 
   useEffect(() => {
     if (scrollRef.current) {
-      const scrollDown = () => {
+      // Use requestAnimationFrame for more reliable scrolling on dynamic layouts
+      requestAnimationFrame(() => {
         if (scrollRef.current) {
           scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
         }
-      };
-      const timeoutId = setTimeout(scrollDown, 100);
-      return () => clearTimeout(timeoutId);
+      });
     }
   }, [messages]);
 
@@ -81,7 +79,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
   }
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-white overflow-hidden relative">
+    <div className="flex-1 flex flex-col h-full bg-white overflow-hidden relative min-w-0">
       <header className="h-14 border-b flex items-center justify-between px-4 shrink-0 bg-white z-10">
         <div className="flex items-center gap-2 min-w-0">
           <Hash className="h-5 w-5 text-muted-foreground shrink-0" />
@@ -135,7 +133,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
         </div>
       </div>
 
-      <div className="shrink-0">
+      <div className="shrink-0 bg-white border-t">
         <MessageInput onSendMessage={handleSendMessage} />
       </div>
     </div>
