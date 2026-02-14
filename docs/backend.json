@@ -26,10 +26,11 @@
         "name": { "type": "string" },
         "icon": { "type": "string", "format": "uri" },
         "ownerId": { "type": "string" },
+        "joinCode": { "type": "string", "description": "A unique 5-digit code to join the server." },
         "members": { "type": "array", "items": { "type": "string" } },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["id", "name", "ownerId", "members"]
+      "required": ["id", "name", "ownerId", "members", "joinCode"]
     },
     "Channel": {
       "title": "Channel",

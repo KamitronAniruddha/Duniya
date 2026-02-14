@@ -1,12 +1,13 @@
+
 "use client";
 
 import { useState } from "react";
 import { useCollection, useFirestore, useUser, useMemoFirebase } from "@/firebase";
-import { collection, query, where, serverTimestamp, doc, arrayUnion, getDoc } from "firebase/firestore";
+import { collection, query, where, serverTimestamp, doc, arrayUnion, getDocs, limit } from "firebase/firestore";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Plus, Loader2, Compass } from "lucide-react";
+import { Plus, Loader2, Compass, Hash } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,6 +37,10 @@ export function ServerSidebar({ activeServerId, onSelectServer }: ServerSidebarP
 
   const { data: servers, isLoading: isServersLoading } = useCollection(serversQuery);
 
+  const generateJoinCode = () => {
+    return Math.floor(10000 + Math.random() * 90000).toString();
+  };
+
   const handleCreateServer = () => {
     if (!name.trim() || !user || !db) return;
     setIsLoading(true);
@@ -43,12 +48,14 @@ export function ServerSidebar({ activeServerId, onSelectServer }: ServerSidebarP
     try {
       const serverRef = doc(collection(db, "servers"));
       const serverId = serverRef.id;
+      const joinCode = generateJoinCode();
       
       setDocumentNonBlocking(serverRef, {
         id: serverId,
         name,
         icon: `https://picsum.photos/seed/${Math.random()}/200`,
         ownerId: user.uid,
+        joinCode: joinCode,
         members: [user.uid],
         createdAt: serverTimestamp()
       }, { merge: true });
@@ -67,7 +74,7 @@ export function ServerSidebar({ activeServerId, onSelectServer }: ServerSidebarP
         serverIds: arrayUnion(serverId)
       }, { merge: true });
 
-      toast({ title: "Server Created", description: `Welcome to ${name}!` });
+      toast({ title: "Server Created", description: `Welcome to ${name}! Join code: ${joinCode}` });
       setName("");
       setIsModalOpen(false);
       onSelectServer(serverId);
@@ -79,28 +86,44 @@ export function ServerSidebar({ activeServerId, onSelectServer }: ServerSidebarP
   };
 
   const handleJoinServer = async () => {
-    const trimmedId = joinId.trim();
-    if (!trimmedId || !user || !db) return;
+    const trimmedInput = joinId.trim();
+    if (!trimmedInput || !user || !db) return;
     setIsLoading(true);
 
     try {
-      const serverRef = doc(db, "servers", trimmedId);
-      // Fetch explicitly to verify existence before joining
-      const serverSnap = await getDoc(serverRef);
+      let targetServerId = trimmedInput;
+      let serverData: any = null;
 
-      if (!serverSnap.exists()) {
-        throw new Error("Server not found. Please check the ID.");
+      // If it looks like a join code (5 digits), query by code
+      if (trimmedInput.length === 5 && /^\d+$/.test(trimmedInput)) {
+        const q = query(collection(db, "servers"), where("joinCode", "==", trimmedInput), limit(1));
+        const querySnapshot = await getDocs(q);
+        if (querySnapshot.empty) {
+          throw new Error("Server with this code not found.");
+        }
+        const serverDoc = querySnapshot.docs[0];
+        targetServerId = serverDoc.id;
+        serverData = serverDoc.data();
+      } else {
+        // Otherwise assume it's a direct ID
+        const q = query(collection(db, "servers"), where("id", "==", trimmedInput), limit(1));
+        const querySnapshot = await getDocs(q);
+        if (querySnapshot.empty) {
+          throw new Error("Server not found. Please check the ID or code.");
+        }
+        targetServerId = querySnapshot.docs[0].id;
+        serverData = querySnapshot.docs[0].data();
       }
 
-      const serverData = serverSnap.data();
       if (serverData.members?.includes(user.uid)) {
         toast({ title: "Already a member", description: "You are already in this server." });
-        onSelectServer(trimmedId);
+        onSelectServer(targetServerId);
         setIsJoinModalOpen(false);
         return;
       }
 
       // 1. Update Server Membership
+      const serverRef = doc(db, "servers", targetServerId);
       setDocumentNonBlocking(serverRef, {
         members: arrayUnion(user.uid)
       }, { merge: true });
@@ -108,13 +131,13 @@ export function ServerSidebar({ activeServerId, onSelectServer }: ServerSidebarP
       // 2. Update User Server List
       const userRef = doc(db, "users", user.uid);
       setDocumentNonBlocking(userRef, {
-        serverIds: arrayUnion(trimmedId)
+        serverIds: arrayUnion(targetServerId)
       }, { merge: true });
 
-      toast({ title: "Joined Server", description: "You have joined the community!" });
+      toast({ title: "Joined Server", description: `You have joined ${serverData.name}!` });
       setJoinId("");
       setIsJoinModalOpen(false);
-      onSelectServer(trimmedId);
+      onSelectServer(targetServerId);
     } catch (e: any) {
       toast({ 
         variant: "destructive", 
@@ -195,8 +218,18 @@ export function ServerSidebar({ activeServerId, onSelectServer }: ServerSidebarP
             <DialogHeader><DialogTitle>Join a Server</DialogTitle></DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label>Server ID</Label>
-                <Input value={joinId} onChange={(e) => setJoinId(e.target.value)} placeholder="Enter the unique server ID" disabled={isLoading} />
+                <Label>Server ID or 5-Digit Code</Label>
+                <div className="relative">
+                  <Hash className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input 
+                    className="pl-9"
+                    value={joinId} 
+                    onChange={(e) => setJoinId(e.target.value)} 
+                    placeholder="e.g. 12345" 
+                    disabled={isLoading} 
+                  />
+                </div>
+                <p className="text-[10px] text-muted-foreground">Enter a 5-digit join code or a full server ID.</p>
               </div>
             </div>
             <DialogFooter>
