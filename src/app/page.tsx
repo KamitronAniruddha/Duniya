@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -6,6 +7,7 @@ import { ChannelSidebar } from "@/components/sidebar/channel-sidebar";
 import { ChatWindow } from "@/components/chat/chat-window";
 import { AuthScreen } from "@/components/auth/auth-screen";
 import { MembersPanel } from "@/components/members/members-panel";
+import { DuniyaPanel } from "@/components/duniya/duniya-panel";
 import { useUser, useFirestore, useCollection, useMemoFirebase, useAuth, useDoc } from "@/firebase";
 import { doc, serverTimestamp, collection, query, where, getDoc, onSnapshot, orderBy, limit } from "firebase/firestore";
 import { Loader2, Menu } from "lucide-react";
@@ -22,6 +24,7 @@ export default function ConnectVerseApp() {
   
   const [activeServerId, setActiveServerId] = useState<string | null>(null);
   const [activeChannelId, setActiveChannelId] = useState<string | null>(null);
+  const [isDuniyaActive, setIsDuniyaActive] = useState(false);
   const [showMembers, setShowMembers] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -41,7 +44,6 @@ export default function ConnectVerseApp() {
   useEffect(() => {
     if (!db || !activeServerId || !user || !hasLoadedInitialData.current) return;
 
-    // Listen to all channels in the active server to catch messages even when "at dashboard"
     const channelsQuery = query(collection(db, "channels"), where("serverId", "==", activeServerId));
     
     const unsubChannels = onSnapshot(channelsQuery, (snapshot) => {
@@ -49,7 +51,6 @@ export default function ConnectVerseApp() {
         const channelId = channelDoc.id;
         const channelName = channelDoc.data().name;
 
-        // Sub-listener for each channel's latest message
         const messagesQuery = query(
           collection(db, "messages", channelId, "chatMessages"),
           orderBy("createdAt", "desc"),
@@ -61,7 +62,6 @@ export default function ConnectVerseApp() {
           const lastMsg = msgSnapshot.docs[0].data();
           const lastMsgId = msgSnapshot.docs[0].id;
 
-          // Only notify if it's a new message, not from me, and we aren't currently viewing this channel
           if (
             lastMsg.senderId !== user.uid && 
             lastMessageIdsRef.current[channelId] && 
@@ -98,12 +98,11 @@ export default function ConnectVerseApp() {
 
   // Monitor membership changes
   useEffect(() => {
-    if (!userData || !serverData) return;
+    if (!userData) return;
     
     const currentServerIds = userData.serverIds || [];
     const prevServerIds = prevServerIdsRef.current;
 
-    // 1. Check for removal
     if (hasLoadedInitialData.current && activeServerId && prevServerIds.length > 0) {
       if (prevServerIds.includes(activeServerId) && !currentServerIds.includes(activeServerId)) {
         toast({
@@ -117,25 +116,25 @@ export default function ConnectVerseApp() {
     }
     prevServerIdsRef.current = currentServerIds;
 
-    // 2. Check for new members
-    const currentMembers = serverData.members || [];
-    const prevMembers = prevMembersRef.current;
+    if (serverData) {
+      const currentMembers = serverData.members || [];
+      const prevMembers = prevMembersRef.current;
 
-    if (hasLoadedInitialData.current && prevMembers.length > 0 && currentMembers.length > prevMembers.length) {
-      const newMemberId = currentMembers.find(id => !prevMembers.includes(id));
-      if (newMemberId && newMemberId !== user?.uid) {
-        toast({
-          title: "New Member!",
-          description: "Someone new just joined the server. Say hello!",
-        });
+      if (hasLoadedInitialData.current && prevMembers.length > 0 && currentMembers.length > prevMembers.length) {
+        const newMemberId = currentMembers.find(id => !prevMembers.includes(id));
+        if (newMemberId && newMemberId !== user?.uid) {
+          toast({
+            title: "New Member!",
+            description: "Someone new just joined the server. Say hello!",
+          });
+        }
       }
+      prevMembersRef.current = currentMembers;
     }
-    prevMembersRef.current = currentMembers;
 
     hasLoadedInitialData.current = true;
-  }, [userData?.serverIds, serverData?.members, activeServerId, toast, user?.uid]);
+  }, [userData?.serverIds, serverData?.members, activeServerId, toast, user?.uid, userData]);
 
-  // Handle presence
   useEffect(() => {
     if (!user || !db || !auth.currentUser) return;
 
@@ -181,9 +180,17 @@ export default function ConnectVerseApp() {
       <div className="hidden md:flex shrink-0 h-full overflow-hidden border-r border-border">
         <ServerSidebar 
           activeServerId={activeServerId} 
+          isDuniyaActive={isDuniyaActive}
           onSelectServer={(id) => {
-            setActiveServerId(id);
-            setActiveChannelId(null); 
+            if (id === "duniya") {
+              setIsDuniyaActive(true);
+              setActiveServerId(null);
+              setActiveChannelId(null);
+            } else {
+              setIsDuniyaActive(false);
+              setActiveServerId(id);
+              setActiveChannelId(null);
+            }
           }} 
         />
         <ChannelSidebar 
@@ -209,9 +216,17 @@ export default function ConnectVerseApp() {
               <div className="flex h-full w-full overflow-hidden">
                 <ServerSidebar 
                   activeServerId={activeServerId} 
+                  isDuniyaActive={isDuniyaActive}
                   onSelectServer={(id) => {
-                    setActiveServerId(id);
-                    setActiveChannelId(null); 
+                    if (id === "duniya") {
+                      setIsDuniyaActive(true);
+                      setActiveServerId(null);
+                      setActiveChannelId(null);
+                    } else {
+                      setIsDuniyaActive(false);
+                      setActiveServerId(id);
+                      setActiveChannelId(null);
+                    }
                   }} 
                 />
                 <ChannelSidebar 
@@ -229,17 +244,26 @@ export default function ConnectVerseApp() {
         </div>
         
         <div className="flex-1 min-h-0 flex relative overflow-hidden">
-          <ChatWindow 
-            channelId={activeChannelId}
-            serverId={activeServerId}
-            showMembers={showMembers}
-            onToggleMembers={() => setShowMembers(!showMembers)}
-          />
-          
-          {showMembers && activeServerId && (
-            <div className="hidden lg:block h-full border-l">
-              <MembersPanel serverId={activeServerId} />
-            </div>
+          {isDuniyaActive ? (
+            <DuniyaPanel onJoinSuccess={(id) => {
+              setIsDuniyaActive(false);
+              setActiveServerId(id);
+            }} />
+          ) : (
+            <>
+              <ChatWindow 
+                channelId={activeChannelId}
+                serverId={activeServerId}
+                showMembers={showMembers}
+                onToggleMembers={() => setShowMembers(!showMembers)}
+              />
+              
+              {showMembers && activeServerId && (
+                <div className="hidden lg:block h-full border-l">
+                  <MembersPanel serverId={activeServerId} />
+                </div>
+              )}
+            </>
           )}
         </div>
       </main>

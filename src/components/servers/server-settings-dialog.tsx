@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -8,8 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Camera, Hash, Copy, Check } from "lucide-react";
+import { Loader2, Camera, Hash, Copy, Check, Globe } from "lucide-react";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { Switch } from "@/components/ui/switch";
 
 interface ServerSettingsDialogProps {
   open: boolean;
@@ -26,12 +28,14 @@ export function ServerSettingsDialog({ open, onOpenChange, serverId }: ServerSet
   const [isLoading, setIsLoading] = useState(false);
   const [name, setName] = useState("");
   const [icon, setIcon] = useState("");
+  const [isBroadcasted, setIsBroadcasted] = useState(false);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (server) {
       setName(server.name || "");
       setIcon(server.icon || "");
+      setIsBroadcasted(server.isBroadcasted || false);
     }
   }, [server]);
 
@@ -44,6 +48,7 @@ export function ServerSettingsDialog({ open, onOpenChange, serverId }: ServerSet
       updateDocumentNonBlocking(serverRef, {
         name: name.trim(),
         icon: icon.trim(),
+        isBroadcasted: isBroadcasted,
       });
       toast({ title: "Server updated" });
       onOpenChange(false);
@@ -68,7 +73,7 @@ export function ServerSettingsDialog({ open, onOpenChange, serverId }: ServerSet
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Server Settings</DialogTitle>
-          <DialogDescription>Manage your community details and invites.</DialogDescription>
+          <DialogDescription>Manage your community details and discovery.</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleUpdate} className="space-y-4 py-2">
           <div className="space-y-2">
@@ -84,6 +89,19 @@ export function ServerSettingsDialog({ open, onOpenChange, serverId }: ServerSet
               <Camera className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input id="sicon" className="pl-9" value={icon} onChange={(e) => setIcon(e.target.value)} placeholder="https://..." />
             </div>
+          </div>
+
+          <div className="flex items-center justify-between p-3 bg-accent/10 rounded-xl border border-accent/20">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-accent rounded-lg">
+                <Globe className="h-4 w-4 text-accent-foreground" />
+              </div>
+              <div className="flex flex-col">
+                <Label className="text-sm font-bold">Broadcast to Duniya</Label>
+                <p className="text-[10px] text-muted-foreground">Make this server visible in the public directory.</p>
+              </div>
+            </div>
+            <Switch checked={isBroadcasted} onCheckedChange={setIsBroadcasted} />
           </div>
           
           <div className="pt-4 space-y-3">
@@ -104,13 +122,6 @@ export function ServerSettingsDialog({ open, onOpenChange, serverId }: ServerSet
                 {server?.joinCode || "-----"}
               </div>
               <p className="text-[10px] text-muted-foreground mt-2 text-center">Share this code to let people join quickly.</p>
-            </div>
-            
-            <div className="space-y-1">
-              <Label className="text-[10px] text-muted-foreground uppercase font-bold">Server ID (Full)</Label>
-              <code className="block p-2 bg-muted rounded text-[10px] break-all font-mono select-all text-muted-foreground">
-                {serverId}
-              </code>
             </div>
           </div>
 

@@ -7,7 +7,7 @@ import { collection, query, where, serverTimestamp, doc, arrayUnion, getDocs, li
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Plus, Loader2, Compass, Hash } from "lucide-react";
+import { Plus, Loader2, Compass, Hash, Globe } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,10 +17,11 @@ import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 interface ServerSidebarProps {
   activeServerId: string | null;
-  onSelectServer: (id: string) => void;
+  onSelectServer: (id: string | "duniya") => void;
+  isDuniyaActive?: boolean;
 }
 
-export function ServerSidebar({ activeServerId, onSelectServer }: ServerSidebarProps) {
+export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive }: ServerSidebarProps) {
   const db = useFirestore();
   const { user } = useUser();
   const { toast } = useToast();
@@ -60,7 +61,8 @@ export function ServerSidebar({ activeServerId, onSelectServer }: ServerSidebarP
         admins: [],
         joinCode: joinCode,
         members: [user.uid],
-        createdAt: serverTimestamp()
+        createdAt: serverTimestamp(),
+        isBroadcasted: false
       };
       batch.set(serverRef, serverData);
 
@@ -79,7 +81,6 @@ export function ServerSidebar({ activeServerId, onSelectServer }: ServerSidebarP
         serverIds: arrayUnion(serverId)
       });
 
-      // Commit the atomic batch
       batch.commit().catch(async (error) => {
         const permissionError = new FirestorePermissionError({
           path: serverRef.path,
@@ -109,7 +110,6 @@ export function ServerSidebar({ activeServerId, onSelectServer }: ServerSidebarP
       let targetServerId = trimmedInput;
       let serverData: any = null;
 
-      // If it looks like a join code (5 digits), query by code
       if (trimmedInput.length === 5 && /^\d+$/.test(trimmedInput)) {
         const q = query(collection(db, "servers"), where("joinCode", "==", trimmedInput), limit(1));
         const querySnapshot = await getDocs(q);
@@ -120,7 +120,6 @@ export function ServerSidebar({ activeServerId, onSelectServer }: ServerSidebarP
         targetServerId = serverDoc.id;
         serverData = serverDoc.data();
       } else {
-        // Otherwise assume it's a direct ID
         const q = query(collection(db, "servers"), where("id", "==", trimmedInput), limit(1));
         const querySnapshot = await getDocs(q);
         if (querySnapshot.empty) {
@@ -137,13 +136,11 @@ export function ServerSidebar({ activeServerId, onSelectServer }: ServerSidebarP
         return;
       }
 
-      // 1. Update Server Membership
       const serverRef = doc(db, "servers", targetServerId);
       setDocumentNonBlocking(serverRef, {
         members: arrayUnion(user.uid)
       }, { merge: true });
 
-      // 2. Update User Server List
       const userRef = doc(db, "users", user.uid);
       setDocumentNonBlocking(userRef, {
         serverIds: arrayUnion(targetServerId)
@@ -170,13 +167,27 @@ export function ServerSidebar({ activeServerId, onSelectServer }: ServerSidebarP
         <Tooltip>
           <TooltipTrigger asChild>
             <button onClick={() => onSelectServer(null as any)} className="group relative flex items-center justify-center">
-              <div className={cn("absolute left-0 w-1 bg-white rounded-r-full transition-all", !activeServerId ? "h-8" : "h-0 group-hover:h-5")} />
-              <div className={cn("w-12 h-12 bg-sidebar-accent flex items-center justify-center rounded-[24px] group-hover:rounded-[16px] transition-all text-white", !activeServerId && "rounded-[16px] bg-primary")}>
+              <div className={cn("absolute left-0 w-1 bg-white rounded-r-full transition-all", (!activeServerId && !isDuniyaActive) ? "h-8" : "h-0 group-hover:h-5")} />
+              <div className={cn("w-12 h-12 bg-sidebar-accent flex items-center justify-center rounded-[24px] group-hover:rounded-[16px] transition-all text-white", (!activeServerId && !isDuniyaActive) && "rounded-[16px] bg-primary")}>
                 <span className="font-bold text-lg">CV</span>
               </div>
             </button>
           </TooltipTrigger>
           <TooltipContent side="right">ConnectVerse Home</TooltipContent>
+        </Tooltip>
+
+        <div className="w-8 h-[2px] bg-sidebar-accent/50 rounded-full shrink-0" />
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button onClick={() => onSelectServer("duniya")} className="group relative flex items-center justify-center">
+              <div className={cn("absolute left-0 w-1 bg-white rounded-r-full transition-all", isDuniyaActive ? "h-8" : "h-0 group-hover:h-5")} />
+              <div className={cn("w-12 h-12 flex items-center justify-center rounded-[24px] group-hover:rounded-[16px] transition-all overflow-hidden bg-accent/20 text-accent", isDuniyaActive && "rounded-[16px] bg-accent text-white")}>
+                <Globe className="h-6 w-6" />
+              </div>
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="right">Duniya (Public Directory)</TooltipContent>
         </Tooltip>
 
         <div className="w-8 h-[2px] bg-sidebar-accent/50 rounded-full shrink-0" />

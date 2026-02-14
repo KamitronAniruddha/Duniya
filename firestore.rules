@@ -13,13 +13,9 @@ service cloud.firestore {
 
     function isServerAdmin(serverId) {
       let serverPath = /databases/$(database)/documents/servers/$(serverId);
-      
-      // Use getAfter to ensure consistency during batch writes (e.g., server + channel creation)
-      // getAfter falls back to current state if no change is pending in the batch.
       if (!isSignedIn() || !existsAfter(serverPath)) {
         return false;
       }
-      
       let serverData = getAfter(serverPath).data;
       return serverData.ownerId == request.auth.uid || (serverData.admins != null && request.auth.uid in serverData.admins);
     }
@@ -34,11 +30,17 @@ service cloud.firestore {
     }
 
     match /servers/{serverId} {
-      allow read: if isSignedIn();
+      // Allow reading if you are a member OR if the server is broadcasted (public discovery)
+      allow read: if isSignedIn() && (
+        (request.auth.uid in resource.data.members) || 
+        (resource.data.isBroadcasted == true) ||
+        (existsAfter(/databases/$(database)/documents/servers/$(serverId)) && getAfter(/databases/$(database)/documents/servers/$(serverId)).data.ownerId == request.auth.uid)
+      );
       allow create: if isSignedIn();
       allow update: if isSignedIn() && (
         request.auth.uid == resource.data.ownerId || 
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'name', 'icon', 'admins'])
+        (request.auth.uid in resource.data.admins) ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members'])
       );
       allow delete: if isSignedIn() && request.auth.uid == resource.data.ownerId;
     }
