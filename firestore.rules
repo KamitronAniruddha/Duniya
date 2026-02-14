@@ -32,15 +32,9 @@ service cloud.firestore {
     }
 
     match /servers/{serverId} {
-      // Fixed read rule: existsAfter/getAfter are NOT valid in read operations.
-      // Use resource.data for existing state.
-      allow read: if isSignedIn() && (
-        resource != null && (
-          (request.auth.uid in resource.data.get('members', [])) || 
-          (resource.data.get('isBroadcasted', false) == true) ||
-          (resource.data.get('ownerId', '') == request.auth.uid)
-        )
-      );
+      // Simplified read: Allow all signed-in users to see server metadata.
+      // This ensures Duniya discovery and sidebar membership queries always work.
+      allow read: if isSignedIn();
       
       allow create: if isSignedIn();
       
