@@ -1,10 +1,9 @@
-
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useCollection, useFirestore, useUser, useMemoFirebase } from "@/firebase";
-import { collection, query, where, doc, arrayUnion, orderBy } from "firebase/firestore";
-import { Globe, Search, Users, Loader2, Plus, Check } from "lucide-react";
+import { collection, query, where, doc, arrayUnion } from "firebase/firestore";
+import { Globe, Search, Users, Loader2, Plus, Check, AlertCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,16 +19,16 @@ export function DuniyaPanel({ onJoinSuccess }: { onJoinSuccess: (serverId: strin
   const [searchQuery, setSearchQuery] = useState("");
   const [joiningId, setJoiningId] = useState<string | null>(null);
 
+  // Note: orderBy removed to avoid composite index requirements which can cause permission-like errors.
   const publicServersQuery = useMemoFirebase(() => {
     if (!db) return null;
     return query(
       collection(db, "servers"),
-      where("isBroadcasted", "==", true),
-      orderBy("createdAt", "desc")
+      where("isBroadcasted", "==", true)
     );
   }, [db]);
 
-  const { data: publicServers, isLoading } = useCollection(publicServersQuery);
+  const { data: publicServers, isLoading, error } = useCollection(publicServersQuery);
 
   const filteredServers = publicServers?.filter(s => 
     s.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -103,6 +102,16 @@ export function DuniyaPanel({ onJoinSuccess }: { onJoinSuccess: (serverId: strin
             <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
             <p className="text-sm font-medium">Scanning the Verse...</p>
           </div>
+        ) : error ? (
+           <div className="flex flex-col items-center justify-center h-64 text-center space-y-4 p-6 bg-red-50 rounded-2xl border border-red-100">
+            <AlertCircle className="h-12 w-12 text-destructive" />
+            <div>
+              <h3 className="text-lg font-bold text-destructive">Discovery Interrupted</h3>
+              <p className="text-sm text-muted-foreground max-w-xs mx-auto">
+                We encountered an error while scanning Duniya. Please try refreshing or checking your connection.
+              </p>
+            </div>
+          </div>
         ) : filteredServers.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 text-center space-y-4 opacity-50">
             <Globe className="h-16 w-16 text-muted-foreground/30" />
@@ -120,8 +129,8 @@ export function DuniyaPanel({ onJoinSuccess }: { onJoinSuccess: (serverId: strin
                   <div className="h-20 bg-gradient-to-r from-primary/20 to-accent/20 relative">
                     <div className="absolute -bottom-6 left-4">
                       <Avatar className="h-12 w-12 border-4 border-white shadow-lg">
-                        <AvatarImage src={server.icon} />
-                        <AvatarFallback className="bg-primary text-white font-bold">{server.name?.[0]}</AvatarFallback>
+                        <AvatarImage src={server.icon || undefined} />
+                        <AvatarFallback className="bg-primary text-white font-bold">{server.name?.[0]?.toUpperCase()}</AvatarFallback>
                       </Avatar>
                     </div>
                   </div>
