@@ -50,6 +50,7 @@ export function ChatWindow({ channelId, serverId }: ChatWindowProps) {
 
   useEffect(() => {
     if (scrollRef.current) {
+      // Use requestAnimationFrame to ensure scroll happens after render
       requestAnimationFrame(() => {
         if (scrollRef.current) {
           scrollRef.current.scrollTop = scrollRef.current.scrollHeight;

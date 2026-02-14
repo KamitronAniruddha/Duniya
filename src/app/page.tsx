@@ -109,7 +109,8 @@ export default function ConnectVerseApp() {
 
       {/* Main Chat Area */}
       <main className="flex-1 flex flex-col min-w-0 h-full relative overflow-hidden bg-white">
-        <div className="md:hidden p-2 border-b flex items-center gap-2">
+        {/* Mobile Header with Menu */}
+        <div className="md:hidden p-2 border-b flex items-center gap-2 bg-white shrink-0">
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon">
