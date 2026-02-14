@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -164,14 +165,14 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive, 
       <TooltipProvider delayDuration={0}>
         <Tooltip>
           <TooltipTrigger asChild>
-            <button onClick={() => onSelectServer(null as any)} className="group relative flex items-center justify-center h-12 w-full">
-              <div className={cn("absolute left-0 w-1 bg-white rounded-r-full transition-all duration-300", (!activeServerId && !isDuniyaActive && !isAdminActive) ? "h-8" : "h-0 group-hover:h-4")} />
-              <div className={cn("w-12 h-12 flex items-center justify-center transition-all duration-300 shadow-lg rounded-[24px] group-hover:rounded-[14px] bg-sidebar-accent text-white group-hover:bg-primary group-hover:scale-110", (!activeServerId && !isDuniyaActive && !isAdminActive) && "rounded-[14px] bg-primary")}>
+            <button onClick={() => onSelectServer(null as any)} className="group relative flex items-center justify-center h-12 w-full mb-1">
+              <div className={cn("absolute left-0 w-1 bg-white rounded-r-full transition-all duration-300", (!activeServerId && !isDuniyaActive && !isAdminActive) ? "h-8 opacity-100" : "h-0 opacity-0 group-hover:h-4 group-hover:opacity-100")} />
+              <div className={cn("w-12 h-12 flex items-center justify-center transition-all duration-300 shadow-lg rounded-[24px] group-hover:rounded-[12px] bg-sidebar-accent text-white group-hover:bg-primary group-hover:scale-105", (!activeServerId && !isDuniyaActive && !isAdminActive) && "rounded-[12px] bg-primary")}>
                 <span className="font-black text-xl tracking-tighter italic">D</span>
               </div>
             </button>
           </TooltipTrigger>
-          <TooltipContent side="right">Duniya Home</TooltipContent>
+          <TooltipContent side="right" className="font-bold">Duniya Home</TooltipContent>
         </Tooltip>
 
         <div className="w-8 h-[1px] bg-sidebar-accent/30 rounded-full shrink-0" />
@@ -179,26 +180,26 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive, 
         <Tooltip>
           <TooltipTrigger asChild>
             <button onClick={() => onSelectServer("duniya")} className="group relative flex items-center justify-center h-12 w-full">
-              <div className={cn("absolute left-0 w-1 bg-white rounded-r-full transition-all duration-300", isDuniyaActive ? "h-8" : "h-0 group-hover:h-4")} />
-              <div className={cn("w-12 h-12 flex items-center justify-center transition-all duration-300 shadow-lg rounded-[24px] group-hover:rounded-[14px] bg-accent/10 text-accent group-hover:bg-accent group-hover:text-white group-hover:scale-110", isDuniyaActive && "rounded-[14px] bg-accent text-white")}>
+              <div className={cn("absolute left-0 w-1 bg-white rounded-r-full transition-all duration-300", isDuniyaActive ? "h-8 opacity-100" : "h-0 opacity-0 group-hover:h-4 group-hover:opacity-100")} />
+              <div className={cn("w-12 h-12 flex items-center justify-center transition-all duration-300 shadow-lg rounded-[24px] group-hover:rounded-[12px] bg-accent/10 text-accent group-hover:bg-accent group-hover:text-white group-hover:scale-105", isDuniyaActive && "rounded-[12px] bg-accent text-white")}>
                 <Globe className="h-6 w-6" />
               </div>
             </button>
           </TooltipTrigger>
-          <TooltipContent side="right">Public Directory</TooltipContent>
+          <TooltipContent side="right" className="font-bold text-accent">Public Directory</TooltipContent>
         </Tooltip>
 
         {isAdminUser && (
           <Tooltip>
             <TooltipTrigger asChild>
               <button onClick={() => onSelectServer("admin")} className="group relative flex items-center justify-center h-12 w-full">
-                <div className={cn("absolute left-0 w-1 bg-white rounded-r-full transition-all duration-300", isAdminActive ? "h-8" : "h-0 group-hover:h-4")} />
-                <div className={cn("w-12 h-12 flex items-center justify-center transition-all duration-300 shadow-lg rounded-[24px] group-hover:rounded-[14px] bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white group-hover:scale-110", isAdminActive && "rounded-[14px] bg-primary text-white")}>
+                <div className={cn("absolute left-0 w-1 bg-white rounded-r-full transition-all duration-300", isAdminActive ? "h-8 opacity-100" : "h-0 opacity-0 group-hover:h-4 group-hover:opacity-100")} />
+                <div className={cn("w-12 h-12 flex items-center justify-center transition-all duration-300 shadow-lg rounded-[24px] group-hover:rounded-[12px] bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white group-hover:scale-105", isAdminActive && "rounded-[12px] bg-primary text-white")}>
                   <Shield className="h-6 w-6" />
                 </div>
               </button>
             </TooltipTrigger>
-            <TooltipContent side="right">Admin Dashboard</TooltipContent>
+            <TooltipContent side="right" className="font-bold text-primary">Admin Dashboard</TooltipContent>
           </Tooltip>
         )}
 
@@ -211,8 +212,8 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive, 
                 <DropdownMenuTrigger asChild>
                   <TooltipTrigger asChild>
                     <button onClick={() => onSelectServer(s.id)} className="group relative flex items-center justify-center h-12 w-full">
-                      <div className={cn("absolute left-0 w-1 bg-white rounded-r-full transition-all duration-300", activeServerId === s.id ? "h-8" : "h-0 group-hover:h-4")} />
-                      <div className={cn("w-12 h-12 flex items-center justify-center transition-all duration-300 overflow-hidden shadow-lg rounded-[24px] group-hover:rounded-[14px] bg-sidebar-accent group-hover:scale-110", activeServerId === s.id && "rounded-[14px] ring-2 ring-primary ring-offset-2 ring-offset-sidebar")}>
+                      <div className={cn("absolute left-0 w-1 bg-white rounded-r-full transition-all duration-300", activeServerId === s.id ? "h-8 opacity-100" : "h-0 opacity-0 group-hover:h-4 group-hover:opacity-100")} />
+                      <div className={cn("w-12 h-12 flex items-center justify-center transition-all duration-300 overflow-hidden shadow-lg rounded-[24px] group-hover:rounded-[12px] bg-sidebar-accent group-hover:scale-105", activeServerId === s.id && "rounded-[12px] ring-2 ring-primary ring-offset-2 ring-offset-sidebar shadow-primary/20")}>
                         <Avatar className="w-full h-full rounded-none">
                           <AvatarImage src={s.icon} />
                           <AvatarFallback className="bg-primary text-white font-black text-lg">{s.name?.[0]?.toUpperCase()}</AvatarFallback>
@@ -228,7 +229,7 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive, 
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <TooltipContent side="right">{s.name}</TooltipContent>
+              <TooltipContent side="right" className="font-bold">{s.name}</TooltipContent>
             </Tooltip>
           ))}
         </div>
@@ -236,7 +237,7 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive, 
         <div className="flex flex-col items-center gap-3 mt-auto mb-4">
           <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
             <DialogTrigger asChild>
-              <button className="w-12 h-12 flex items-center justify-center rounded-[24px] hover:rounded-[14px] bg-sidebar-accent hover:bg-green-600 text-green-500 hover:text-white transition-all duration-300 shadow-md group">
+              <button className="w-12 h-12 flex items-center justify-center rounded-[24px] hover:rounded-[12px] bg-sidebar-accent hover:bg-green-600 text-green-500 hover:text-white transition-all duration-300 shadow-md group">
                 <Plus className="h-6 w-6 group-hover:scale-110 transition-transform" />
               </button>
             </DialogTrigger>
@@ -260,7 +261,7 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive, 
 
           <Dialog open={isJoinModalOpen} onOpenChange={setIsJoinModalOpen}>
             <DialogTrigger asChild>
-              <button className="w-12 h-12 flex items-center justify-center rounded-[24px] hover:rounded-[14px] bg-sidebar-accent hover:bg-primary text-primary hover:text-white transition-all duration-300 shadow-md group">
+              <button className="w-12 h-12 flex items-center justify-center rounded-[24px] hover:rounded-[12px] bg-sidebar-accent hover:bg-primary text-primary hover:text-white transition-all duration-300 shadow-md group">
                 <Compass className="h-6 w-6 group-hover:scale-110 transition-transform" />
               </button>
             </DialogTrigger>
@@ -282,9 +283,9 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive, 
             </DialogContent>
           </Dialog>
           
-          <div className="flex flex-col items-center gap-1 opacity-20 hover:opacity-100 transition-all duration-500 mt-2 cursor-help group">
-            <Heart className="h-3 w-3 text-red-500 fill-red-500 group-hover:scale-125 transition-transform animate-pulse" />
-            <span className="text-[6px] font-black uppercase text-white text-center leading-[1.2] tracking-tighter">Aniruddha</span>
+          <div className="flex flex-col items-center gap-1 opacity-40 hover:opacity-100 transition-all duration-500 mt-2 cursor-help group">
+            <Heart className="h-3 w-3 text-red-500 fill-red-500 group-hover:scale-150 transition-transform animate-pulse" />
+            <span className="text-[7px] font-black uppercase text-white/50 group-hover:text-white text-center leading-[1.2] tracking-tighter transition-colors">Aniruddha</span>
           </div>
         </div>
       </TooltipProvider>
