@@ -1,3 +1,34 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "avatar-user",
+      "description": "User profile avatar",
+      "imageUrl": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxwZXJzb24lMjBwb3J0cmFpdHxlbnwwfHx8fDE3NzEwNDg3OTh8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person portrait"
+    },
+    {
+      "id": "server-gaming",
+      "description": "Gaming community icon",
+      "imageUrl": "https://images.unsplash.com/photo-1518719028738-e7262020a932?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxnYW1pbmclMjBjb250cm9sbGVyfGVufDB8fHx8MTc3MTA0ODk5Mnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "gaming controller"
+    },
+    {
+      "id": "server-tech",
+      "description": "Tech enthusiasts community icon",
+      "imageUrl": "https://images.unsplash.com/photo-1595623654300-b27329804025?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHx0ZWNobm9sb2d5JTIwY29kZXxlbnwwfHx8fDE3NzEwMTQ3Nzh8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "technology code"
+    },
+    {
+      "id": "server-design",
+      "description": "Designers community icon",
+      "imageUrl": "https://images.unsplash.com/photo-1722528490197-fcad1006e762?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxjcmVhdGl2ZSUyMGRlc2lnbnxlbnwwfHx8fDE3NzEwNDQ4MjF8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "creative design"
+    },
+    {
+      "id": "hero-landing",
+      "description": "Hero image for landing page",
+      "imageUrl": "https://images.unsplash.com/photo-1565164705190-d5e3b7fb3446?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8cGVvcGxlJTIwY29ubmVjdGlvbnxlbnwwfHx8fDE3NzEwNzM2ODh8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "people connection"
+    }
+  ]
 }
