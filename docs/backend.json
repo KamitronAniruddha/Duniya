@@ -1,106 +1,1073 @@
-
 {
   "entities": {
     "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "User",
       "type": "object",
+      "description": "Represents a user's profile and core identity within the application.",
       "properties": {
-        "id": { "type": "string" },
-        "username": { "type": "string" },
-        "email": { "type": "string", "format": "email" },
-        "photoURL": { "type": "string", "format": "uri" },
-        "bio": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" },
-        "onlineStatus": { "type": "string", "enum": ["online", "idle", "offline"] },
-        "lastSeen": { "type": "string", "format": "date-time" },
-        "friends": { "type": "array", "items": { "type": "string" } },
-        "serverIds": { "type": "array", "items": { "type": "string" } }
-      },
-      "required": ["id", "username", "email", "createdAt"]
-    },
-    "Server": {
-      "title": "Server",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "name": { "type": "string" },
-        "description": { "type": "string" },
-        "icon": { "type": "string", "format": "uri" },
-        "ownerId": { "type": "string" },
-        "admins": { "type": "array", "items": { "type": "string" } },
-        "joinCode": { "type": "string" },
-        "members": { "type": "array", "items": { "type": "string" } },
-        "createdAt": { "type": "string", "format": "date-time" },
-        "isBroadcasted": { "type": "boolean", "description": "Whether the server is visible in Duniya." },
-        "broadcastExpiry": { "type": "string", "format": "date-time", "description": "When the Duniya broadcast expires." },
-        "disappearingMessagesDuration": { 
-          "type": "string", 
-          "enum": ["off", "24h", "7d", "90d"], 
-          "description": "Duration after which messages disappear." 
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the User entity."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "The user's publicly visible name."
+        },
+        "email": {
+          "type": "string",
+          "description": "User's primary email address, used for identification and communication.",
+          "format": "email"
+        },
+        "avatarUrl": {
+          "type": "string",
+          "description": "URL to the user's profile picture or avatar.",
+          "format": "uri"
+        },
+        "bio": {
+          "type": "string",
+          "description": "A short biographical description provided by the user."
+        },
+        "statusMessage": {
+          "type": "string",
+          "description": "A user-defined message reflecting their current status or mood."
+        },
+        "lastOnlineAt": {
+          "type": "string",
+          "description": "Timestamp indicating the last time the user was actively online.",
+          "format": "date-time"
+        },
+        "isAdmin": {
+          "type": "boolean",
+          "description": "Boolean flag indicating if the user has administrative privileges within the application. This is used to grant admin dashboard access."
+        },
+        "isBlocked": {
+          "type": "boolean",
+          "description": "Boolean flag indicating if the user's account is currently blocked by an administrator for moderation purposes."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the user profile was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the user profile was last updated.",
+          "format": "date-time"
         }
       },
-      "required": ["id", "name", "ownerId", "members", "joinCode"]
+      "required": [
+        "id",
+        "displayName",
+        "email",
+        "isAdmin",
+        "createdAt"
+      ]
+    },
+    "ContactFormSubmission": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ContactFormSubmission",
+      "type": "object",
+      "description": "Stores messages submitted by users through a contact form, intended for administrator review.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the contact form submission."
+        },
+        "submitterId": {
+          "type": "string",
+          "description": "Unique identifier of the user who submitted the form, if they were logged in. (Relationship: User 1:N ContactFormSubmission)"
+        },
+        "senderName": {
+          "type": "string",
+          "description": "The name provided by the sender if they are not a logged-in user or wish to use a different name."
+        },
+        "senderEmail": {
+          "type": "string",
+          "description": "The email address provided by the sender for communication, especially if not a logged-in user.",
+          "format": "email"
+        },
+        "subject": {
+          "type": "string",
+          "description": "The subject line or topic of the contact form message."
+        },
+        "message": {
+          "type": "string",
+          "description": "The full content of the message submitted by the user."
+        },
+        "submittedAt": {
+          "type": "string",
+          "description": "Timestamp when the contact form was submitted.",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the submission (e.g., 'New', 'In Progress', 'Resolved', 'Archived')."
+        },
+        "assignedToAdminId": {
+          "type": "string",
+          "description": "Unique identifier of the admin user assigned to handle this submission. (Relationship: User 1:N ContactFormSubmission)"
+        },
+        "resolvedAt": {
+          "type": "string",
+          "description": "Timestamp when the contact form submission was marked as resolved.",
+          "format": "date-time"
+        },
+        "adminNotes": {
+          "type": "string",
+          "description": "Internal notes added by administrators regarding the handling of this submission."
+        }
+      },
+      "required": [
+        "id",
+        "message",
+        "submittedAt",
+        "status"
+      ]
+    },
+    "Community": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Community",
+      "type": "object",
+      "description": "Represents a server or community where users can interact in channels.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the community/server."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the community."
+        },
+        "description": {
+          "type": "string",
+          "description": "A brief description of the community."
+        },
+        "ownerId": {
+          "type": "string",
+          "description": "Unique identifier of the user who owns/created the community. (Relationship: User 1:N Community)"
+        },
+        "avatarUrl": {
+          "type": "string",
+          "description": "URL to the community's icon or logo.",
+          "format": "uri"
+        },
+        "inviteCode": {
+          "type": "string",
+          "description": "A unique, shareable code for inviting new members to the community."
+        },
+        "isPublic": {
+          "type": "boolean",
+          "description": "Boolean indicating if the community is publicly discoverable by other users."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the community was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the community was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "ownerId",
+        "createdAt"
+      ]
     },
     "Channel": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Channel",
       "type": "object",
+      "description": "Represents a channel within a Community where specific types of communication occur.",
       "properties": {
-        "id": { "type": "string" },
-        "serverId": { "type": "string" },
-        "name": { "type": "string" },
-        "type": { "type": "string", "enum": ["text", "voice"] },
-        "createdAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["id", "serverId", "name", "type"]
-    },
-    "Message": {
-      "title": "Message",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "senderId": { "type": "string" },
-        "text": { "type": "string" },
-        "type": { "type": "string", "enum": ["text", "voice", "video"] },
-        "audioUrl": { "type": "string", "description": "Data URI for voice messages." },
-        "videoUrl": { "type": "string", "description": "Data URI for circular video messages." },
-        "createdAt": { "type": "string", "format": "date-time" },
-        "expiresAt": { "type": "string", "format": "date-time", "description": "When the message should disappear." },
-        "edited": { "type": "boolean" },
-        "isDeleted": { "type": "boolean", "description": "Whether the message was deleted for everyone." },
-        "deletedBy": { "type": "array", "items": { "type": "string" }, "description": "List of user IDs who deleted the message for themselves." },
-        "reactions": { "type": "object" },
-        "seenBy": { "type": "array", "items": { "type": "string" } },
-        "replyTo": {
-          "type": "object",
-          "properties": {
-            "messageId": { "type": "string" },
-            "senderName": { "type": "string" },
-            "text": { "type": "string" }
-          }
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the channel."
+        },
+        "communityId": {
+          "type": "string",
+          "description": "Unique identifier of the community this channel belongs to. (Relationship: Community 1:N Channel)"
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the channel."
+        },
+        "description": {
+          "type": "string",
+          "description": "A brief description or topic for the channel."
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of channel (e.g., 'text', 'voice', 'video', 'announcement')."
+        },
+        "isPrivate": {
+          "type": "boolean",
+          "description": "Boolean indicating if the channel is private and requires specific permissions to access."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the channel was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the channel was last updated.",
+          "format": "date-time"
         }
       },
-      "required": ["id", "senderId", "createdAt"]
+      "required": [
+        "id",
+        "communityId",
+        "name",
+        "type",
+        "createdAt"
+      ]
+    },
+    "Message": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Message",
+      "type": "object",
+      "description": "Represents a single chat message sent within a channel or direct message.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the message."
+        },
+        "channelId": {
+          "type": "string",
+          "description": "Unique identifier of the channel where the message was sent. (Relationship: Channel 1:N Message)"
+        },
+        "senderId": {
+          "type": "string",
+          "description": "Unique identifier of the user who sent the message. (Relationship: User 1:N Message)"
+        },
+        "content": {
+          "type": "string",
+          "description": "The textual content of the message, supporting rich text formatting."
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of message (e.g., 'text', 'media', 'system', 'call_log', 'thread_starter')."
+        },
+        "mediaAttachmentIds": {
+          "type": "array",
+          "description": "An array of unique identifiers for media attachments associated with this message. (Relationship: Message N:N MediaAttachment)",
+          "items": {
+            "type": "string"
+          }
+        },
+        "sentAt": {
+          "type": "string",
+          "description": "Timestamp when the message was sent.",
+          "format": "date-time"
+        },
+        "editedAt": {
+          "type": "string",
+          "description": "Timestamp when the message was last edited.",
+          "format": "date-time"
+        },
+        "deletedAt": {
+          "type": "string",
+          "description": "Timestamp if the message was soft-deleted.",
+          "format": "date-time"
+        },
+        "parentMessageId": {
+          "type": "string",
+          "description": "Unique identifier of the message this message is replying to, for threaded conversations. (Relationship: Message 1:N Message - self-referencing)"
+        },
+        "isPinned": {
+          "type": "boolean",
+          "description": "Boolean indicating if the message is pinned within its channel."
+        }
+      },
+      "required": [
+        "id",
+        "channelId",
+        "senderId",
+        "content",
+        "type",
+        "sentAt"
+      ]
+    },
+    "MediaAttachment": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "MediaAttachment",
+      "type": "object",
+      "description": "Represents an uploaded file or media associated with a message or other content.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the media attachment."
+        },
+        "uploaderId": {
+          "type": "string",
+          "description": "Unique identifier of the user who uploaded the media. (Relationship: User 1:N MediaAttachment)"
+        },
+        "messageId": {
+          "type": "string",
+          "description": "Unique identifier of the message this media is attached to. (Relationship: Message N:N MediaAttachment)"
+        },
+        "url": {
+          "type": "string",
+          "description": "The secure URL where the media file is stored.",
+          "format": "uri"
+        },
+        "fileName": {
+          "type": "string",
+          "description": "The original name of the uploaded file."
+        },
+        "fileSize": {
+          "type": "number",
+          "description": "The size of the file in bytes."
+        },
+        "mimeType": {
+          "type": "string",
+          "description": "The MIME type of the file (e.g., 'image/jpeg', 'video/mp4')."
+        },
+        "storageProviderRef": {
+          "type": "string",
+          "description": "An internal reference or path to the file within the cloud storage provider."
+        },
+        "uploadedAt": {
+          "type": "string",
+          "description": "Timestamp when the media was uploaded.",
+          "format": "date-time"
+        },
+        "thumbnailUrl": {
+          "type": "string",
+          "description": "URL for a smaller preview image or video thumbnail.",
+          "format": "uri"
+        },
+        "durationSeconds": {
+          "type": "number",
+          "description": "For audio and video files, the duration in seconds."
+        }
+      },
+      "required": [
+        "id",
+        "uploaderId",
+        "url",
+        "fileName",
+        "fileSize",
+        "mimeType",
+        "uploadedAt"
+      ]
+    },
+    "Reaction": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Reaction",
+      "type": "object",
+      "description": "Represents a user's emoji reaction to a specific message.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the message reaction."
+        },
+        "messageId": {
+          "type": "string",
+          "description": "Unique identifier of the message this reaction belongs to. (Relationship: Message 1:N Reaction)"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Unique identifier of the user who added the reaction. (Relationship: User 1:N Reaction)"
+        },
+        "emoji": {
+          "type": "string",
+          "description": "The actual emoji character or a shortcode representing the reaction."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the reaction was added.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "messageId",
+        "userId",
+        "emoji",
+        "createdAt"
+      ]
+    },
+    "MessageReadReceipt": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "MessageReadReceipt",
+      "type": "object",
+      "description": "Tracks when a user has read a specific message.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the read receipt."
+        },
+        "messageId": {
+          "type": "string",
+          "description": "Unique identifier of the message that was read. (Relationship: Message 1:N MessageReadReceipt)"
+        },
+        "readerId": {
+          "type": "string",
+          "description": "Unique identifier of the user who read the message. (Relationship: User 1:N MessageReadReceipt)"
+        },
+        "readAt": {
+          "type": "string",
+          "description": "Timestamp when the message was marked as read.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "messageId",
+        "readerId",
+        "readAt"
+      ]
+    },
+    "CallSession": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CallSession",
+      "type": "object",
+      "description": "Represents a single voice or video call session.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the call session."
+        },
+        "initiatorId": {
+          "type": "string",
+          "description": "Unique identifier of the user who initiated the call. (Relationship: User 1:N CallSession)"
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of call (e.g., '1-to-1_voice', 'group_video', 'voice_channel')."
+        },
+        "channelId": {
+          "type": "string",
+          "description": "Optional unique identifier of the channel if the call is within a voice/video channel. (Relationship: Channel 1:N CallSession)"
+        },
+        "startedAt": {
+          "type": "string",
+          "description": "Timestamp when the call session began.",
+          "format": "date-time"
+        },
+        "endedAt": {
+          "type": "string",
+          "description": "Timestamp when the call session ended.",
+          "format": "date-time"
+        },
+        "isRecorded": {
+          "type": "boolean",
+          "description": "Boolean indicating if the call was recorded."
+        },
+        "recordingUrl": {
+          "type": "string",
+          "description": "URL to the recording file if isRecorded is true.",
+          "format": "uri"
+        }
+      },
+      "required": [
+        "id",
+        "initiatorId",
+        "type",
+        "startedAt"
+      ]
+    },
+    "CallParticipant": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CallParticipant",
+      "type": "object",
+      "description": "Represents a user's participation in a specific call session.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for a call participant entry."
+        },
+        "callSessionId": {
+          "type": "string",
+          "description": "Unique identifier of the call session the user participated in. (Relationship: CallSession 1:N CallParticipant)"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Unique identifier of the user participating in the call. (Relationship: User 1:N CallParticipant)"
+        },
+        "joinedAt": {
+          "type": "string",
+          "description": "Timestamp when the user joined the call.",
+          "format": "date-time"
+        },
+        "leftAt": {
+          "type": "string",
+          "description": "Timestamp when the user left the call.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "callSessionId",
+        "userId",
+        "joinedAt"
+      ]
+    },
+    "CommunityMember": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CommunityMember",
+      "type": "object",
+      "description": "Represents a user's membership in a community, including their role.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for a community membership."
+        },
+        "communityId": {
+          "type": "string",
+          "description": "Unique identifier of the community the user is a member of. (Relationship: Community 1:N CommunityMember)"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Unique identifier of the user who is a member. (Relationship: User 1:N CommunityMember)"
+        },
+        "role": {
+          "type": "string",
+          "description": "The role of the member within the community (e.g., 'member', 'moderator', 'admin', 'owner')."
+        },
+        "joinedAt": {
+          "type": "string",
+          "description": "Timestamp when the user joined the community.",
+          "format": "date-time"
+        },
+        "lastActiveAt": {
+          "type": "string",
+          "description": "Timestamp when the user was last active in the community.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "communityId",
+        "userId",
+        "role",
+        "joinedAt"
+      ]
+    },
+    "FollowRelationship": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "FollowRelationship",
+      "type": "object",
+      "description": "Represents a user following another user in the social aspect of the app.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the follow relationship."
+        },
+        "followerId": {
+          "type": "string",
+          "description": "Unique identifier of the user initiating the follow. (Relationship: User 1:N FollowRelationship)"
+        },
+        "followedId": {
+          "type": "string",
+          "description": "Unique identifier of the user being followed. (Relationship: User 1:N FollowRelationship)"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the follow relationship was established.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "followerId",
+        "followedId",
+        "createdAt"
+      ]
+    },
+    "Story": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Story",
+      "type": "object",
+      "description": "Represents a short, disappearing content post (like Instagram/WhatsApp stories).",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for a story update."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Unique identifier of the user who posted the story. (Relationship: User 1:N Story)"
+        },
+        "mediaUrl": {
+          "type": "string",
+          "description": "URL to the media content (image/video) of the story.",
+          "format": "uri"
+        },
+        "caption": {
+          "type": "string",
+          "description": "Optional text caption for the story."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the story was posted.",
+          "format": "date-time"
+        },
+        "expiresAt": {
+          "type": "string",
+          "description": "Timestamp when the story is set to disappear (e.g., 24 hours after creation).",
+          "format": "date-time"
+        },
+        "viewsCount": {
+          "type": "number",
+          "description": "Number of times the story has been viewed."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "mediaUrl",
+        "createdAt",
+        "expiresAt"
+      ]
+    },
+    "Notification": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Notification",
+      "type": "object",
+      "description": "Represents a notification to be delivered to a user (e.g., push notification, in-app alert).",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the notification."
+        },
+        "recipientId": {
+          "type": "string",
+          "description": "Unique identifier of the user who is to receive the notification. (Relationship: User 1:N Notification)"
+        },
+        "type": {
+          "type": "string",
+          "description": "The category or type of notification (e.g., 'message_mention', 'new_message', 'call_invite', 'story_update', 'community_announcement')."
+        },
+        "content": {
+          "type": "string",
+          "description": "The short text content of the notification."
+        },
+        "targetEntityId": {
+          "type": "string",
+          "description": "Optional, unique ID of the entity this notification refers to (e.g., messageId, callSessionId). This helps in navigating to the relevant content."
+        },
+        "targetUrl": {
+          "type": "string",
+          "description": "An internal application path or URL to navigate to when the notification is interacted with.",
+          "format": "uri"
+        },
+        "isRead": {
+          "type": "boolean",
+          "description": "Boolean indicating if the user has marked the notification as read."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the notification was created.",
+          "format": "date-time"
+        },
+        "sentAt": {
+          "type": "string",
+          "description": "Timestamp when the push notification was dispatched (if applicable).",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "recipientId",
+        "type",
+        "content",
+        "createdAt"
+      ]
+    },
+    "UserDevice": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserDevice",
+      "type": "object",
+      "description": "Represents a user's registered device for managing push notifications and device sessions.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user's device registration."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Unique identifier of the user associated with this device. (Relationship: User 1:N UserDevice)"
+        },
+        "deviceToken": {
+          "type": "string",
+          "description": "The push notification token (e.g., FCM, APNs) for this device, allowing delivery of push messages."
+        },
+        "deviceType": {
+          "type": "string",
+          "description": "The type of device (e.g., 'android', 'ios', 'web')."
+        },
+        "platformInfo": {
+          "type": "string",
+          "description": "Additional platform details, such as OS version or browser name, for device identification and targeting."
+        },
+        "lastLoggedInAt": {
+          "type": "string",
+          "description": "Timestamp when the user last logged in from this device.",
+          "format": "date-time"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the device was first registered.",
+          "format": "date-time"
+        },
+        "isActive": {
+          "type": "boolean",
+          "description": "Boolean indicating if notifications should be actively sent to this device."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "deviceToken",
+        "deviceType",
+        "createdAt"
+      ]
     }
   },
   "auth": {
-    "providers": ["password"]
+    "providers": [
+      "password",
+      "anonymous"
+    ]
   },
   "firestore": {
-    "/users/{userId}": {
-      "schema": { "$ref": "#/backend/entities/User" },
-      "description": "User profile data."
-    },
-    "/servers/{serverId}": {
-      "schema": { "$ref": "#/backend/entities/Server" },
-      "description": "Server metadata."
-    },
-    "/channels/{channelId}": {
-      "schema": { "$ref": "#/backend/entities/Channel" },
-      "description": "Channel metadata."
-    },
-    "/messages/{channelId}/chatMessages/{messageId}": {
-      "schema": { "$ref": "#/backend/entities/Message" },
-      "description": "Real-time messages for a channel."
-    }
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores core user profiles. Users can read their own profile, and modify certain fields. Admins have read access to all user profiles.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "Unique identifier for the user, matching `request.auth.uid` for private access."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/roles_admin/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "A marker collection for identifying users with administrative privileges. The existence of a document for a `userId` here grants admin access. Used for DBAC (Database Access Control) to simplify admin checks in security rules.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "Unique identifier of the user who is an administrator."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/contact_form_submissions/{submissionId}",
+        "definition": {
+          "entityName": "ContactFormSubmission",
+          "schema": {
+            "$ref": "#/backend/entities/ContactFormSubmission"
+          },
+          "description": "Stores messages submitted via the contact form. Only admins can read and update these submissions. Submitting users can only create their own. Includes `submitterId` for ownership context.",
+          "params": [
+            {
+              "name": "submissionId",
+              "description": "Unique identifier for the contact form submission."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/communities/{communityId}",
+        "definition": {
+          "entityName": "Community",
+          "schema": {
+            "$ref": "#/backend/entities/Community"
+          },
+          "description": "Stores metadata for communities or servers. Includes `ownerId` for primary ownership and `isPublic` for discoverability. Requires `ownerId` and potentially `members` (from subcollection) for access control.",
+          "params": [
+            {
+              "name": "communityId",
+              "description": "Unique identifier for the community."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/communities/{communityId}/members/{userId}",
+        "definition": {
+          "entityName": "CommunityMember",
+          "schema": {
+            "$ref": "#/backend/entities/CommunityMember"
+          },
+          "description": "Details a user's membership within a specific community, including their `role`. This document is critical for authorization independence, providing the necessary context (community membership and role) for access to subcollections like channels and messages.",
+          "params": [
+            {
+              "name": "communityId",
+              "description": "Unique identifier for the parent community."
+            },
+            {
+              "name": "userId",
+              "description": "Unique identifier for the member user, matching `request.auth.uid`."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/communities/{communityId}/channels/{channelId}",
+        "definition": {
+          "entityName": "Channel",
+          "schema": {
+            "$ref": "#/backend/entities/Channel"
+          },
+          "description": "Stores information for channels within a community. Access is dependent on the user's role in the parent community (checked via `/communities/{communityId}/members/{userId}`). Includes `communityId` and `isPrivate` for direct rule evaluation.",
+          "params": [
+            {
+              "name": "communityId",
+              "description": "Unique identifier for the parent community."
+            },
+            {
+              "name": "channelId",
+              "description": "Unique identifier for the channel."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/communities/{communityId}/channels/{channelId}/messages/{messageId}",
+        "definition": {
+          "entityName": "Message",
+          "schema": {
+            "$ref": "#/backend/entities/Message"
+          },
+          "description": "Contains chat messages for a specific channel. Denormalizes `communityId`, `channelId`, and `senderId` to ensure authorization independence and efficient rule evaluation without parent lookups. Access requires membership in the parent community/channel.",
+          "params": [
+            {
+              "name": "communityId",
+              "description": "Unique identifier for the parent community."
+            },
+            {
+              "name": "channelId",
+              "description": "Unique identifier for the parent channel."
+            },
+            {
+              "name": "messageId",
+              "description": "Unique identifier for the message."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/communities/{communityId}/channels/{channelId}/messages/{messageId}/reactions/{reactionId}",
+        "definition": {
+          "entityName": "Reaction",
+          "schema": {
+            "$ref": "#/backend/entities/Reaction"
+          },
+          "description": "Stores user reactions to messages. Denormalizes `communityId`, `channelId`, `messageId`, and `userId` for authorization independence. Access requires membership in the parent community/channel.",
+          "params": [
+            {
+              "name": "communityId",
+              "description": "Unique identifier for the parent community."
+            },
+            {
+              "name": "channelId",
+              "description": "Unique identifier for the parent channel."
+            },
+            {
+              "name": "messageId",
+              "description": "Unique identifier for the parent message."
+            },
+            {
+              "name": "reactionId",
+              "description": "Unique identifier for the reaction."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/communities/{communityId}/channels/{channelId}/messages/{messageId}/read_receipts/{readReceiptId}",
+        "definition": {
+          "entityName": "MessageReadReceipt",
+          "schema": {
+            "$ref": "#/backend/entities/MessageReadReceipt"
+          },
+          "description": "Tracks when a user has read a message. Denormalizes `communityId`, `channelId`, `messageId`, and `readerId` for authorization independence. Access requires membership in the parent community/channel.",
+          "params": [
+            {
+              "name": "communityId",
+              "description": "Unique identifier for the parent community."
+            },
+            {
+              "name": "channelId",
+              "description": "Unique identifier for the parent channel."
+            },
+            {
+              "name": "messageId",
+              "description": "Unique identifier for the parent message."
+            },
+            {
+              "name": "readReceiptId",
+              "description": "Unique identifier for the read receipt."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/communities/{communityId}/channels/{channelId}/messages/{messageId}/media_attachments/{mediaAttachmentId}",
+        "definition": {
+          "entityName": "MediaAttachment",
+          "schema": {
+            "$ref": "#/backend/entities/MediaAttachment"
+          },
+          "description": "Stores media files attached to a specific message. Denormalizes `communityId`, `channelId`, `messageId`, and `uploaderId` for authorization independence and QAPs. Access requires membership in the parent community/channel.",
+          "params": [
+            {
+              "name": "communityId",
+              "description": "Unique identifier for the parent community."
+            },
+            {
+              "name": "channelId",
+              "description": "Unique identifier for the parent channel."
+            },
+            {
+              "name": "messageId",
+              "description": "Unique identifier for the parent message."
+            },
+            {
+              "name": "mediaAttachmentId",
+              "description": "Unique identifier for the media attachment."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/call_sessions/{callSessionId}",
+        "definition": {
+          "entityName": "CallSession",
+          "schema": {
+            "$ref": "#/backend/entities/CallSession"
+          },
+          "description": "Stores details of voice/video call sessions. Includes `initiatorId` for ownership and `channelId` if part of a channel. Participants' access is controlled via a subcollection.",
+          "params": [
+            {
+              "name": "callSessionId",
+              "description": "Unique identifier for the call session."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/call_sessions/{callSessionId}/participants/{participantId}",
+        "definition": {
+          "entityName": "CallParticipant",
+          "schema": {
+            "$ref": "#/backend/entities/CallParticipant"
+          },
+          "description": "Records user participation in a specific call session. Denormalizes `callSessionId` and `userId` for authorization independence. Access to this document implies access to the parent call session.",
+          "params": [
+            {
+              "name": "callSessionId",
+              "description": "Unique identifier for the parent call session."
+            },
+            {
+              "name": "participantId",
+              "description": "Unique identifier for the call participant record (typically the user's ID)."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{followerId}/following/{followedId}",
+        "definition": {
+          "entityName": "FollowRelationship",
+          "schema": {
+            "$ref": "#/backend/entities/FollowRelationship"
+          },
+          "description": "Represents a user following another user. Follower (`followerId`) has write access to their own 'following' list. Includes `followedId` for direct access and query efficiency.",
+          "params": [
+            {
+              "name": "followerId",
+              "description": "Unique identifier of the user who is following, matching `request.auth.uid`."
+            },
+            {
+              "name": "followedId",
+              "description": "Unique identifier of the user who is being followed."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/stories/{storyId}",
+        "definition": {
+          "entityName": "Story",
+          "schema": {
+            "$ref": "#/backend/entities/Story"
+          },
+          "description": "Stores disappearing stories for a user. User (`userId`) has full control over their own stories. Followers can read stories if they meet privacy criteria. Includes `userId` for ownership.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "Unique identifier of the user who owns this story, matching `request.auth.uid`."
+            },
+            {
+              "name": "storyId",
+              "description": "Unique identifier for the story."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{recipientId}/notifications/{notificationId}",
+        "definition": {
+          "entityName": "Notification",
+          "schema": {
+            "$ref": "#/backend/entities/Notification"
+          },
+          "description": "Stores individual notifications for a user. Recipient (`recipientId`) has full control over their own notifications. Includes `recipientId` for ownership.",
+          "params": [
+            {
+              "name": "recipientId",
+              "description": "Unique identifier of the user who is to receive the notification, matching `request.auth.uid`."
+            },
+            {
+              "name": "notificationId",
+              "description": "Unique identifier for the notification."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/devices/{deviceId}",
+        "definition": {
+          "entityName": "UserDevice",
+          "schema": {
+            "$ref": "#/backend/entities/UserDevice"
+          },
+          "description": "Stores device registration tokens and information for a user. User (`userId`) has full control over their own devices. Includes `userId` for ownership.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "Unique identifier of the user associated with this device, matching `request.auth.uid`."
+            },
+            {
+              "name": "deviceId",
+              "description": "Unique identifier for the user's device registration."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore data structure prioritizes security, scalability, and debuggability by strictly adhering to the core design principles. The primary strategy for achieving **Authorization Independence** is extensive denormalization, where crucial authorization context is copied into subcollection documents. This eliminates the need for expensive and complex `get()` calls in security rules, allowing atomic operations and simplifying rule logic. For example, `Message` documents will contain `communityId`, `channelId`, and `senderId`, so that access can be determined directly from the message document itself without needing to fetch its parent `Channel` or `Community`.\n\n**Structural Segregation** is applied by ensuring that all documents within a collection share the same security posture. For instance, all messages within a specific channel are stored in a single `/communities/{communityId}/channels/{channelId}/messages` subcollection, and their access rules are uniformly applied based on community and channel membership. Admin-specific data, such as `contact_form_submissions` and `roles_admin`, are segregated into top-level collections with distinct, simple rules.\n\n**Access Modeling** follows standardized patterns:\n1.  **Private User Data:** Entities like `Story`, `Notification`, and `UserDevice` are stored in path-based private subcollections under `/users/{userId}`, ensuring that `request.auth.uid` explicitly matches the `{userId}` in the path for ownership.\n2.  **Collaborative Data (Communities, Channels, Messages):** Membership-based access is modeled using a dedicated `/communities/{communityId}/members/{userId}` subcollection. This document explicitly stores the user's `role` within that community. All subcollections like `channels`, `messages`, `reactions`, `read_receipts`, and `media_attachments` under a `Community` will implicitly or explicitly denormalize `communityId` and `channelId`, allowing rules to reference the member's role directly.\n3.  **Global Roles (DBAC):** Admin roles are managed via the `/roles_admin/{userId}` collection, where the mere existence of a document for a user's UID grants administrative privileges. This simplifies `isAdmin` checks to a single `exists()` call.\n\n**QAPs (Rules are not Filters)** are supported by this structure. For example, `list` operations for messages in a channel will require the client-side query to specify the `communityId` and `channelId`. Security rules can then efficiently verify that the requesting user is a member of that `communityId` (by checking `/communities/{communityId}/members/$(request.auth.uid)`). Similarly, listing `contact_form_submissions` is restricted to users present in the `/roles_admin` collection. The structure inherently guides client-side queries to include necessary fields, making security rules declarative and robust against accidental data leakage through broad list operations.\n\nFor the admin dashboard, `/users/{userId}` will be globally readable by administrators (identified via `/roles_admin/{adminId}`). The `contact_form_submissions` collection will also be fully readable by admins. The email `aniruddha@duniya.app` will correspond to a `userId` which will have a document in the `/roles_admin` collection, e.g., `/roles_admin/aniruddhas_uid`.\n\nThis design ensures that security rules are clear, concise, and do not introduce performance bottlenecks due to cross-document lookups, thereby supporting a scalable and secure real-time chat application."
   }
 }
