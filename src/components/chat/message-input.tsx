@@ -1,24 +1,70 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, SendHorizontal, Smile } from "lucide-react";
+import { Plus, SendHorizontal, Smile, History, Ghost, Zap, Pizza, Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface MessageInputProps {
   onSendMessage: (content: string) => void;
 }
 
-const COMMON_EMOJIS = [
-  "😀", "😂", "🤣", "😊", "😍", "🥰", "🥳", "😎", "🤔", "🤨",
-  "👍", "👎", "🙌", "👏", "🔥", "✨", "❤️", "💔", "💯", "🎉",
-  "🚀", "💡", "💻", "🎮", "🍕", "🍔", "☕️", "🍺", "🌈", "☀️",
-  "🌙", "⚡️", "❄️", "🎈", "🎁", "📍", "🔔", "✅", "❌", "💬"
+const EMOJI_CATEGORIES = [
+  {
+    id: "recent",
+    icon: <History className="h-4 w-4" />,
+    label: "Recent",
+    emojis: [] // Populated from local storage
+  },
+  {
+    id: "smileys",
+    icon: <Smile className="h-4 w-4" />,
+    label: "Smileys",
+    emojis: ["😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣", "😊", "😇", "🙂", "🙃", "😉", "😌", "😍", "🥰", "😘", "😗", "😙", "😚", "😋", "😛", "😝", "😜", "🤪", "🤨", "🧐", "🤓", "😎", "🤩", "🥳", "😏", "😒", "😞", "😔", "😟", "😕", "🙁", "☹️", "😮", "😯", "😲", "😳", "🥺", "😦", "😧", "😨", "😰", "😥", "😢", "😭", "😱", "😖", "😣", "😞", "😓", "😩", "😫", "🥱", "😤", "😡", "😠", "🤬", "😈", "👿", "💀", "☠️", "💩", "🤡", "👹", "👺", "👻", "👽", "👾", "🤖"]
+  },
+  {
+    id: "animals",
+    icon: <Ghost className="h-4 w-4" />,
+    label: "Animals",
+    emojis: ["🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯", "🦁", "🐮", "🐷", "🐽", "🐸", "🐵", "🙈", "🙉", "🙊", "🐒", "🐔", "🐧", "🐦", "🐤", "🐣", "🐥", "🦆", "🦅", "🦉", "🦇", "🐺", "🐗", "🐴", "🦄", "🐝", "🐛", "🦋", "🐌", "🐞", "🐜", "🦟", "🦗", "🕷", "🕸", "🦂", "🐢", "🐍", "🦎", "🦖", "🦕", "🐙", "🦑", "🦐", "🦞", "🦀", "🐡", "🐠", "🐟", "🐬", "🐳", "🐋", "🦈", "🐊", "🐅", "🐆", "🦓", "🦍", "🦧", "🐘", "🦛", "🦏", "🐪", "🐫", "🦒", "🦘", "🐃", "🐂", "🐄", "🐎", "🐖", "🐏", "🐑", "🐐", "🦌", "🐕", "🐩", "🦮", "🐕‍🦺", "🐈", "🐓", "🦃", "🦚", "🦜", "🦢", "🦩", "🕊", "🐇", "🦝", "🦨", "🦡", "🦦", "🦥", "🐁", "🐀", "🐿", "🦔"]
+  },
+  {
+    id: "food",
+    icon: <Pizza className="h-4 w-4" />,
+    label: "Food",
+    emojis: ["🍏", "🍎", "🍐", "🍊", "🍋", "🍌", "🍉", "🍇", "🍓", "🍈", "🍒", "🍑", "🥭", "🍍", "🥥", "🥝", "🍅", "🍆", "🥑", "🥦", "🥬", "🥒", "🌶", "🌽", "🥕", "🧄", "🧅", "🥔", "🍠", "🥐", "🥯", "🍞", "🥖", "🥨", "🧀", "🥚", "🍳", "🧈", "🥞", "🧇", "🥓", "🥩", "🍗", "🍖", "🦴", "🌭", "🍔", "🍟", "🍕", "🥪", "🥙", "🧆", "🌮", "🌯", "🥗", "🥘", "🍝", "🍜", "🍲", "🍛", "🍣", "🍱", "🥟", "🦪", "🍤", "🍙", "🍚", "🍘", "🍥", "🥠", "🥮", "🍢", "🍡", "🍧", "🍨", "🍦", "🥧", "🧁", "🍰", "🎂", "🍮", "🍭", "🍬", "🍫", "🍿", "🍩", "🍪", "🌰", "🥜", "🍯", "🥛", "☕️", "🍵", "🧉", "🍶", "🍺", "🍻", "🥂", "🍷", "🥃", "🍸", "🍹", "🥤", "🧃", "🧊", "🥢"]
+  },
+  {
+    id: "activities",
+    icon: <Zap className="h-4 w-4" />,
+    label: "Activities",
+    emojis: ["⚽️", "🏀", "🏈", "⚾️", "🥎", "🎾", "🏐", "🏉", "🥏", "🎱", "🪀", "🏓", "🏸", "🏒", "🏑", "🥍", "🏏", "🥅", "⛳️", "🪁", "🏹", "🎣", "🤿", "🥊", "🥋", "⛸", "🎿", "🛷", "🥌", "🛹", "🛼", "🏋️‍♂️", "🤼‍♂️", "🤸‍♂️", "⛹️‍♂️", "🤺", "🤾‍♂️", "🏌️‍♂️", "🏇", "🧘‍♂️", "🏄‍♂️", "🏊‍♂️", "🤽‍♂️", "🚣‍♂️", "🧗‍♂️", "🚵‍♂️", "🚴‍♂️", "🏆", "🥇", "🥈", "🥉", "🏅", "🎖", "🏵", "🎗", "🎫", "🎟", "🎪", "🎭", "🖼", "🎨", "🧵", "🧶", "🎤", "🎧", "🎼", "🎹", "🥁", "🎸", "🎻", "🎲", "♟", "🎯", "🎳", "🎮", "🎰", "🧩"]
+  },
+  {
+    id: "symbols",
+    icon: <Heart className="h-4 w-4" />,
+    label: "Symbols",
+    emojis: ["❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "🤍", "🤎", "💔", "❣️", "💕", "💞", "💓", "💗", "💖", "💘", "💝", "💟", "☮️", "✝️", "☪️", "🕉", "☸️", "✡️", "🔯", "🕎", "☯️", "☦️", "🛐", "⛎", "♈️", "♉️", "♊️", "♋️", "♌️", "♍️", "♎️", "♏️", "♐️", "♑️", "♒️", "♓️", "🆔", "⚛️", "🉑", "☢️", "☣️", "📴", "📳", "🈶", "🈚️", "🈸", "🈺", "🈷️", "✴️", "🆚", "💮", "🉐", "㊙️", "㊗️", "🈴", "🈵", "🈹", "🈲", "🅰️", "🅱️", "🆑", "🅾️", "🆘", "❌", "⭕️", "🛑", "⛔️", "📛", "🚫", "💯", "💢", "♨️", "🚷", "🚯", "🚳", "🚱", "🔞", "📵", "🚭", "❗️", "❕", "❓", "❔", "‼️", "⁉️", "🔅", "generate", "〽️", "⚠️", "🚸", "🔱", "⚜️", "🔰", "♻️", "✅", "🈯️", "💹", "❇️", "✳️", "❎", "🌐", "💠", "Ⓜ️", "🌀", "💤", "🏧", "🚾", "♿️", "🅿️", "🈳", "🈂️", "🛂", "🛃", "🛄", "🛅", "🚹", "🚺", "🚼", "⚧", "🚻", "🚮", "🎦", "📶", "🈁", "🆖", "🆗", "🆙", "🆒", "🆕", "🆓", "0️⃣", "1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟", "🔢", "#️⃣", "*️⃣", "⏏️", "▶️", "⏸", "⏯", "⏹", "⏺", "⏭", "⏮", "⏩", "⏪", "⏫", "⏬", "◀️", "🔼", "🔽", "➡️", "⬅️", "⬆️", "⬇️", "↗️", "↘️", "↙️", "↖️", "↕️", "↔️", "↪️", "↩️", "⤴️", "⤵️", "🔀", "🔁", "🔂", "🔄", "🔃", "🎵", "🎶", "➕", "➖", "➗", "✖️", "♾", "💲", "💱", "™️", "©️", "®️", "👁‍🗨", "🔚", "🔙", "🔛", "🔝", "🔜", "〰️", "➰", "➿", "✔️", "☑️", "🔘", "🔴", "🟠", "🟡", "🟢", "🔵", "🟣", "⚫️", "⚪️", "🟤", "🔺", "🔻", "🔸", "🔹", "🔶", "🔷", "🔳", "🔲", "🏁", "🚩", "🎌", "🏴", "🏳️", "🏳️‍🌈", "🏳️‍⚧️", "🏴‍☠️"]
+  }
 ];
 
 export function MessageInput({ onSendMessage }: MessageInputProps) {
   const [text, setText] = useState("");
+  const [recentEmojis, setRecentEmojis] = useState<string[]>([]);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("recent-emojis");
+    if (saved) {
+      try {
+        setRecentEmojis(JSON.parse(saved));
+      } catch (e) {
+        console.error("Failed to parse recent emojis");
+      }
+    }
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,6 +76,11 @@ export function MessageInput({ onSendMessage }: MessageInputProps) {
 
   const addEmoji = (emoji: string) => {
     setText(prev => prev + emoji);
+    
+    // Update recents
+    const updated = [emoji, ...recentEmojis.filter(e => e !== emoji)].slice(0, 40);
+    setRecentEmojis(updated);
+    localStorage.setItem("recent-emojis", JSON.stringify(updated));
   };
 
   return (
@@ -62,19 +113,49 @@ export function MessageInput({ onSendMessage }: MessageInputProps) {
                   <Smile className="h-4 w-4" />
                 </button>
               </PopoverTrigger>
-              <PopoverContent side="top" align="end" className="w-64 p-2">
-                <div className="grid grid-cols-8 gap-1">
-                  {COMMON_EMOJIS.map((emoji) => (
-                    <button
-                      key={emoji}
-                      type="button"
-                      onClick={() => addEmoji(emoji)}
-                      className="text-lg hover:bg-gray-100 rounded p-1 transition-colors flex items-center justify-center"
-                    >
-                      {emoji}
-                    </button>
+              <PopoverContent side="top" align="end" className="w-80 p-0 overflow-hidden">
+                <Tabs defaultValue="smileys" className="w-full">
+                  <TabsList className="w-full justify-start rounded-none border-b bg-gray-50/50 p-0 h-10 overflow-x-auto overflow-y-hidden custom-scrollbar">
+                    {EMOJI_CATEGORIES.map((cat) => (
+                      <TabsTrigger 
+                        key={cat.id} 
+                        value={cat.id} 
+                        className="flex-1 rounded-none data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-primary"
+                      >
+                        {cat.icon}
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                  
+                  {EMOJI_CATEGORIES.map((cat) => (
+                    <TabsContent key={cat.id} value={cat.id} className="m-0">
+                      <ScrollArea className="h-64 p-2">
+                        <div className="p-1">
+                          <h4 className="text-[10px] font-bold uppercase text-muted-foreground mb-2 px-1">
+                            {cat.label}
+                          </h4>
+                          <div className="grid grid-cols-8 gap-1">
+                            {(cat.id === 'recent' ? recentEmojis : cat.emojis).map((emoji, idx) => (
+                              <button
+                                key={`${cat.id}-${idx}`}
+                                type="button"
+                                onClick={() => addEmoji(emoji)}
+                                className="text-xl hover:bg-gray-100 rounded aspect-square flex items-center justify-center transition-colors"
+                              >
+                                {emoji}
+                              </button>
+                            ))}
+                            {(cat.id === 'recent' && recentEmojis.length === 0) && (
+                              <p className="col-span-8 text-[10px] text-muted-foreground text-center py-8">
+                                No recently used emojis.
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </ScrollArea>
+                    </TabsContent>
                   ))}
-                </div>
+                </Tabs>
               </PopoverContent>
             </Popover>
           </div>
