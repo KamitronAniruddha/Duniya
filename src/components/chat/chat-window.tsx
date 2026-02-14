@@ -57,79 +57,62 @@ export function ChatWindow({ channelId, serverId }: ChatWindowProps) {
     });
   };
 
+  // Auto-scroll logic
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [messages, messagesLoading]);
 
   if (!serverId) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 p-6">
-        <div className="text-center max-w-sm">
-          <div className="w-24 h-24 bg-primary/10 rounded-3xl mx-auto mb-8 flex items-center justify-center shadow-inner">
-            <MessageCircle className="h-12 w-12 text-primary" />
+      <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 h-full">
+        <div className="text-center max-w-sm px-6">
+          <div className="w-20 h-20 bg-primary/10 rounded-3xl mx-auto mb-6 flex items-center justify-center">
+            <MessageCircle className="h-10 w-10 text-primary" />
           </div>
-          <h2 className="text-3xl font-extrabold mb-4 tracking-tight">Create your first server</h2>
-          <p className="text-muted-foreground text-lg leading-relaxed">
-            ConnectVerse is better with friends. Join an existing server or start your own community!
+          <h2 className="text-2xl font-bold mb-2">Connect to the Verse</h2>
+          <p className="text-muted-foreground text-sm">
+            Select a server from the left to start chatting, or create your own community.
           </p>
         </div>
       </div>
     );
   }
 
-  if (!channelId) {
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 h-full p-6">
-        <div className="text-center">
-          <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-muted-foreground font-medium italic">Selecting best channel for you...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="flex-1 flex flex-col min-w-0 bg-gray-50 h-full overflow-hidden">
-      <header className="h-14 px-6 border-b flex items-center justify-between bg-white shrink-0 z-10 shadow-sm">
-        <div className="flex items-center space-x-2 overflow-hidden">
+    <div className="flex-1 flex flex-col h-full bg-white overflow-hidden">
+      {/* Header */}
+      <header className="h-14 border-b flex items-center justify-between px-4 shrink-0">
+        <div className="flex items-center gap-2 min-w-0">
           <Hash className="h-5 w-5 text-muted-foreground shrink-0" />
-          <h2 className="font-bold text-sm truncate">{channel?.name || "Loading..."}</h2>
+          <h2 className="font-bold text-sm truncate">{channel?.name || "..."}</h2>
         </div>
-
-        <div className="flex items-center space-x-1 sm:space-x-3">
-          <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:bg-gray-100">
-            <Phone className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:bg-gray-100">
-            <Video className="h-4 w-4" />
-          </Button>
-          <div className="hidden md:flex h-4 w-px bg-border mx-1" />
-          <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:bg-gray-100">
-            <Users className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:bg-gray-100">
-            <MoreHorizontal className="h-4 w-4" />
-          </Button>
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" className="h-8 w-8"><Phone className="h-4 w-4 text-muted-foreground" /></Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8"><Video className="h-4 w-4 text-muted-foreground" /></Button>
+          <div className="w-px h-4 bg-border mx-1" />
+          <Button variant="ghost" size="icon" className="h-8 w-8"><Users className="h-4 w-4 text-muted-foreground" /></Button>
         </div>
       </header>
 
+      {/* Messages Scroll Area */}
       <div 
         ref={scrollRef} 
-        className="flex-1 overflow-y-auto scroll-smooth custom-scrollbar"
+        className="flex-1 overflow-y-auto scroll-smooth custom-scrollbar bg-gray-50/50"
       >
-        <div className="py-8 px-6 max-w-5xl mx-auto space-y-1">
+        <div className="p-4 flex flex-col gap-1 min-h-full">
+          <div className="flex-1" /> {/* Spacer to push messages to bottom if few */}
+          
           {messagesLoading ? (
-            <div className="flex flex-col items-center justify-center py-20 space-y-4">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="text-sm text-muted-foreground">Loading message history...</p>
+            <div className="flex justify-center py-10">
+              <Loader2 className="h-6 w-6 animate-spin text-primary/50" />
             </div>
           ) : messages?.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 text-center opacity-40 grayscale">
-              <Hash className="h-16 w-16 mb-4" />
-              <h3 className="text-xl font-bold">Welcome to #{channel?.name}</h3>
-              <p className="text-sm">This is the start of this channel. Say hi!</p>
+            <div className="py-20 text-center space-y-2 opacity-50">
+              <Hash className="h-12 w-12 mx-auto" />
+              <h3 className="font-bold">Welcome to #{channel?.name}</h3>
+              <p className="text-xs">Start the conversation!</p>
             </div>
           ) : (
             messages?.map((msg) => (
@@ -143,6 +126,7 @@ export function ChatWindow({ channelId, serverId }: ChatWindowProps) {
         </div>
       </div>
 
+      {/* Input */}
       <MessageInput onSendMessage={handleSendMessage} />
     </div>
   );

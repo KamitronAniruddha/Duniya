@@ -6,6 +6,7 @@ import { ServerSidebar } from "@/components/sidebar/server-sidebar";
 import { ChannelSidebar } from "@/components/sidebar/channel-sidebar";
 import { ChatWindow } from "@/components/chat/chat-window";
 import { AuthScreen } from "@/components/auth/auth-screen";
+import { AISuggestionPanel } from "@/components/ai/ai-suggestion-panel";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { doc, updateDoc, serverTimestamp, collection, query, where } from "firebase/firestore";
 import { Loader2 } from "lucide-react";
@@ -40,7 +41,7 @@ export default function ConnectVerseApp() {
       updateDoc(userRef, {
         onlineStatus: status,
         lastSeen: serverTimestamp()
-      }).catch(() => {}); // Fail silently for background updates
+      }).catch(() => {}); 
     };
 
     updateStatus("online");
@@ -69,10 +70,10 @@ export default function ConnectVerseApp() {
 
   if (isUserLoading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-gray-50">
+      <div className="h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-4">
           <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto" />
-          <p className="text-sm font-medium text-muted-foreground animate-pulse">Establishing secure connection...</p>
+          <p className="text-sm font-medium text-muted-foreground">Connecting to Verse...</p>
         </div>
       </div>
     );
@@ -83,7 +84,8 @@ export default function ConnectVerseApp() {
   }
 
   return (
-    <div className="flex h-screen w-full bg-background overflow-hidden text-foreground antialiased selection:bg-primary/20">
+    <div className="flex h-screen w-full bg-background overflow-hidden selection:bg-primary/20">
+      {/* 1. Server Icons (Fixed Width) */}
       <ServerSidebar 
         activeServerId={activeServerId} 
         onSelectServer={(id) => {
@@ -92,16 +94,23 @@ export default function ConnectVerseApp() {
         }} 
       />
 
+      {/* 2. Channels (Fixed Width, Scrollable) */}
       <ChannelSidebar 
         serverId={activeServerId} 
         activeChannelId={activeChannelId}
         onSelectChannel={setActiveChannelId}
       />
 
+      {/* 3. Main Chat (Flexible Width, Scrollable Content) */}
       <ChatWindow 
         channelId={activeChannelId}
         serverId={activeServerId}
       />
+
+      {/* 4. AI Panel (Hidden on small screens, Fixed Width) */}
+      <div className="hidden lg:block">
+        <AISuggestionPanel channelId={activeChannelId} />
+      </div>
     </div>
   );
 }

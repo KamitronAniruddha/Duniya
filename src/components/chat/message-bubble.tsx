@@ -3,20 +3,16 @@
 
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Check, CheckCheck } from "lucide-react";
 import { useDoc, useFirestore, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
 
-interface Message {
-  id: string;
-  senderId: string;
-  text: string;
-  createdAt: any;
-  status?: string;
-}
-
 interface MessageBubbleProps {
-  message: Message;
+  message: {
+    id: string;
+    senderId: string;
+    text: string;
+    createdAt: any;
+  };
   isMe: boolean;
 }
 
@@ -27,42 +23,36 @@ export function MessageBubble({ message, isMe }: MessageBubbleProps) {
 
   const timestamp = message.createdAt?.toDate() 
     ? message.createdAt.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    : "...";
+    : "";
 
   return (
-    <div className={cn("flex w-full mb-4 group", isMe ? "justify-end" : "justify-start")}>
+    <div className={cn("flex w-full py-1 group", isMe ? "justify-end" : "justify-start")}>
       {!isMe && (
-        <Avatar className="h-8 w-8 mt-1 mr-2 shrink-0">
-          <AvatarImage src={sender?.photoURL || ""} />
-          <AvatarFallback>{sender?.username?.[0] || "?"}</AvatarFallback>
+        <Avatar className="h-8 w-8 mt-0.5 mr-2 shrink-0">
+          <AvatarImage src={sender?.photoURL} />
+          <AvatarFallback className="text-[10px]">{sender?.username?.[0] || "?"}</AvatarFallback>
         </Avatar>
       )}
       
-      <div className={cn("flex flex-col max-w-[70%]", isMe ? "items-end" : "items-start")}>
+      <div className={cn("flex flex-col max-w-[75%]", isMe ? "items-end" : "items-start")}>
         {!isMe && (
-          <span className="text-xs font-semibold mb-1 ml-1 text-muted-foreground">
+          <span className="text-[11px] font-bold text-muted-foreground ml-1 mb-0.5">
             {sender?.username || "Loading..."}
           </span>
         )}
         
         <div className={cn(
-          "px-4 py-2.5 rounded-2xl shadow-sm relative transition-all hover:shadow-md",
+          "px-3.5 py-2 rounded-2xl text-sm shadow-sm transition-shadow hover:shadow-md",
           isMe 
             ? "bg-primary text-primary-foreground rounded-tr-none" 
             : "bg-white text-foreground rounded-tl-none border border-border"
         )}>
-          <p className="text-sm leading-relaxed">{message.text}</p>
-          
+          <p className="whitespace-pre-wrap break-words">{message.text}</p>
           <div className={cn(
-            "flex items-center space-x-1 mt-1 text-[10px]",
+            "text-[9px] mt-1 text-right leading-none",
             isMe ? "text-primary-foreground/70" : "text-muted-foreground"
           )}>
-            <span>{timestamp}</span>
-            {isMe && (
-              <span>
-                <CheckCheck className="h-3 w-3" />
-              </span>
-            )}
+            {timestamp}
           </div>
         </div>
       </div>

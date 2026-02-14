@@ -32,31 +32,28 @@ export function AuthScreen() {
       if (isLogin) {
         await signInWithEmailAndPassword(auth, email, password);
       } else {
-        if (password !== confirmPassword) {
-          throw new Error("Passwords do not match");
-        }
-        if (username.length < 3) {
-          throw new Error("Username must be at least 3 characters");
-        }
+        if (password !== confirmPassword) throw new Error("Passwords do not match");
+        if (username.length < 3) throw new Error("Username must be at least 3 characters");
 
-        // Check uniqueness of username
-        const q = query(collection(db, "users"), where("username", "==", username));
+        // 1. Check uniqueness of username
+        const q = query(collection(db, "users"), where("username", "==", username.toLowerCase()));
         const querySnapshot = await getDocs(q);
         if (!querySnapshot.empty) {
-          throw new Error("Username already taken");
+          throw new Error("Username already taken. Please try another one.");
         }
 
+        // 2. Create Auth User
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
 
-        // Update Auth profile
+        // 3. Update Auth profile
         await updateProfile(user, { displayName: username });
 
-        // Create Firestore user document
+        // 4. Create Firestore user document
         await setDoc(doc(db, "users", user.uid), {
           id: user.uid,
-          username,
-          email,
+          username: username.toLowerCase(),
+          email: email.toLowerCase(),
           photoURL: `https://picsum.photos/seed/${user.uid}/200`,
           bio: "",
           createdAt: serverTimestamp(),
@@ -69,8 +66,8 @@ export function AuthScreen() {
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Authentication Error",
-        description: error.message || "Failed to authenticate",
+        title: "Auth Error",
+        description: error.message || "Something went wrong",
       });
     } finally {
       setIsLoading(false);
@@ -86,16 +83,16 @@ export function AuthScreen() {
               <MessageSquare className="h-8 w-8 text-white" />
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold tracking-tight">ConnectVerse</CardTitle>
+          <CardTitle className="text-2xl font-bold tracking-tight text-foreground">ConnectVerse</CardTitle>
           <CardDescription>
-            {isLogin ? "Welcome back! Enter your credentials" : "Create your unique identity to join"}
+            {isLogin ? "Welcome back! Enter your credentials" : "Join the modern communication era"}
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
             {!isLogin && (
               <div className="space-y-2">
-                <Label htmlFor="username">Username</Label>
+                <Label htmlFor="username">Unique Username</Label>
                 <Input 
                   id="username" 
                   placeholder="johndoe" 
@@ -103,6 +100,7 @@ export function AuthScreen() {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   disabled={isLoading}
+                  className="bg-gray-50/50"
                 />
               </div>
             )}
@@ -116,6 +114,7 @@ export function AuthScreen() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={isLoading}
+                className="bg-gray-50/50"
               />
             </div>
             <div className="space-y-2">
@@ -127,6 +126,7 @@ export function AuthScreen() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={isLoading}
+                className="bg-gray-50/50"
               />
             </div>
             {!isLogin && (
@@ -139,13 +139,14 @@ export function AuthScreen() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   disabled={isLoading}
+                  className="bg-gray-50/50"
                 />
               </div>
             )}
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
-            <Button type="submit" className="w-full py-6 text-lg font-semibold rounded-xl" disabled={isLoading}>
-              {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : (isLogin ? "Sign In" : "Sign Up")}
+            <Button type="submit" className="w-full h-12 text-md font-semibold rounded-xl" disabled={isLoading}>
+              {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : (isLogin ? "Sign In" : "Create Account")}
             </Button>
             <button 
               type="button"
