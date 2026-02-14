@@ -1,10 +1,9 @@
-
 "use client";
 
 import { useState } from "react";
 import { useCollection, useFirestore, useUser, useDoc, useMemoFirebase, useAuth } from "@/firebase";
 import { collection, query, where, doc, serverTimestamp } from "firebase/firestore";
-import { Hash, Settings, ChevronDown, LogOut, Loader2, Plus, Users, Check, Edit2, Copy, Share2, Timer } from "lucide-react";
+import { Hash, Settings, ChevronDown, LogOut, Loader2, Plus, Users, Check, Edit2, Copy, Share2, Timer, Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -200,7 +199,7 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
         </div>
       )}
 
-      <div className="p-3 bg-gray-50 border-t flex flex-col gap-2 shrink-0">
+      <div className="p-3 bg-gray-50 border-t flex flex-col gap-3 shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 min-w-0">
             <div className="relative">
@@ -227,6 +226,13 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleLogout}>
               <LogOut className="h-3.5 w-3.5 text-red-400" />
             </Button>
+          </div>
+        </div>
+        
+        <div className="flex flex-col items-center gap-1 opacity-40 hover:opacity-60 transition-opacity">
+          <div className="flex items-center gap-1 text-[8px] font-black uppercase tracking-[0.2em]">
+            <span>Made by Aniruddha with love</span>
+            <Heart className="h-2 w-2 text-red-500 fill-current" />
           </div>
         </div>
       </div>

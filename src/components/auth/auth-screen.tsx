@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { MessageSquare, Loader2 } from "lucide-react";
+import { MessageSquare, Loader2, Heart } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
@@ -94,7 +94,7 @@ export function AuthScreen() {
   };
 
   return (
-    <div className="min-h-[100dvh] flex items-center justify-center bg-gray-50 p-4">
+    <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-gray-50 p-4">
       <Card className="w-full max-w-md shadow-xl border-none">
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-4">
@@ -178,6 +178,11 @@ export function AuthScreen() {
           </CardFooter>
         </form>
       </Card>
+      
+      <div className="mt-8 flex items-center gap-1.5 text-muted-foreground/60 text-xs font-medium uppercase tracking-widest animate-in fade-in slide-in-from-bottom-2 duration-700">
+        <span>Made by Aniruddha with love</span>
+        <Heart className="h-3 w-3 text-red-400 fill-current animate-pulse" />
+      </div>
     </div>
   );
 }

@@ -148,16 +148,21 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
   if (!serverId) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 h-full p-6">
-        <div className="text-center max-w-sm">
-          <div className="w-20 h-20 bg-primary/10 rounded-3xl mx-auto mb-6 flex items-center justify-center">
+        <div className="text-center max-w-sm flex flex-col items-center">
+          <div className="w-20 h-20 bg-primary/10 rounded-3xl mb-6 flex items-center justify-center">
             <MessageCircle className="h-10 w-10 text-primary" />
           </div>
           <h2 className="text-2xl font-black mb-2 flex items-center justify-center gap-2">
-            Karo Chutiyapaa <Heart className="h-6 w-6 text-red-500 fill-current" />
+            Karo Chutiyapaa <Heart className="h-6 w-6 text-red-500 fill-current animate-pulse" />
           </h2>
-          <p className="text-muted-foreground text-sm">
+          <p className="text-muted-foreground text-sm mb-8">
             Select a server from the left to start chatting, or explore Duniya.
           </p>
+          
+          <div className="mt-4 flex items-center gap-1.5 text-muted-foreground/40 text-[10px] font-bold uppercase tracking-widest">
+            <span>Made by Aniruddha with love</span>
+            <Heart className="h-2.5 w-2.5 text-red-400 fill-current" />
+          </div>
         </div>
       </div>
     );
@@ -233,7 +238,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
               <Loader2 className="h-6 w-6 animate-spin text-primary/50" />
             </div>
           ) : messages?.length === 0 ? (
-            <div className="py-20 text-center space-y-2 opacity-50">
+            <div className="py-20 text-center space-y-2 opacity-50 flex flex-col items-center">
               <Hash className="h-12 w-12 mx-auto text-primary" />
               <h3 className="font-bold">Welcome to #{channel?.name}</h3>
               <p className="text-xs">This is the start of your community story.</p>
