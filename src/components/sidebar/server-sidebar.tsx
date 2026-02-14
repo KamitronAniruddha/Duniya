@@ -2,18 +2,17 @@
 "use client";
 
 import { useState } from "react";
-import { useCollection, useFirestore, useUser, useMemoFirebase, errorEmitter, FirestorePermissionError } from "@/firebase";
-import { collection, query, where, serverTimestamp, doc, arrayUnion, getDocs, limit, writeBatch } from "firebase/firestore";
+import { useCollection, useFirestore, useUser, useMemoFirebase } from "@/firebase";
+import { collection, query, where, doc, arrayUnion, getDocs, limit, writeBatch } from "firebase/firestore";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Plus, Loader2, Compass, Hash, Globe, Shield } from "lucide-react";
+import { Plus, Compass, Hash, Globe, Shield } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 interface ServerSidebarProps {
   activeServerId: string | null;
@@ -32,7 +31,6 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive, 
   const [joinId, setJoinId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  // Admin check for Aniruddha
   const isAdminUser = user?.email === "aniruddha@duniya.app";
 
   const serversQuery = useMemoFirebase(() => {
@@ -40,7 +38,7 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive, 
     return query(collection(db, "communities"), where("members", "array-contains", user.uid));
   }, [db, user?.uid]);
 
-  const { data: servers, isLoading: isServersLoading } = useCollection(serversQuery);
+  const { data: servers } = useCollection(serversQuery);
 
   const generateJoinCode = () => {
     return Math.floor(10000 + Math.random() * 90000).toString();
@@ -68,6 +66,16 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive, 
         isPublic: false
       };
       batch.set(serverRef, serverData);
+
+      // Create a default member record to satisfy rules
+      const memberRef = doc(db, "communities", serverId, "members", user.uid);
+      batch.set(memberRef, {
+        id: user.uid,
+        communityId: serverId,
+        userId: user.uid,
+        role: "owner",
+        joinedAt: new Date().toISOString()
+      });
 
       const channelRef = doc(collection(db, "communities", serverId, "channels"));
       const channelData = {
@@ -119,14 +127,22 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive, 
         return;
       }
 
-      setDocumentNonBlocking(doc(db, "communities", targetId), {
+      const batch = writeBatch(db);
+      batch.update(doc(db, "communities", targetId), {
         members: arrayUnion(user.uid)
-      }, { merge: true });
-
-      setDocumentNonBlocking(doc(db, "users", user.uid), {
+      });
+      batch.set(doc(db, "communities", targetId, "members", user.uid), {
+        id: user.uid,
+        communityId: targetId,
+        userId: user.uid,
+        role: "member",
+        joinedAt: new Date().toISOString()
+      });
+      batch.update(doc(db, "users", user.uid), {
         serverIds: arrayUnion(targetId)
-      }, { merge: true });
+      });
 
+      await batch.commit();
       toast({ title: "Joined Community", description: `Welcome to ${serverData.name}!` });
       setIsJoinModalOpen(false);
       onSelectServer(targetId);

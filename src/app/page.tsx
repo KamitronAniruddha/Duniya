@@ -1,27 +1,24 @@
 
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { ServerSidebar } from "@/components/sidebar/server-sidebar";
 import { ChannelSidebar } from "@/components/sidebar/channel-sidebar";
 import { ChatWindow } from "@/components/chat/chat-window";
 import { AuthScreen } from "@/components/auth/auth-screen";
-import { MembersPanel } from "@/components/members/members-panel";
 import { DuniyaPanel } from "@/components/duniya/duniya-panel";
 import { AdminDashboard } from "@/components/admin/admin-dashboard";
-import { useUser, useFirestore, useCollection, useMemoFirebase, useAuth, useDoc } from "@/firebase";
-import { doc, serverTimestamp, collection, query, where, getDoc, onSnapshot, orderBy, limit } from "firebase/firestore";
-import { Loader2, Menu, Heart, ShieldAlert } from "lucide-react";
-import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { useUser, useFirestore, useMemoFirebase, useAuth, useDoc } from "@/firebase";
+import { doc } from "firebase/firestore";
+import { Loader2, Menu, Heart } from "lucide-react";
+import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
 
-export default function ConnectVerseApp() {
+export default function DuniyaApp() {
   const { user, isUserLoading } = useUser();
   const db = useFirestore();
   const auth = useAuth();
-  const { toast } = useToast();
   
   const [activeCommunityId, setActiveCommunityId] = useState<string | null>(null);
   const [activeChannelId, setActiveChannelId] = useState<string | null>(null);
@@ -42,10 +39,10 @@ export default function ConnectVerseApp() {
     const userRef = doc(db, "users", user.uid);
     const updateStatus = (status: "online" | "idle" | "offline") => {
       if (!auth.currentUser) return;
-      setDocumentNonBlocking(userRef, {
+      updateDocumentNonBlocking(userRef, {
         onlineStatus: status,
         lastOnlineAt: new Date().toISOString()
-      }, { merge: true });
+      });
     };
 
     updateStatus("online");
@@ -168,20 +165,12 @@ export default function ConnectVerseApp() {
           ) : view === "admin" ? (
             <AdminDashboard />
           ) : (
-            <div className="flex-1 flex min-w-0 h-full overflow-hidden">
-              <ChatWindow 
-                channelId={activeChannelId}
-                serverId={activeCommunityId}
-                showMembers={showMembers}
-                onToggleMembers={() => setShowMembers(!showMembers)}
-              />
-              
-              {showMembers && activeCommunityId && (
-                <div className="hidden lg:block h-full border-l shadow-2xl bg-background shrink-0 overflow-hidden">
-                  <MembersPanel serverId={activeCommunityId} />
-                </div>
-              )}
-            </div>
+            <ChatWindow 
+              channelId={activeChannelId}
+              serverId={activeCommunityId}
+              showMembers={showMembers}
+              onToggleMembers={() => setShowMembers(!showMembers)}
+            />
           )}
         </div>
         

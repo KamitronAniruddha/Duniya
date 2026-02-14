@@ -3,14 +3,13 @@
 
 import { useState, useMemo } from "react";
 import { useCollection, useFirestore, useUser, useMemoFirebase } from "@/firebase";
-import { collection, query, where, doc, arrayUnion, Timestamp } from "firebase/firestore";
+import { collection, query, where, doc, arrayUnion, writeBatch } from "firebase/firestore";
 import { Globe, Search, Users, Loader2, Plus, Check, AlertCircle, Clock } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { useToast } from "@/hooks/use-toast";
 
 export function DuniyaPanel({ onJoinSuccess }: { onJoinSuccess: (serverId: string) => void }) {
@@ -20,70 +19,60 @@ export function DuniyaPanel({ onJoinSuccess }: { onJoinSuccess: (serverId: strin
   const [searchQuery, setSearchQuery] = useState("");
   const [joiningId, setJoiningId] = useState<string | null>(null);
 
-  const publicServersQuery = useMemoFirebase(() => {
-    // Critical: Add 'user' check to prevent permission errors on logout
+  const publicCommunitiesQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
     return query(
-      collection(db, "servers"),
-      where("isBroadcasted", "==", true)
+      collection(db, "communities"),
+      where("isPublic", "==", true)
     );
   }, [db, user?.uid]);
 
-  const { data: publicServers, isLoading, error } = useCollection(publicServersQuery);
+  const { data: communities, isLoading, error } = useCollection(publicCommunitiesQuery);
 
-  // Filter for search and expiry on the client to avoid complex index requirements
-  const filteredServers = useMemo(() => {
-    if (!publicServers) return [];
-    
-    const now = Date.now();
-    
-    return publicServers.filter(server => {
-      // 1. Basic text search
-      const matchesSearch = server.name.toLowerCase().includes(searchQuery.toLowerCase());
-      if (!matchesSearch) return false;
+  const filteredCommunities = useMemo(() => {
+    if (!communities) return [];
+    return communities.filter(c => 
+      c.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [communities, searchQuery]);
 
-      // 2. Check for expiry
-      if (server.broadcastExpiry) {
-        const expiryDate = server.broadcastExpiry.toDate ? server.broadcastExpiry.toDate() : new Date(server.broadcastExpiry);
-        if (expiryDate.getTime() < now) return false;
-      }
-
-      return true;
-    });
-  }, [publicServers, searchQuery]);
-
-  const handleJoin = async (server: any) => {
+  const handleJoin = async (community: any) => {
     if (!user || !db) return;
-    setJoiningId(server.id);
+    setJoiningId(community.id);
 
     try {
-      if (server.members?.includes(user.uid)) {
-        onJoinSuccess(server.id);
+      if (community.members?.includes(user.uid)) {
+        onJoinSuccess(community.id);
         return;
       }
 
-      const serverRef = doc(db, "servers", server.id);
-      const userRef = doc(db, "users", user.uid);
-
-      setDocumentNonBlocking(serverRef, {
+      const batch = writeBatch(db);
+      batch.update(doc(db, "communities", community.id), {
         members: arrayUnion(user.uid)
-      }, { merge: true });
+      });
+      batch.set(doc(db, "communities", community.id, "members", user.uid), {
+        id: user.uid,
+        communityId: community.id,
+        userId: user.uid,
+        role: "member",
+        joinedAt: new Date().toISOString()
+      });
+      batch.update(doc(db, "users", user.uid), {
+        serverIds: arrayUnion(community.id)
+      });
 
-      setDocumentNonBlocking(userRef, {
-        serverIds: arrayUnion(server.id)
-      }, { merge: true });
-
+      await batch.commit();
       toast({
-        title: "Joined Duniya Server",
-        description: `Welcome to ${server.name}!`,
+        title: "Joined Duniya Community",
+        description: `Welcome to ${community.name}!`,
       });
       
-      onJoinSuccess(server.id);
+      onJoinSuccess(community.id);
     } catch (e: any) {
       toast({
         variant: "destructive",
         title: "Join Error",
-        description: e.message || "Could not join server.",
+        description: e.message || "Could not join community.",
       });
     } finally {
       setJoiningId(null);
@@ -126,67 +115,59 @@ export function DuniyaPanel({ onJoinSuccess }: { onJoinSuccess: (serverId: strin
             <div>
               <h3 className="text-lg font-bold text-destructive">Discovery Interrupted</h3>
               <p className="text-sm text-muted-foreground max-w-xs mx-auto">
-                We encountered an error while scanning Duniya. Please try refreshing or checking your connection.
+                Check your connection or community visibility settings.
               </p>
             </div>
           </div>
-        ) : filteredServers.length === 0 ? (
+        ) : filteredCommunities.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 text-center space-y-4 opacity-50">
             <Globe className="h-16 w-16 text-muted-foreground/30" />
             <div>
-              <h3 className="text-xl font-bold text-foreground">No Active Broadcasts</h3>
-              <p className="text-sm max-w-xs text-muted-foreground">Try searching for something else, or broadcast your own group to Duniya!</p>
+              <h3 className="text-xl font-bold text-foreground">No Active Communities</h3>
+              <p className="text-sm max-w-xs text-muted-foreground">Try searching for something else, or make your own group public!</p>
             </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filteredServers.map((server) => {
-              const isMember = server.members?.includes(user?.uid);
-              const expiryDate = server.broadcastExpiry?.toDate ? server.broadcastExpiry.toDate() : (server.broadcastExpiry ? new Date(server.broadcastExpiry) : null);
-              
+            {filteredCommunities.map((community) => {
+              const isMember = community.members?.includes(user?.uid);
               return (
-                <Card key={server.id} className="group hover:shadow-xl transition-all border border-border bg-card overflow-hidden flex flex-col">
+                <Card key={community.id} className="group hover:shadow-xl transition-all border border-border bg-card overflow-hidden flex flex-col">
                   <div className="h-20 bg-gradient-to-r from-primary/20 to-accent/20 relative shrink-0">
                     <div className="absolute -bottom-6 left-4">
                       <Avatar className="h-12 w-12 border-4 border-card shadow-lg">
-                        <AvatarImage src={server.icon || undefined} />
-                        <AvatarFallback className="bg-primary text-primary-foreground font-bold">{server.name?.[0]?.toUpperCase()}</AvatarFallback>
+                        <AvatarImage src={community.icon || undefined} />
+                        <AvatarFallback className="bg-primary text-primary-foreground font-bold">{community.name?.[0]?.toUpperCase()}</AvatarFallback>
                       </Avatar>
                     </div>
-                    {expiryDate && (
-                      <div className="absolute top-2 right-2 bg-black/60 text-white text-[9px] px-2 py-0.5 rounded-full flex items-center gap-1 backdrop-blur-sm">
-                        <Clock className="h-2.5 w-2.5" />
-                        Ends {expiryDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </div>
-                    )}
                   </div>
                   <CardHeader className="pt-8 pb-3 shrink-0">
                     <CardTitle className="text-md flex items-center justify-between text-foreground">
-                      <span className="truncate">{server.name}</span>
+                      <span className="truncate">{community.name}</span>
                       <Badge variant="secondary" className="bg-muted text-[10px] text-muted-foreground">
                         <Users className="h-3 w-3 mr-1" />
-                        {server.members?.length || 0}
+                        {community.members?.length || 0}
                       </Badge>
                     </CardTitle>
                     <CardDescription className="text-xs line-clamp-2 min-h-[32px] text-muted-foreground">
-                      {server.description || `Welcome to ${server.name}! Join our public community.`}
+                      {community.description || `Welcome to ${community.name}! Join our public community.`}
                     </CardDescription>
                   </CardHeader>
                   <CardFooter className="pt-0 border-t bg-muted/10 mt-auto shrink-0 border-border">
                     <Button 
                       className="w-full mt-4 rounded-xl" 
                       variant={isMember ? "secondary" : "default"}
-                      disabled={joiningId === server.id}
-                      onClick={() => handleJoin(server)}
+                      disabled={joiningId === community.id}
+                      onClick={() => handleJoin(community)}
                     >
-                      {joiningId === server.id ? (
+                      {joiningId === community.id ? (
                         <Loader2 className="h-4 w-4 animate-spin mr-2" />
                       ) : isMember ? (
                         <Check className="h-4 w-4 mr-2" />
                       ) : (
                         <Plus className="h-4 w-4 mr-2" />
                       )}
-                      {isMember ? "Already In" : "Join Server"}
+                      {isMember ? "Already In" : "Join Community"}
                     </Button>
                   </CardFooter>
                 </Card>

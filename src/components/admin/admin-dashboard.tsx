@@ -3,8 +3,8 @@
 
 import { useState } from "react";
 import { useCollection, useFirestore, useUser, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy, doc, updateDoc } from "firebase/firestore";
-import { Users, Mail, Shield, ShieldAlert, Loader2, CheckCircle, Clock, Search, MessageSquare } from "lucide-react";
+import { collection, query, orderBy, doc } from "firebase/firestore";
+import { Users, Mail, Shield, Loader2, CheckCircle, Search, MessageSquare } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
+import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 export function AdminDashboard() {
   const db = useFirestore();
@@ -38,17 +39,13 @@ export function AdminDashboard() {
     u.email?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleResolve = async (id: string) => {
-    try {
-      const docRef = doc(db, "contact_form_submissions", id);
-      await updateDoc(docRef, {
-        status: "Resolved",
-        resolvedAt: new Date().toISOString()
-      });
-      toast({ title: "Submission Resolved" });
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Error", description: e.message });
-    }
+  const handleResolve = (id: string) => {
+    const docRef = doc(db, "contact_form_submissions", id);
+    updateDocumentNonBlocking(docRef, {
+      status: "Resolved",
+      resolvedAt: new Date().toISOString()
+    });
+    toast({ title: "Submission Resolved" });
   };
 
   return (
@@ -123,7 +120,7 @@ export function AdminDashboard() {
                           {u.isBlocked ? "Blocked" : "Active"}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-xs">{new Date(u.createdAt).toLocaleDateString()}</TableCell>
+                      <TableCell className="text-xs">{u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'Unknown'}</TableCell>
                       <TableCell className="text-right">
                         <Button variant="ghost" size="sm">Manage</Button>
                       </TableCell>
