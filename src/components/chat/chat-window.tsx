@@ -68,11 +68,17 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
           const senderSnap = await getDoc(senderRef);
           const senderName = senderSnap.exists() ? senderSnap.data().username : "Someone";
 
-          toast({
+          const { dismiss } = toast({
             title: `New Message from @${senderName}`,
             description: lastMsg.text.length > 60 ? lastMsg.text.substring(0, 60) + "..." : lastMsg.text,
             action: (
-              <Button size="sm" onClick={() => inputRef.current?.focus()}>
+              <Button 
+                size="sm" 
+                onClick={() => {
+                  inputRef.current?.focus();
+                  dismiss(); // Dismiss the toast immediately on reply
+                }}
+              >
                 Reply
               </Button>
             ),
