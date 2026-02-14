@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -8,7 +7,7 @@ import { ChatWindow } from "@/components/chat/chat-window";
 import { AuthScreen } from "@/components/auth/auth-screen";
 import { MembersPanel } from "@/components/members/members-panel";
 import { useUser, useFirestore, useCollection, useMemoFirebase, useAuth, useDoc } from "@/firebase";
-import { doc, serverTimestamp, collection, query, where } from "firebase/firestore";
+import { doc, serverTimestamp, collection, query, where, getDoc, onSnapshot, orderBy, limit } from "firebase/firestore";
 import { Loader2, Menu } from "lucide-react";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
@@ -26,9 +25,10 @@ export default function ConnectVerseApp() {
   const [showMembers, setShowMembers] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Track state for notifications
+  // Refs for notification tracking
   const prevServerIdsRef = useRef<string[]>([]);
   const prevMembersRef = useRef<string[]>([]);
+  const lastMessageIdsRef = useRef<Record<string, string>>({});
   const hasLoadedInitialData = useRef(false);
 
   const userRef = useMemoFirebase(() => (user ? doc(db, "users", user.uid) : null), [db, user?.uid]);
@@ -37,21 +37,73 @@ export default function ConnectVerseApp() {
   const activeServerRef = useMemoFirebase(() => (activeServerId ? doc(db, "servers", activeServerId) : null), [db, activeServerId]);
   const { data: serverData } = useDoc(activeServerRef);
 
-  const channelsQuery = useMemoFirebase(() => {
-    if (!db || !activeServerId || !user) return null;
-    return query(collection(db, "channels"), where("serverId", "==", activeServerId));
-  }, [db, activeServerId, user?.uid]);
+  // Global message listener for the active server
+  useEffect(() => {
+    if (!db || !activeServerId || !user || !hasLoadedInitialData.current) return;
 
-  const { data: channels } = useCollection(channelsQuery);
+    // Listen to all channels in the active server to catch messages even when "at dashboard"
+    const channelsQuery = query(collection(db, "channels"), where("serverId", "==", activeServerId));
+    
+    const unsubChannels = onSnapshot(channelsQuery, (snapshot) => {
+      snapshot.docs.forEach((channelDoc) => {
+        const channelId = channelDoc.id;
+        const channelName = channelDoc.data().name;
 
-  // Monitor membership changes (Removals and New Joins)
+        // Sub-listener for each channel's latest message
+        const messagesQuery = query(
+          collection(db, "messages", channelId, "chatMessages"),
+          orderBy("createdAt", "desc"),
+          limit(1)
+        );
+
+        onSnapshot(messagesQuery, async (msgSnapshot) => {
+          if (msgSnapshot.empty) return;
+          const lastMsg = msgSnapshot.docs[0].data();
+          const lastMsgId = msgSnapshot.docs[0].id;
+
+          // Only notify if it's a new message, not from me, and we aren't currently viewing this channel
+          if (
+            lastMsg.senderId !== user.uid && 
+            lastMessageIdsRef.current[channelId] && 
+            lastMessageIdsRef.current[channelId] !== lastMsgId &&
+            activeChannelId !== channelId
+          ) {
+            const senderRef = doc(db, "users", lastMsg.senderId);
+            const senderSnap = await getDoc(senderRef);
+            const senderName = senderSnap.exists() ? senderSnap.data().username : "Someone";
+
+            const { dismiss } = toast({
+              title: `New Message in #${channelName}`,
+              description: `@${senderName}: ${lastMsg.text.length > 60 ? lastMsg.text.substring(0, 60) + "..." : lastMsg.text}`,
+              action: (
+                <Button 
+                  size="sm" 
+                  onClick={() => {
+                    setActiveChannelId(channelId);
+                    dismiss();
+                  }}
+                >
+                  Reply
+                </Button>
+              ),
+            });
+          }
+          lastMessageIdsRef.current[channelId] = lastMsgId;
+        });
+      });
+    });
+
+    return () => unsubChannels();
+  }, [db, activeServerId, user, activeChannelId, toast]);
+
+  // Monitor membership changes
   useEffect(() => {
     if (!userData || !serverData) return;
     
-    // 1. Check for personal removal from servers
     const currentServerIds = userData.serverIds || [];
     const prevServerIds = prevServerIdsRef.current;
 
+    // 1. Check for removal
     if (hasLoadedInitialData.current && activeServerId && prevServerIds.length > 0) {
       if (prevServerIds.includes(activeServerId) && !currentServerIds.includes(activeServerId)) {
         toast({
@@ -65,7 +117,7 @@ export default function ConnectVerseApp() {
     }
     prevServerIdsRef.current = currentServerIds;
 
-    // 2. Check for new members in the active server
+    // 2. Check for new members
     const currentMembers = serverData.members || [];
     const prevMembers = prevMembersRef.current;
 
@@ -83,12 +135,7 @@ export default function ConnectVerseApp() {
     hasLoadedInitialData.current = true;
   }, [userData?.serverIds, serverData?.members, activeServerId, toast, user?.uid]);
 
-  useEffect(() => {
-    if (channels && channels.length > 0 && !activeChannelId) {
-      setActiveChannelId(channels[0].id);
-    }
-  }, [channels, activeChannelId]);
-
+  // Handle presence
   useEffect(() => {
     if (!user || !db || !auth.currentUser) return;
 
