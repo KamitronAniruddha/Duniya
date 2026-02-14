@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -20,7 +21,7 @@ export function UserProfilePopover({ userId, children }: UserProfilePopoverProps
   const db = useFirestore();
   const [isZoomOpen, setIsZoomOpen] = useState(false);
   const userRef = useMemoFirebase(() => doc(db, "users", userId), [db, userId]);
-  const { data: userData, isLoading } = useDoc(userRef);
+  const { data: userData } = useDoc(userRef);
 
   const joinDate = userData?.createdAt?.toDate
     ? userData.createdAt.toDate().toLocaleDateString(undefined, { month: 'long', year: 'numeric' })

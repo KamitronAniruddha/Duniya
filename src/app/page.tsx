@@ -46,9 +46,10 @@ export default function ConnectVerseApp() {
     const currentIds = userData.serverIds || [];
     const prevIds = prevServerIdsRef.current;
 
-    // Only trigger removal alert if we had previous server data (i.e., not the first load)
+    // Only trigger removal alert if we had previous server data
     // and the active server was in that previous list but is now missing.
-    if (hasLoadedInitialData.current && activeServerId) {
+    // We check prevIds.length > 0 to ensure we've synchronized at least once.
+    if (hasLoadedInitialData.current && activeServerId && prevIds.length > 0) {
       const wasInServer = prevIds.includes(activeServerId);
       const isInServerNow = currentIds.includes(activeServerId);
 
@@ -63,8 +64,9 @@ export default function ConnectVerseApp() {
       }
     }
 
-    if (currentIds.length > 0 || hasLoadedInitialData.current === false) {
-      prevServerIdsRef.current = currentIds;
+    // Update the ref for the next comparison
+    prevServerIdsRef.current = currentIds;
+    if (userData) {
       hasLoadedInitialData.current = true;
     }
   }, [userData?.serverIds, activeServerId, toast]);

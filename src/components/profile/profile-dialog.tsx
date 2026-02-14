@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -42,7 +43,6 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
     }
   }, [userData]);
 
-  // Password change state
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -53,13 +53,11 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
     setIsLoading(true);
 
     try {
-      // 1. Update Auth Profile
       await updateProfile(user, {
         displayName: username,
         photoURL: photoURL
       });
 
-      // 2. Update Firestore Doc
       const userRef = doc(db, "users", user.uid);
       updateDocumentNonBlocking(userRef, {
         username: username.toLowerCase(),

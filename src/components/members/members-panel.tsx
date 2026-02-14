@@ -332,13 +332,13 @@ function MemberItem({
               <DropdownMenuItem onClick={onToggleAdmin}>
                 {isAdmin ? "Demote to User" : "Promote to Admin"}
               </DropdownMenuItem>
-              <DropdownMenuItem className="text-destructive font-medium" onClick={() => {}}>
+              <DropdownMenuItem className="text-destructive font-medium" asChild>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <span className="w-full flex items-center gap-2">
+                    <button className="w-full flex items-center gap-2 px-2 py-1.5">
                       <UserMinus className="h-4 w-4" />
                       Remove from Server
-                    </span>
+                    </button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
