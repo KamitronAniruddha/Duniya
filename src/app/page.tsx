@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -25,12 +26,16 @@ export default function ConnectVerseApp() {
   const [showMembers, setShowMembers] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Track previous serverIds to detect removal
+  // Track state for notifications
   const prevServerIdsRef = useRef<string[]>([]);
+  const prevMembersRef = useRef<string[]>([]);
   const hasLoadedInitialData = useRef(false);
 
   const userRef = useMemoFirebase(() => (user ? doc(db, "users", user.uid) : null), [db, user?.uid]);
   const { data: userData } = useDoc(userRef);
+
+  const activeServerRef = useMemoFirebase(() => (activeServerId ? doc(db, "servers", activeServerId) : null), [db, activeServerId]);
+  const { data: serverData } = useDoc(activeServerRef);
 
   const channelsQuery = useMemoFirebase(() => {
     if (!db || !activeServerId || !user) return null;
@@ -39,37 +44,44 @@ export default function ConnectVerseApp() {
 
   const { data: channels } = useCollection(channelsQuery);
 
-  // Monitor membership changes to alert the user if removed
+  // Monitor membership changes (Removals and New Joins)
   useEffect(() => {
-    if (!userData) return;
+    if (!userData || !serverData) return;
     
-    const currentIds = userData.serverIds || [];
-    const prevIds = prevServerIdsRef.current;
+    // 1. Check for personal removal from servers
+    const currentServerIds = userData.serverIds || [];
+    const prevServerIds = prevServerIdsRef.current;
 
-    // Only trigger removal alert if we had previous server data
-    // and the active server was in that previous list but is now missing.
-    // We check prevIds.length > 0 to ensure we've synchronized at least once.
-    if (hasLoadedInitialData.current && activeServerId && prevIds.length > 0) {
-      const wasInServer = prevIds.includes(activeServerId);
-      const isInServerNow = currentIds.includes(activeServerId);
-
-      if (wasInServer && !isInServerNow) {
+    if (hasLoadedInitialData.current && activeServerId && prevServerIds.length > 0) {
+      if (prevServerIds.includes(activeServerId) && !currentServerIds.includes(activeServerId)) {
         toast({
           variant: "destructive",
           title: "Access Revoked",
-          description: "You have been removed from the server by an administrator.",
+          description: "You have been removed from the server.",
         });
         setActiveServerId(null);
         setActiveChannelId(null);
       }
     }
+    prevServerIdsRef.current = currentServerIds;
 
-    // Update the ref for the next comparison
-    prevServerIdsRef.current = currentIds;
-    if (userData) {
-      hasLoadedInitialData.current = true;
+    // 2. Check for new members in the active server
+    const currentMembers = serverData.members || [];
+    const prevMembers = prevMembersRef.current;
+
+    if (hasLoadedInitialData.current && prevMembers.length > 0 && currentMembers.length > prevMembers.length) {
+      const newMemberId = currentMembers.find(id => !prevMembers.includes(id));
+      if (newMemberId && newMemberId !== user?.uid) {
+        toast({
+          title: "New Member!",
+          description: "Someone new just joined the server. Say hello!",
+        });
+      }
     }
-  }, [userData?.serverIds, activeServerId, toast]);
+    prevMembersRef.current = currentMembers;
+
+    hasLoadedInitialData.current = true;
+  }, [userData?.serverIds, serverData?.members, activeServerId, toast, user?.uid]);
 
   useEffect(() => {
     if (channels && channels.length > 0 && !activeChannelId) {
@@ -81,7 +93,6 @@ export default function ConnectVerseApp() {
     if (!user || !db || !auth.currentUser) return;
 
     const userRef = doc(db, "users", user.uid);
-    
     const updateStatus = (status: "online" | "idle" | "offline") => {
       if (!auth.currentUser) return;
       setDocumentNonBlocking(userRef, {
@@ -91,18 +102,8 @@ export default function ConnectVerseApp() {
     };
 
     updateStatus("online");
-
-    const handleVisibility = () => {
-      if (document.visibilityState === 'visible') {
-        updateStatus("online");
-      } else {
-        updateStatus("idle");
-      }
-    };
-
-    const handleUnload = () => {
-      updateStatus("offline");
-    };
+    const handleVisibility = () => updateStatus(document.visibilityState === 'visible' ? "online" : "idle");
+    const handleUnload = () => updateStatus("offline");
 
     window.addEventListener('visibilitychange', handleVisibility);
     window.addEventListener('beforeunload', handleUnload);
@@ -130,7 +131,6 @@ export default function ConnectVerseApp() {
 
   return (
     <div className="flex h-[100dvh] w-full bg-background overflow-hidden selection:bg-primary/20">
-      {/* Desktop Sidebars */}
       <div className="hidden md:flex shrink-0 h-full overflow-hidden border-r border-border">
         <ServerSidebar 
           activeServerId={activeServerId} 
@@ -146,9 +146,7 @@ export default function ConnectVerseApp() {
         />
       </div>
 
-      {/* Main Container */}
       <main className="flex-1 flex flex-col min-w-0 h-full relative overflow-hidden bg-white">
-        {/* Mobile Header */}
         <div className="md:hidden p-2 border-b flex items-center gap-2 bg-white shrink-0">
           <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
             <SheetTrigger asChild>
@@ -183,7 +181,6 @@ export default function ConnectVerseApp() {
           <span className="font-bold text-sm truncate">ConnectVerse</span>
         </div>
         
-        {/* Chat and Members Wrapper */}
         <div className="flex-1 min-h-0 flex relative overflow-hidden">
           <ChatWindow 
             channelId={activeChannelId}

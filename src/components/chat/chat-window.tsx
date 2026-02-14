@@ -1,14 +1,16 @@
+
 "use client";
 
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { useCollection, useFirestore, useUser, useDoc, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy, limit, doc, serverTimestamp } from "firebase/firestore";
+import { collection, query, orderBy, limit, doc, serverTimestamp, getDoc } from "firebase/firestore";
 import { MessageBubble } from "./message-bubble";
 import { MessageInput } from "./message-input";
 import { Hash, Phone, Video, Users, Loader2, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 interface ChatWindowProps {
   channelId: string | null;
@@ -20,7 +22,10 @@ interface ChatWindowProps {
 export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }: ChatWindowProps) {
   const db = useFirestore();
   const { user } = useUser();
+  const { toast } = useToast();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const lastMessageIdRef = useRef<string | null>(null);
 
   const channelRef = useMemoFirebase(() => (channelId && user ? doc(db, "channels", channelId) : null), [db, channelId, user?.uid]);
   const { data: channel } = useDoc(channelRef);
@@ -38,9 +43,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
 
   const handleSendMessage = (text: string) => {
     if (!db || !channelId || !user) return;
-    
     const messageRef = doc(collection(db, "messages", channelId, "chatMessages"));
-    
     setDocumentNonBlocking(messageRef, {
       id: messageRef.id,
       senderId: user.uid,
@@ -51,9 +54,38 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
     }, { merge: true });
   };
 
+  // Notification for new messages
+  useEffect(() => {
+    if (!messages || messages.length === 0 || !user) return;
+
+    const lastMsg = messages[messages.length - 1];
+    
+    // Only toast if it's a new message, not from me, and we've already initialized
+    if (lastMessageIdRef.current && lastMessageIdRef.current !== lastMsg.id) {
+      if (lastMsg.senderId !== user.uid) {
+        const showToast = async () => {
+          const senderRef = doc(db, "users", lastMsg.senderId);
+          const senderSnap = await getDoc(senderRef);
+          const senderName = senderSnap.exists() ? senderSnap.data().username : "Someone";
+
+          toast({
+            title: `New Message from @${senderName}`,
+            description: lastMsg.text.length > 60 ? lastMsg.text.substring(0, 60) + "..." : lastMsg.text,
+            action: (
+              <Button size="sm" onClick={() => inputRef.current?.focus()}>
+                Reply
+              </Button>
+            ),
+          });
+        };
+        showToast();
+      }
+    }
+    lastMessageIdRef.current = lastMsg.id;
+  }, [messages, user?.uid, toast, db]);
+
   useEffect(() => {
     if (scrollRef.current) {
-      // Use requestAnimationFrame for more reliable scrolling on dynamic layouts
       requestAnimationFrame(() => {
         if (scrollRef.current) {
           scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -134,7 +166,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
       </div>
 
       <div className="shrink-0 bg-white border-t">
-        <MessageInput onSendMessage={handleSendMessage} />
+        <MessageInput onSendMessage={handleSendMessage} inputRef={inputRef} />
       </div>
     </div>
   );
