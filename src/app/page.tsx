@@ -1,27 +1,35 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ServerSidebar } from "@/components/sidebar/server-sidebar";
 import { ChannelSidebar } from "@/components/sidebar/channel-sidebar";
 import { ChatWindow } from "@/components/chat/chat-window";
 import { AuthScreen } from "@/components/auth/auth-screen";
 import { MembersPanel } from "@/components/members/members-panel";
-import { useUser, useFirestore, useCollection, useMemoFirebase, useAuth } from "@/firebase";
+import { useUser, useFirestore, useCollection, useMemoFirebase, useAuth, useDoc } from "@/firebase";
 import { doc, serverTimestamp, collection, query, where } from "firebase/firestore";
 import { Loader2, Menu } from "lucide-react";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ConnectVerseApp() {
   const { user, isUserLoading } = useUser();
   const db = useFirestore();
   const auth = useAuth();
+  const { toast } = useToast();
   
   const [activeServerId, setActiveServerId] = useState<string | null>(null);
   const [activeChannelId, setActiveChannelId] = useState<string | null>(null);
   const [showMembers, setShowMembers] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Track previous serverIds to detect removal
+  const prevServerIdsRef = useRef<string[]>([]);
+
+  const userRef = useMemoFirebase(() => (user ? doc(db, "users", user.uid) : null), [db, user?.uid]);
+  const { data: userData } = useDoc(userRef);
 
   const channelsQuery = useMemoFirebase(() => {
     if (!db || !activeServerId || !user) return null;
@@ -29,6 +37,27 @@ export default function ConnectVerseApp() {
   }, [db, activeServerId, user?.uid]);
 
   const { data: channels } = useCollection(channelsQuery);
+
+  // Monitor membership changes to alert the user if removed
+  useEffect(() => {
+    if (!userData) return;
+    
+    const currentIds = userData.serverIds || [];
+    const prevIds = prevServerIdsRef.current;
+
+    // Detect if the active server was removed from the user's list
+    if (activeServerId && !currentIds.includes(activeServerId)) {
+      toast({
+        variant: "destructive",
+        title: "Access Revoked",
+        description: "You have been removed from the server by an administrator.",
+      });
+      setActiveServerId(null);
+      setActiveChannelId(null);
+    }
+
+    prevServerIdsRef.current = currentIds;
+  }, [userData?.serverIds, activeServerId, toast]);
 
   useEffect(() => {
     if (channels && channels.length > 0 && !activeChannelId) {
@@ -43,7 +72,6 @@ export default function ConnectVerseApp() {
     
     const updateStatus = (status: "online" | "idle" | "offline") => {
       if (!auth.currentUser) return;
-      // Use set with merge to handle cases where the user document might not exist yet (new users)
       setDocumentNonBlocking(userRef, {
         onlineStatus: status,
         lastSeen: serverTimestamp()
