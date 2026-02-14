@@ -4,9 +4,9 @@
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useDoc, useFirestore, useMemoFirebase, useUser } from "@/firebase";
-import { doc, arrayUnion } from "firebase/firestore";
+import { doc, arrayUnion, deleteField } from "firebase/firestore";
 import { UserProfilePopover } from "@/components/profile/user-profile-popover";
-import { Reply, CornerDownRight, Play, Pause, Volume2, MoreHorizontal, Trash2, Ban, Copy, Video } from "lucide-react";
+import { Reply, CornerDownRight, Play, Pause, Volume2, MoreHorizontal, Trash2, Ban, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useRef, useEffect } from "react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -124,11 +124,13 @@ export function MessageBubble({ message, channelId, isMe, onReply, onQuoteClick 
   const handleDeleteForEveryone = () => {
     if (!db || !channelId || !message.id) return;
     const msgRef = doc(db, "messages", channelId, "chatMessages", message.id);
+    
+    // Using deleteField() to permanently remove media data from the server
     updateDocumentNonBlocking(msgRef, {
       isDeleted: true,
       text: "This message was deleted",
-      audioUrl: null,
-      videoUrl: null,
+      audioUrl: deleteField(),
+      videoUrl: deleteField(),
       type: "text"
     });
   };
