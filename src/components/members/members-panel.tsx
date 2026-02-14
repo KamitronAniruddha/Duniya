@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useCollection, useFirestore, useDoc, useMemoFirebase, useUser } from "@/firebase";
-import { collection, query, where, doc, getDocs, arrayUnion, arrayRemove, limit, orderBy } from "firebase/firestore";
+import { collection, query, where, doc, getDocs, arrayUnion, arrayRemove, limit } from "firebase/firestore";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ShieldCheck, User as UserIcon, Loader2, UserPlus, Check, AlertCircle, UserMinus, Shield, Search, X } from "lucide-react";
+import { ShieldCheck, Loader2, UserPlus, Check, AlertCircle, UserMinus, Shield, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -34,7 +34,6 @@ export function MembersPanel({ serverId }: MembersPanelProps) {
   const [selectedUsers, setSelectedUsers] = useState<any[]>([]);
   const [isInviting, setIsInviting] = useState(false);
 
-  // Corrected path from 'servers' to 'communities'
   const serverRef = useMemoFirebase(() => (serverId && currentUser ? doc(db, "communities", serverId) : null), [db, serverId, currentUser?.uid]);
   const { data: server } = useDoc(serverRef);
 
@@ -45,7 +44,6 @@ export function MembersPanel({ serverId }: MembersPanelProps) {
 
   const { data: members, isLoading: isMembersLoading } = useCollection(membersQuery);
 
-  // Search logic
   useEffect(() => {
     const searchUsers = async () => {
       if (!currentUser || !db) return;
@@ -66,7 +64,6 @@ export function MembersPanel({ serverId }: MembersPanelProps) {
         const snapshot = await getDocs(q);
         const users = snapshot.docs
           .map(doc => ({ ...doc.data(), id: doc.id }))
-          // Filter out users already in the server
           .filter(u => !u.serverIds?.includes(serverId));
         
         setSearchResults(users);
@@ -96,12 +93,10 @@ export function MembersPanel({ serverId }: MembersPanelProps) {
     try {
       const userIdsToAdd = selectedUsers.map(u => u.id);
 
-      // 1. Update Community document
       updateDocumentNonBlocking(serverRef, {
         members: arrayUnion(...userIdsToAdd)
       });
 
-      // 2. Update each user document
       selectedUsers.forEach(u => {
         const userRef = doc(db, "users", u.id);
         updateDocumentNonBlocking(userRef, {
@@ -146,11 +141,6 @@ export function MembersPanel({ serverId }: MembersPanelProps) {
       updateDocumentNonBlocking(serverRef, {
         members: arrayRemove(targetUserId),
         admins: arrayRemove(targetUserId)
-      });
-
-      const targetUserRef = doc(db, "users", targetUserId);
-      updateDocumentNonBlocking(targetUserRef, {
-        serverIds: arrayRemove(serverId)
       });
 
       toast({ 
@@ -231,7 +221,7 @@ export function MembersPanel({ serverId }: MembersPanelProps) {
                         member={member} 
                         isOwner={member.id === server.ownerId}
                         isAdmin={serverAdmins.includes(member.id)}
-                        canManage={isOwner && member.id !== currentUser?.uid}
+                        canManage={(isOwner || serverAdmins.includes(currentUser?.uid)) && member.id !== currentUser?.uid}
                         onRemove={() => handleRemoveMember(member.id, member.username)}
                         onToggleAdmin={() => handleToggleAdmin(member.id, serverAdmins.includes(member.id))}
                       />
@@ -252,7 +242,7 @@ export function MembersPanel({ serverId }: MembersPanelProps) {
                         member={member} 
                         isOwner={member.id === server.ownerId}
                         isAdmin={serverAdmins.includes(member.id)}
-                        canManage={isOwner && member.id !== currentUser?.uid}
+                        canManage={(isOwner || serverAdmins.includes(currentUser?.uid)) && member.id !== currentUser?.uid}
                         onRemove={() => handleRemoveMember(member.id, member.username)}
                         onToggleAdmin={() => handleToggleAdmin(member.id, serverAdmins.includes(member.id))}
                       />
@@ -275,7 +265,6 @@ export function MembersPanel({ serverId }: MembersPanelProps) {
           </DialogHeader>
           
           <div className="space-y-4 py-4">
-            {/* Selected Users Area */}
             {selectedUsers.length > 0 && (
               <div className="flex flex-wrap gap-1 mb-2">
                 {selectedUsers.map(u => (
@@ -438,7 +427,7 @@ function MemberItem({
               <DropdownMenuItem className="text-destructive font-medium" asChild>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <button className="w-full flex items-center gap-2 px-2 py-1.5">
+                    <button className="w-full flex items-center gap-2 px-2 py-1.5 text-left">
                       <UserMinus className="h-4 w-4" />
                       Remove from Community
                     </button>
