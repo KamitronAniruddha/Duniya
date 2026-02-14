@@ -30,19 +30,19 @@ interface MessageBubbleProps {
     };
   };
   channelId: string;
+  serverId: string;
   isMe: boolean;
   onReply?: () => void;
   onQuoteClick?: (messageId: string) => void;
 }
 
-export function MessageBubble({ message, channelId, isMe, onReply, onQuoteClick }: MessageBubbleProps) {
+export function MessageBubble({ message, channelId, serverId, isMe, onReply, onQuoteClick }: MessageBubbleProps) {
   const db = useFirestore();
   const { user } = useUser();
   const { toast } = useToast();
-  const userRef = useMemoFirebase(() => doc(db, "users", message.senderId), [db, message.senderId]);
+  const userRef = useMemoFirebase(() => (db && message.senderId && user ? doc(db, "users", message.senderId) : null), [db, message.senderId, user?.uid]);
   const { data: sender } = useDoc(userRef);
 
-  // Audio/Video State
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
@@ -51,20 +51,16 @@ export function MessageBubble({ message, channelId, isMe, onReply, onQuoteClick 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
 
-  // Swipe-to-reply State
   const [dragX, setDragX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const startX = useRef(0);
   const swipeThreshold = 60;
 
-  // Hydration safe timestamp
   const [formattedTime, setFormattedTime] = useState("");
 
   useEffect(() => {
-    if (message.createdAt?.toDate) {
-      setFormattedTime(message.createdAt.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-    } else if (message.createdAt) {
-      const date = message.createdAt instanceof Date ? message.createdAt : new Date(message.createdAt);
+    if (message.createdAt) {
+      const date = typeof message.createdAt === 'string' ? new Date(message.createdAt) : message.createdAt.toDate?.() || new Date(message.createdAt);
       setFormattedTime(date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
     }
   }, [message.createdAt]);
@@ -155,20 +151,17 @@ export function MessageBubble({ message, channelId, isMe, onReply, onQuoteClick 
   }, []);
 
   const handleCopy = () => {
-    if (!message.text || message.type === 'voice' || message.type === 'video') return;
+    if (!message.text) return;
     navigator.clipboard.writeText(message.text);
-    toast({
-      title: "Copied to clipboard",
-      description: "Message text has been copied successfully.",
-    });
+    toast({ title: "Copied to clipboard" });
   };
 
   const handleDeleteForEveryone = () => {
-    if (!db || !channelId || !message.id) return;
-    const msgRef = doc(db, "messages", channelId, "chatMessages", message.id);
+    if (!db || !serverId || !channelId || !message.id) return;
+    const msgRef = doc(db, "communities", serverId, "channels", channelId, "messages", message.id);
     updateDocumentNonBlocking(msgRef, {
       isDeleted: true,
-      text: "This message was deleted",
+      content: "This message was deleted",
       audioUrl: deleteField(),
       videoUrl: deleteField(),
       type: "text"
@@ -176,8 +169,8 @@ export function MessageBubble({ message, channelId, isMe, onReply, onQuoteClick 
   };
 
   const handleDeleteForMe = () => {
-    if (!db || !channelId || !message.id || !user) return;
-    const msgRef = doc(db, "messages", channelId, "chatMessages", message.id);
+    if (!db || !serverId || !channelId || !message.id || !user) return;
+    const msgRef = doc(db, "communities", serverId, "channels", channelId, "messages", message.id);
     updateDocumentNonBlocking(msgRef, {
       deletedBy: arrayUnion(user.uid)
     });
@@ -185,13 +178,7 @@ export function MessageBubble({ message, channelId, isMe, onReply, onQuoteClick 
 
   if (message.isDeleted) {
     return (
-      <div 
-        id={`message-${message.id}`}
-        className={cn(
-          "flex w-full py-0.5 group items-end", 
-          isMe ? "flex-row-reverse" : "flex-row"
-        )}
-      >
+      <div className={cn("flex w-full py-0.5 group items-end", isMe ? "flex-row-reverse" : "flex-row")}>
         <div className={cn("flex flex-col max-w-[75%] relative", isMe ? "items-end" : "items-start")}>
           <div className={cn(
             "px-3 py-2 rounded-2xl text-xs italic opacity-60 flex items-center gap-2 border shadow-none",
@@ -207,7 +194,6 @@ export function MessageBubble({ message, channelId, isMe, onReply, onQuoteClick 
 
   return (
     <div 
-      id={`message-${message.id}`}
       className={cn(
         "flex w-full py-0.5 group items-end transition-colors duration-500 rounded-lg relative touch-none select-none", 
         isMe ? "flex-row-reverse" : "flex-row"
@@ -245,10 +231,7 @@ export function MessageBubble({ message, channelId, isMe, onReply, onQuoteClick 
       )}
       
       <div 
-        className={cn(
-          "flex flex-col max-w-[75%] relative transition-transform ease-out", 
-          isMe ? "items-end" : "items-start"
-        )}
+        className={cn("flex flex-col max-w-[75%] relative transition-transform ease-out", isMe ? "items-end" : "items-start")}
         style={{ transform: `translateX(${dragX}px)` }}
       >
         {!isMe && (
@@ -261,7 +244,7 @@ export function MessageBubble({ message, channelId, isMe, onReply, onQuoteClick 
         
         <div className={cn(
           "px-3 py-2 rounded-2xl shadow-sm transition-shadow group-hover:shadow-md relative",
-          message.type === 'video' ? "p-1.5" : "px-3 py-2",
+          message.type === 'media' && message.videoUrl ? "p-1.5" : "px-3 py-2",
           isMe 
             ? "bg-primary text-white rounded-br-none" 
             : "bg-card text-foreground rounded-bl-none border border-border"
@@ -274,67 +257,40 @@ export function MessageBubble({ message, channelId, isMe, onReply, onQuoteClick 
                 isMe ? "border-white/30" : "border-primary/50"
               )}
             >
-              <span className={cn(
-                "font-bold text-[10px] flex items-center gap-1",
-                isMe ? "text-white/80" : "text-primary"
-              )}>
+              <span className={cn("font-bold text-[10px] flex items-center gap-1", isMe ? "text-white/80" : "text-primary")}>
                 <CornerDownRight className="h-3 w-3" />
                 {message.replyTo.senderName}
               </span>
-              <p className={cn(
-                "line-clamp-2 italic",
-                isMe ? "text-white/70" : "text-muted-foreground"
-              )}>
+              <p className={cn("line-clamp-2 italic", isMe ? "text-white/70" : "text-muted-foreground")}>
                 {message.replyTo.text}
               </p>
             </button>
           )}
 
-          {message.type === 'voice' && message.audioUrl ? (
+          {message.type === 'media' && message.audioUrl ? (
             <div className="flex items-center gap-3 py-1 min-w-[220px]">
               <audio ref={audioRef} src={message.audioUrl} preload="metadata" />
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className={cn(
-                  "h-10 w-10 rounded-full shrink-0 flex items-center justify-center",
-                  isMe ? "text-white hover:bg-white/20" : "text-primary hover:bg-primary/10"
-                )}
+                className={cn("h-10 w-10 rounded-full shrink-0 flex items-center justify-center", isMe ? "text-white hover:bg-white/20" : "text-primary hover:bg-primary/10")}
                 onClick={togglePlay}
               >
                 {isPlaying ? <Pause className="h-5 w-5 fill-current" /> : <Play className="h-5 w-5 fill-current ml-0.5" />}
               </Button>
               <div className="flex-1 space-y-1.5">
-                <div className={cn(
-                  "h-1.5 w-full rounded-full overflow-hidden relative",
-                  isMe ? "bg-white/30" : "bg-muted"
-                )}>
-                  <div 
-                    className={cn(
-                      "h-full transition-all duration-300 ease-linear",
-                      isMe ? "bg-white" : "bg-primary"
-                    )} 
-                    style={{ width: `${progress}%` }}
-                  />
+                <div className={cn("h-1.5 w-full rounded-full overflow-hidden relative", isMe ? "bg-white/30" : "bg-muted")}>
+                  <div className={cn("h-full transition-all duration-300 ease-linear", isMe ? "bg-white" : "bg-primary")} style={{ width: `${progress}%` }} />
                 </div>
                 <div className="flex items-center justify-between gap-2">
-                  <div className={cn(
-                    "text-[10px] font-mono font-bold flex items-center gap-1",
-                    isMe ? "text-white/80" : "text-primary"
-                  )}>
+                  <div className={cn("text-[10px] font-mono font-bold flex items-center gap-1", isMe ? "text-white/80" : "text-primary")}>
                     <Volume2 className="h-3 w-3" />
                     {formatAudioTime(isPlaying ? currentTime : duration)}
-                  </div>
-                  <div className={cn(
-                    "text-[9px] font-medium tracking-tight",
-                    isMe ? "text-white/60" : "text-muted-foreground"
-                  )}>
-                    Voice Message
                   </div>
                 </div>
               </div>
             </div>
-          ) : message.type === 'video' && message.videoUrl ? (
+          ) : message.type === 'media' && message.videoUrl ? (
             <div className="relative group/video overflow-hidden rounded-full aspect-square w-64 md:w-80 shadow-inner bg-black border-4 border-white/10">
               <video 
                 ref={videoRef}
@@ -349,35 +305,19 @@ export function MessageBubble({ message, channelId, isMe, onReply, onQuoteClick 
               <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/video:opacity-100 transition-opacity bg-black/20 pointer-events-none">
                  {isVideoPlaying ? <Volume2 className="h-8 w-8 text-white drop-shadow-lg" /> : <Play className="h-8 w-8 text-white drop-shadow-lg" />}
               </div>
-              {!isVideoPlaying && (
-                 <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/40 backdrop-blur-sm px-3 py-1 rounded-full text-[10px] text-white font-bold flex items-center gap-2">
-                    <Volume2 className="h-3 w-3" />
-                    Tap for Sound
-                 </div>
-              )}
             </div>
           ) : (
             <p className="whitespace-pre-wrap break-words leading-relaxed text-sm">{message.text}</p>
           )}
 
-          <div className={cn(
-            "text-[9px] mt-1 text-right leading-none opacity-70 font-medium",
-            isMe ? "text-white/80" : "text-muted-foreground"
-          )}>
+          <div className={cn("text-[9px] mt-1 text-right leading-none opacity-70 font-medium", isMe ? "text-white/80" : "text-muted-foreground")}>
             {formattedTime}
           </div>
         </div>
       </div>
 
-      <div className={cn(
-        "mb-2 mx-1 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5",
-        isMe ? "mr-1" : "ml-1"
-      )}>
-        <button 
-          onClick={onReply}
-          className="h-7 w-7 rounded-full hover:bg-muted flex items-center justify-center transition-colors"
-          title="Reply"
-        >
+      <div className={cn("mb-2 mx-1 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5", isMe ? "mr-1" : "ml-1")}>
+        <button onClick={onReply} className="h-7 w-7 rounded-full hover:bg-muted flex items-center justify-center transition-colors">
           <Reply className="h-3.5 w-3.5 text-muted-foreground" />
         </button>
         <DropdownMenu>
@@ -387,22 +327,9 @@ export function MessageBubble({ message, channelId, isMe, onReply, onQuoteClick 
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align={isMe ? "end" : "start"}>
-            {message.type === 'text' && !message.isDeleted && (
-              <DropdownMenuItem onClick={handleCopy}>
-                <Copy className="h-4 w-4 mr-2" />
-                Copy text
-              </DropdownMenuItem>
-            )}
-            <DropdownMenuItem onClick={handleDeleteForMe} className="text-destructive font-medium">
-              <Trash2 className="h-4 w-4 mr-2" />
-              Delete for me
-            </DropdownMenuItem>
-            {isMe && (
-              <DropdownMenuItem onClick={handleDeleteForEveryone} className="text-destructive font-medium">
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete for everyone
-              </DropdownMenuItem>
-            )}
+            <DropdownMenuItem onClick={handleCopy}><Copy className="h-4 w-4 mr-2" />Copy</DropdownMenuItem>
+            <DropdownMenuItem onClick={handleDeleteForMe} className="text-destructive"><Trash2 className="h-4 w-4 mr-2" />Delete for me</DropdownMenuItem>
+            {isMe && <DropdownMenuItem onClick={handleDeleteForEveryone} className="text-destructive"><Trash2 className="h-4 w-4 mr-2" />Delete for everyone</DropdownMenuItem>}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

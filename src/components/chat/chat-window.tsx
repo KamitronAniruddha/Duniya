@@ -1,17 +1,14 @@
-
 "use client";
 
 import { useRef, useEffect, useState, useMemo } from "react";
 import { useCollection, useFirestore, useUser, useDoc, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy, limit, doc, serverTimestamp, getDoc, Timestamp } from "firebase/firestore";
+import { collection, query, orderBy, limit, doc } from "firebase/firestore";
 import { MessageBubble } from "./message-bubble";
 import { MessageInput } from "./message-input";
-import { Hash, Phone, Video, Users, Loader2, MessageCircle, Timer, Heart } from "lucide-react";
+import { Hash, Users, Loader2, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { cn } from "@/lib/utils";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { DisappearingMessagesDialog } from "@/components/servers/disappearing-messages-dialog";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 interface ChatWindowProps {
@@ -25,10 +22,8 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
   const db = useFirestore();
   const { user } = useUser();
   const scrollRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   const [replyingTo, setReplyingTo] = useState<any | null>(null);
-  const [isDisappearingDialogOpen, setIsDisappearingDialogOpen] = useState(false);
 
   const channelRef = useMemoFirebase(() => (channelId && serverId && user ? doc(db, "communities", serverId, "channels", channelId) : null), [db, serverId, channelId, user?.uid]);
   const { data: channel } = useDoc(channelRef);
@@ -46,11 +41,6 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
   }, [db, serverId, channelId, user?.uid]);
 
   const { data: rawMessages, isLoading: messagesLoading } = useCollection(messagesQuery);
-
-  const isAdmin = useMemo(() => {
-    if (!server || !user) return false;
-    return server.ownerId === user.uid || server.admins?.includes(user.uid);
-  }, [server, user]);
 
   const messages = useMemo(() => {
     if (!rawMessages || !user) return [];
@@ -109,7 +99,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
         </div>
       </header>
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-2 bg-muted/5 custom-scrollbar">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-2 bg-muted/5 custom-scrollbar min-h-0">
         {messagesLoading ? (
           <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
         ) : messages.length === 0 ? (
@@ -127,6 +117,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
                 createdAt: msg.sentAt
               }}
               channelId={channelId!}
+              serverId={serverId!}
               isMe={msg.senderId === user?.uid}
               onReply={() => setReplyingTo(msg)}
             />

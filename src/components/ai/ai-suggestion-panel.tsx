@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -9,24 +8,24 @@ import { suggestContextualTools, type SuggestedAction } from "@/ai/flows/context
 import { Card, CardContent } from "@/components/ui/card";
 
 interface AISuggestionPanelProps {
+  serverId: string | null;
   channelId: string | null;
 }
 
-export function AISuggestionPanel({ channelId }: AISuggestionPanelProps) {
+export function AISuggestionPanel({ serverId, channelId }: AISuggestionPanelProps) {
   const db = useFirestore();
   const { user } = useUser();
   const [suggestions, setSuggestions] = useState<SuggestedAction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const messagesQuery = useMemoFirebase(() => {
-    // Critical: Add 'user' check to prevent permission errors on logout
-    if (!db || !channelId || !user) return null;
+    if (!db || !serverId || !channelId || !user) return null;
     return query(
-      collection(db, "messages", channelId, "chatMessages"),
-      orderBy("createdAt", "desc"),
+      collection(db, "communities", serverId, "channels", channelId, "messages"),
+      orderBy("sentAt", "desc"),
       limit(5)
     );
-  }, [db, channelId, user?.uid]);
+  }, [db, serverId, channelId, user?.uid]);
 
   const { data: messages } = useCollection(messagesQuery);
 
@@ -37,14 +36,13 @@ export function AISuggestionPanel({ channelId }: AISuggestionPanelProps) {
       setIsLoading(true);
       try {
         const history = messages.map(m => ({
-          sender: "user", // Simplified for now
-          content: m.text
+          sender: m.senderId === user.uid ? "user" : "assistant",
+          content: m.content || ""
         })).reverse();
 
         const result = await suggestContextualTools({ conversationHistory: history });
         setSuggestions(result.suggestedActions);
       } catch (e) {
-        // AI errors are non-critical
         console.error("AI Error:", e);
       } finally {
         setIsLoading(false);

@@ -27,6 +27,7 @@ service cloud.firestore {
     function isCommunityMember(communityId) {
       return isSignedIn() && (
         exists(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid)) ||
+        (get(/databases/$(database)/documents/communities/$(communityId)).data.members.hasAny([request.auth.uid])) ||
         isAdmin()
       );
     }
@@ -35,7 +36,7 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow get: if isSignedIn();
-      allow list: if isSignedIn(); // Required for username uniqueness check
+      allow list: if isSignedIn(); 
       allow create: if isOwner(userId);
       allow update: if isOwner(userId) || isAdmin();
       allow delete: if isAdmin();
@@ -79,7 +80,13 @@ service cloud.firestore {
     }
 
     match /communities/{communityId} {
-      allow get, list: if resource.data.isPublic == true || isCommunityMember(communityId) || isAdmin();
+      // Allow list if the user is in the members array or it's public
+      allow list: if isSignedIn() && (
+        request.auth.uid in resource.data.members || 
+        resource.data.isPublic == true || 
+        isAdmin()
+      );
+      allow get: if resource.data.isPublic == true || isCommunityMember(communityId) || isAdmin();
       allow create: if isSignedIn();
       allow update: if (isSignedIn() && (isOwner(resource.data.ownerId) || isAdmin())) || 
                     (resource.data.isPublic == true && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members']));
