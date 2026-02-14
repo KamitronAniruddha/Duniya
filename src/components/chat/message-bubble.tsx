@@ -43,6 +43,7 @@ export function MessageBubble({ message, channelId, isMe, onReply, onQuoteClick 
   const userRef = useMemoFirebase(() => doc(db, "users", message.senderId), [db, message.senderId]);
   const { data: sender } = useDoc(userRef);
 
+  // Audio/Video State
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
@@ -51,9 +52,46 @@ export function MessageBubble({ message, channelId, isMe, onReply, onQuoteClick 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
 
+  // Swipe-to-reply State
+  const [dragX, setDragX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const startX = useRef(0);
+  const swipeThreshold = 60;
+
   const timestamp = message.createdAt?.toDate
     ? message.createdAt.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     : "";
+
+  const handleTouchStart = (e: React.TouchEvent | React.MouseEvent) => {
+    if (message.isDeleted) return;
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    startX.current = clientX;
+    setIsDragging(true);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent | React.MouseEvent) => {
+    if (!isDragging || message.isDeleted) return;
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const diff = clientX - startX.current;
+    
+    // Only allow swiping to the right (standard WhatsApp behavior)
+    if (diff > 0) {
+      // Add resistance as it goes further
+      const rubberBand = Math.pow(diff, 0.85);
+      setDragX(Math.min(rubberBand * 2, 100));
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (!isDragging) return;
+    if (dragX >= swipeThreshold) {
+      onReply?.();
+      // Provide a small vibration feel if supported
+      if ('vibrate' in navigator) navigator.vibrate(10);
+    }
+    setDragX(0);
+    setIsDragging(false);
+  };
 
   const formatAudioTime = (time: number) => {
     if (isNaN(time)) return "0:00";
@@ -124,8 +162,6 @@ export function MessageBubble({ message, channelId, isMe, onReply, onQuoteClick 
   const handleDeleteForEveryone = () => {
     if (!db || !channelId || !message.id) return;
     const msgRef = doc(db, "messages", channelId, "chatMessages", message.id);
-    
-    // Using deleteField() to permanently remove media data from the server forever
     updateDocumentNonBlocking(msgRef, {
       isDeleted: true,
       text: "This message was deleted",
@@ -169,10 +205,29 @@ export function MessageBubble({ message, channelId, isMe, onReply, onQuoteClick 
     <div 
       id={`message-${message.id}`}
       className={cn(
-        "flex w-full py-0.5 group items-end transition-colors duration-500 rounded-lg", 
+        "flex w-full py-0.5 group items-end transition-colors duration-500 rounded-lg relative touch-none select-none", 
         isMe ? "flex-row-reverse" : "flex-row"
       )}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onMouseDown={handleTouchStart}
+      onMouseMove={handleTouchMove}
+      onMouseUp={handleTouchEnd}
+      onMouseLeave={handleTouchEnd}
     >
+      {/* Swipe Reveal Icon */}
+      <div 
+        className="absolute left-4 top-1/2 -translate-y-1/2 transition-all duration-75 flex items-center justify-center bg-primary/10 rounded-full h-8 w-8"
+        style={{ 
+          opacity: dragX / swipeThreshold,
+          transform: `scale(${Math.min(dragX / swipeThreshold, 1.2)})`,
+          left: `${dragX / 2}px`
+        }}
+      >
+        <Reply className={cn("h-4 w-4", dragX >= swipeThreshold ? "text-primary" : "text-muted-foreground")} />
+      </div>
+
       {!isMe && (
         <UserProfilePopover userId={message.senderId}>
           <button className="h-8 w-8 mb-1 mr-2 shrink-0 transition-transform hover:scale-105">
@@ -186,7 +241,13 @@ export function MessageBubble({ message, channelId, isMe, onReply, onQuoteClick 
         </UserProfilePopover>
       )}
       
-      <div className={cn("flex flex-col max-w-[75%] relative", isMe ? "items-end" : "items-start")}>
+      <div 
+        className={cn(
+          "flex flex-col max-w-[75%] relative transition-transform ease-out", 
+          isMe ? "items-end" : "items-start"
+        )}
+        style={{ transform: `translateX(${dragX}px)` }}
+      >
         {!isMe && (
           <UserProfilePopover userId={message.senderId}>
             <button className="text-[10px] font-bold text-muted-foreground ml-1 mb-0.5 hover:text-primary transition-colors">
