@@ -1,10 +1,9 @@
-
 "use client";
 
 import { useState } from "react";
 import { useCollection, useFirestore, useUser, useDoc, useMemoFirebase, useAuth } from "@/firebase";
 import { collection, query, where, doc, serverTimestamp } from "firebase/firestore";
-import { Hash, Settings, ChevronDown, LogOut, Loader2, Plus, Users } from "lucide-react";
+import { Hash, Settings, ChevronDown, LogOut, Loader2, Plus, Users, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -12,6 +11,10 @@ import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { ProfileDialog } from "@/components/profile/profile-dialog";
 import { ServerSettingsDialog } from "@/components/servers/server-settings-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
 
 interface ChannelSidebarProps {
   serverId: string | null;
@@ -23,8 +26,12 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
   const db = useFirestore();
   const auth = useAuth();
   const { user } = useUser();
+  const { toast } = useToast();
   const [profileOpen, setProfileOpen] = useState(false);
   const [serverSettingsOpen, setServerSettingsOpen] = useState(false);
+  const [createChannelOpen, setCreateChannelOpen] = useState(false);
+  const [newChannelName, setNewChannelName] = useState("");
+  const [isCreating, setIsCreating] = useState(false);
 
   const serverRef = useMemoFirebase(() => (serverId && user ? doc(db, "servers", serverId) : null), [db, serverId, user?.uid]);
   const { data: server } = useDoc(serverRef);
@@ -49,6 +56,30 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
     setTimeout(() => auth.signOut(), 100);
   };
 
+  const handleCreateChannel = () => {
+    if (!newChannelName.trim() || !serverId || !db) return;
+    setIsCreating(true);
+
+    try {
+      const channelRef = doc(collection(db, "channels"));
+      setDocumentNonBlocking(channelRef, {
+        id: channelRef.id,
+        serverId: serverId,
+        name: newChannelName.trim().toLowerCase().replace(/\s+/g, '-'),
+        type: "text",
+        createdAt: serverTimestamp()
+      }, { merge: true });
+
+      toast({ title: "Channel Created", description: `#${newChannelName} is ready!` });
+      setNewChannelName("");
+      setCreateChannelOpen(false);
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Error", description: e.message });
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
   return (
     <aside className="w-60 bg-white border-r border-border flex flex-col h-full overflow-hidden shrink-0">
       {serverId ? (
@@ -69,13 +100,13 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
               )}
               <DropdownMenuItem onClick={() => {
                 navigator.clipboard.writeText(serverId);
-                alert("Server ID copied! Share this with friends to let them join.");
+                toast({ title: "Copied!", description: "Server ID copied to clipboard." });
               }}>
                 <Users className="h-4 w-4 mr-2" />
                 Copy Server ID
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-destructive">Leave Server</DropdownMenuItem>
+              <DropdownMenuItem className="text-destructive font-medium">Leave Server</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
@@ -90,7 +121,11 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
                 <div>
                   <div className="px-2 mb-1 flex items-center justify-between group">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">Text Channels</span>
-                    {isOwner && <Plus className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 cursor-pointer" />}
+                    {isOwner && (
+                      <button onClick={() => setCreateChannelOpen(true)}>
+                        <Plus className="h-3 w-3 text-muted-foreground opacity-100 sm:opacity-0 group-hover:opacity-100 cursor-pointer hover:text-primary transition-all" />
+                      </button>
+                    )}
                   </div>
                   <div className="space-y-0.5">
                     {channels?.filter(c => c.type === 'text').map(c => (
@@ -146,6 +181,39 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
           </div>
         </div>
       </div>
+
+      <Dialog open={createChannelOpen} onOpenChange={setCreateChannelOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Create Channel</DialogTitle>
+            <DialogDescription>Add a new place for conversation.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="cname">Channel Name</Label>
+              <div className="relative">
+                <Hash className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input 
+                  id="cname" 
+                  className="pl-9" 
+                  placeholder="new-channel" 
+                  value={newChannelName} 
+                  onChange={(e) => setNewChannelName(e.target.value)} 
+                  disabled={isCreating}
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setCreateChannelOpen(false)}>Cancel</Button>
+            <Button onClick={handleCreateChannel} disabled={isCreating || !newChannelName.trim()}>
+              {isCreating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Check className="h-4 w-4 mr-2" />}
+              Create
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <ProfileDialog open={profileOpen} onOpenChange={setProfileOpen} />
       {serverId && <ServerSettingsDialog open={serverSettingsOpen} onOpenChange={setServerSettingsOpen} serverId={serverId} />}
     </aside>

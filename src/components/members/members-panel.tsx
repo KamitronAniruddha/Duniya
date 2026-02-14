@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -31,8 +30,7 @@ export function MembersPanel({ serverId }: MembersPanelProps) {
   const serverRef = useMemoFirebase(() => doc(db, "servers", serverId), [db, serverId]);
   const { data: server } = useDoc(serverRef);
 
-  // Query users that belong to this server
-  // We query by the serverIds array which is updated on the user document
+  // Robust query: find all users whose serverIds array contains this serverId
   const membersQuery = useMemoFirebase(() => {
     if (!db || !serverId) return null;
     return query(collection(db, "users"), where("serverIds", "array-contains", serverId));
@@ -66,16 +64,12 @@ export function MembersPanel({ serverId }: MembersPanelProps) {
       const invitedUserDoc = querySnapshot.docs[0];
       const invitedUserId = invitedUserDoc.id;
 
-      if (server.members?.includes(invitedUserId)) {
-        throw new Error("User is already a member of this server.");
-      }
-
-      // 2. Update Server document
+      // 2. Update Server document (redundancy)
       updateDocumentNonBlocking(serverRef, {
         members: arrayUnion(invitedUserId)
       });
 
-      // 3. Update the Invited User document
+      // 3. Update the Invited User document (primary for query)
       const invitedUserRef = doc(db, "users", invitedUserId);
       updateDocumentNonBlocking(invitedUserRef, {
         serverIds: arrayUnion(serverId)
@@ -135,7 +129,6 @@ export function MembersPanel({ serverId }: MembersPanelProps) {
             </div>
           ) : (
             <>
-              {/* Online Section */}
               {onlineMembers.length > 0 && (
                 <div className="space-y-2">
                   <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-2">
@@ -149,7 +142,6 @@ export function MembersPanel({ serverId }: MembersPanelProps) {
                 </div>
               )}
 
-              {/* Offline Section */}
               {offlineMembers.length > 0 && (
                 <div className="space-y-2">
                   <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-2">
@@ -172,7 +164,7 @@ export function MembersPanel({ serverId }: MembersPanelProps) {
           <DialogHeader>
             <DialogTitle>Invite to Server</DialogTitle>
             <DialogDescription>
-              Enter the username of the person you want to add to this server.
+              Enter the username of the person you want to add.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleInvite} className="space-y-4 py-4">

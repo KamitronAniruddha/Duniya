@@ -12,9 +12,10 @@ service cloud.firestore {
     match /users/{userId} {
       // Allow read for everyone to check username uniqueness and show members
       allow read: if true;
-      // Allow owner to update everything
-      // Allow others to only update 'serverIds' (for inviting to servers)
+      // Allow owner to create their own doc
       allow create: if isOwner(userId);
+      // Allow updates to specific fields (serverIds, status) by any signed-in user for invites/presence
+      // This is crucial for the "Invite" feature to work across user boundaries
       allow update: if isOwner(userId) || (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['serverIds', 'onlineStatus', 'lastSeen']));
     }
 
