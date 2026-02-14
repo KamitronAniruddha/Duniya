@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -204,7 +203,7 @@ export default function ConnectVerseApp() {
       <div className="h-[100dvh] w-full flex items-center justify-center bg-background">
         <div className="text-center space-y-4">
           <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto" />
-          <p className="text-sm font-medium text-muted-foreground">Connecting to Verse...</p>
+          <p className="text-sm font-medium text-muted-foreground">Connecting to Duniya...</p>
         </div>
       </div>
     );
@@ -279,7 +278,7 @@ export default function ConnectVerseApp() {
               </div>
             </SheetContent>
           </Sheet>
-          <span className="font-bold text-sm truncate">ConnectVerse</span>
+          <span className="font-bold text-sm truncate">Duniya</span>
         </div>
         
         <div className="flex-1 min-h-0 flex relative overflow-hidden">

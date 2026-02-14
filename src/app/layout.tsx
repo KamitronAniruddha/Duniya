@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { FirebaseClientProvider } from "@/firebase/client-provider";
 
 export const metadata: Metadata = {
-  title: 'ConnectVerse | Next-Gen Communication',
+  title: 'Duniya | Karo Chutiyapaa ❤️',
   description: 'Realtime chat, voice, and video for the modern era.',
 };
 

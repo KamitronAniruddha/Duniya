@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useRef, useEffect, useState, useMemo } from "react";
@@ -6,7 +5,7 @@ import { useCollection, useFirestore, useUser, useDoc, useMemoFirebase } from "@
 import { collection, query, orderBy, limit, doc, serverTimestamp, getDoc, Timestamp } from "firebase/firestore";
 import { MessageBubble } from "./message-bubble";
 import { MessageInput } from "./message-input";
-import { Hash, Phone, Video, Users, Loader2, MessageCircle, Timer, Settings2 } from "lucide-react";
+import { Hash, Phone, Video, Users, Loader2, MessageCircle, Timer, Settings2, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { cn } from "@/lib/utils";
@@ -153,9 +152,11 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
           <div className="w-20 h-20 bg-primary/10 rounded-3xl mx-auto mb-6 flex items-center justify-center">
             <MessageCircle className="h-10 w-10 text-primary" />
           </div>
-          <h2 className="text-2xl font-bold mb-2">Connect to the Verse</h2>
+          <h2 className="text-2xl font-black mb-2 flex items-center justify-center gap-2">
+            Karo Chutiyapaa <Heart className="h-6 w-6 text-red-500 fill-current" />
+          </h2>
           <p className="text-muted-foreground text-sm">
-            Select a server from the left to start chatting, or create your own community.
+            Select a server from the left to start chatting, or explore Duniya.
           </p>
         </div>
       </div>

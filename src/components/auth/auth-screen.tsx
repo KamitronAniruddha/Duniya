@@ -72,7 +72,7 @@ export function AuthScreen() {
           username: cleanUsername,
           email: cleanEmail,
           photoURL: "",
-          bio: "Welcome to my Verse!",
+          bio: "Welcome to Duniya!",
           createdAt: serverTimestamp(),
           onlineStatus: "online",
           lastSeen: serverTimestamp(),
@@ -102,7 +102,7 @@ export function AuthScreen() {
               <MessageSquare className="h-8 w-8 text-white" />
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold tracking-tight text-foreground">ConnectVerse</CardTitle>
+          <CardTitle className="text-2xl font-bold tracking-tight text-foreground">Duniya</CardTitle>
           <CardDescription>
             {isLogin ? "Welcome back! Enter your credentials" : "Join the modern communication era"}
           </CardDescription>

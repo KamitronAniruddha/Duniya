@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -169,11 +168,11 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive }
             <button onClick={() => onSelectServer(null as any)} className="group relative flex items-center justify-center">
               <div className={cn("absolute left-0 w-1 bg-white rounded-r-full transition-all", (!activeServerId && !isDuniyaActive) ? "h-8" : "h-0 group-hover:h-5")} />
               <div className={cn("w-12 h-12 bg-sidebar-accent flex items-center justify-center rounded-[24px] group-hover:rounded-[16px] transition-all text-white", (!activeServerId && !isDuniyaActive) && "rounded-[16px] bg-primary")}>
-                <span className="font-bold text-lg">CV</span>
+                <span className="font-bold text-lg">D</span>
               </div>
             </button>
           </TooltipTrigger>
-          <TooltipContent side="right">ConnectVerse Home</TooltipContent>
+          <TooltipContent side="right">Duniya Home</TooltipContent>
         </Tooltip>
 
         <div className="w-8 h-[2px] bg-sidebar-accent/50 rounded-full shrink-0" />
