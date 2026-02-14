@@ -1,12 +1,12 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useCollection, useFirestore, useDoc, useMemoFirebase, useUser } from "@/firebase";
-import { collection, query, where, doc, getDocs, arrayUnion, arrayRemove } from "firebase/firestore";
+import { collection, query, where, doc, getDocs, arrayUnion, arrayRemove, limit, orderBy } from "firebase/firestore";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ShieldCheck, User as UserIcon, Loader2, UserPlus, Check, AlertCircle, UserMinus, Shield } from "lucide-react";
+import { ShieldCheck, User as UserIcon, Loader2, UserPlus, Check, AlertCircle, UserMinus, Shield, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { UserProfilePopover } from "@/components/profile/user-profile-popover";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
 
 interface MembersPanelProps {
   serverId: string;
@@ -28,7 +29,10 @@ export function MembersPanel({ serverId }: MembersPanelProps) {
   const { toast } = useToast();
   
   const [isInviteOpen, setIsInviteOpen] = useState(false);
-  const [inviteUsername, setInviteUsername] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [selectedUsers, setSelectedUsers] = useState<any[]>([]);
   const [isInviting, setIsInviting] = useState(false);
 
   const serverRef = useMemoFirebase(() => doc(db, "servers", serverId), [db, serverId]);
@@ -39,7 +43,42 @@ export function MembersPanel({ serverId }: MembersPanelProps) {
     return query(collection(db, "users"), where("serverIds", "array-contains", serverId));
   }, [db, serverId]);
 
-  const { data: members, isLoading } = useCollection(membersQuery);
+  const { data: members, isLoading: isMembersLoading } = useCollection(membersQuery);
+
+  // Search logic
+  useEffect(() => {
+    const searchUsers = async () => {
+      const cleanQuery = searchQuery.trim().toLowerCase();
+      if (cleanQuery.length < 2) {
+        setSearchResults([]);
+        return;
+      }
+
+      setIsSearching(true);
+      try {
+        const q = query(
+          collection(db, "users"),
+          where("username", ">=", cleanQuery),
+          where("username", "<=", cleanQuery + "\uf8ff"),
+          limit(5)
+        );
+        const snapshot = await getDocs(q);
+        const users = snapshot.docs
+          .map(doc => ({ ...doc.data(), id: doc.id }))
+          // Filter out users already in the server
+          .filter(u => !u.serverIds?.includes(serverId));
+        
+        setSearchResults(users);
+      } catch (e) {
+        console.error("Search error:", e);
+      } finally {
+        setIsSearching(false);
+      }
+    };
+
+    const timeoutId = setTimeout(searchUsers, 300);
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery, db, serverId]);
 
   if (!server) return null;
 
@@ -49,44 +88,33 @@ export function MembersPanel({ serverId }: MembersPanelProps) {
   const onlineMembers = members?.filter(m => m.onlineStatus === "online") || [];
   const offlineMembers = members?.filter(m => m.onlineStatus !== "online") || [];
 
-  const handleInvite = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const cleanUsername = inviteUsername.trim().toLowerCase();
-    if (!cleanUsername || !db) return;
+  const handleInvite = async () => {
+    if (selectedUsers.length === 0 || !db) return;
     setIsInviting(true);
 
     try {
-      const q = query(
-        collection(db, "users"), 
-        where("username", "==", cleanUsername)
-      );
-      const querySnapshot = await getDocs(q);
+      const userIdsToAdd = selectedUsers.map(u => u.id);
 
-      if (querySnapshot.empty) {
-        throw new Error("User not found. Check the username and try again.");
-      }
-
-      const invitedUserDoc = querySnapshot.docs[0];
-      const invitedUserId = invitedUserDoc.id;
-
-      if (invitedUserDoc.data().serverIds?.includes(serverId)) {
-        throw new Error("User is already a member of this server.");
-      }
-
+      // 1. Update Server document
       updateDocumentNonBlocking(serverRef, {
-        members: arrayUnion(invitedUserId)
+        members: arrayUnion(...userIdsToAdd)
       });
 
-      const invitedUserRef = doc(db, "users", invitedUserId);
-      updateDocumentNonBlocking(invitedUserRef, {
-        serverIds: arrayUnion(serverId)
+      // 2. Update each user document
+      selectedUsers.forEach(u => {
+        const userRef = doc(db, "users", u.id);
+        updateDocumentNonBlocking(userRef, {
+          serverIds: arrayUnion(serverId)
+        });
       });
 
       toast({ 
-        title: "User Invited", 
-        description: `${inviteUsername} has been added to the server!` 
+        title: "Invites Sent", 
+        description: `Successfully added ${selectedUsers.length} user(s) to the server.` 
       });
-      setInviteUsername("");
+      
+      setSelectedUsers([]);
+      setSearchQuery("");
       setIsInviteOpen(false);
     } catch (error: any) {
       toast({ 
@@ -97,6 +125,17 @@ export function MembersPanel({ serverId }: MembersPanelProps) {
     } finally {
       setIsInviting(false);
     }
+  };
+
+  const toggleUserSelection = (user: any) => {
+    setSelectedUsers(prev => {
+      const isAlreadySelected = prev.find(u => u.id === user.id);
+      if (isAlreadySelected) {
+        return prev.filter(u => u.id !== user.id);
+      } else {
+        return [...prev, user];
+      }
+    });
   };
 
   const handleRemoveMember = (targetUserId: string, targetUsername: string) => {
@@ -167,7 +206,7 @@ export function MembersPanel({ serverId }: MembersPanelProps) {
 
       <ScrollArea className="flex-1 px-3 py-4">
         <div className="space-y-6">
-          {isLoading ? (
+          {isMembersLoading ? (
             <div className="flex flex-col items-center justify-center py-10 opacity-50">
               <Loader2 className="h-5 w-5 animate-spin mb-2" />
               <p className="text-[10px] font-medium uppercase">Loading Members</p>
@@ -228,37 +267,100 @@ export function MembersPanel({ serverId }: MembersPanelProps) {
       <Dialog open={isInviteOpen} onOpenChange={setIsInviteOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Invite to Server</DialogTitle>
+            <DialogTitle>Invite Members</DialogTitle>
             <DialogDescription>
-              Enter the username of the person you want to add.
+              Search for users by username and add them to your server.
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleInvite} className="space-y-4 py-4">
+          
+          <div className="space-y-4 py-4">
+            {/* Selected Users Area */}
+            {selectedUsers.length > 0 && (
+              <div className="flex flex-wrap gap-1 mb-2">
+                {selectedUsers.map(u => (
+                  <Badge key={u.id} variant="secondary" className="pl-1 pr-1 py-1 flex items-center gap-1 bg-primary/10 text-primary border-primary/20">
+                    <Avatar className="h-4 w-4">
+                      <AvatarImage src={u.photoURL} />
+                      <AvatarFallback className="text-[6px]">{u.username?.[0]}</AvatarFallback>
+                    </Avatar>
+                    <span className="text-[10px] font-bold">{u.username}</span>
+                    <button onClick={() => toggleUserSelection(u)} className="hover:bg-primary/20 rounded-full p-0.5 transition-colors">
+                      <X className="h-2 w-2" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            )}
+
             <div className="space-y-2">
-              <Label htmlFor="inviteUsername">Username</Label>
+              <Label htmlFor="search">Search Users</Label>
               <div className="relative">
-                <UserIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input 
-                  id="inviteUsername" 
+                  id="search" 
                   className="pl-9" 
-                  placeholder="johndoe" 
-                  value={inviteUsername} 
-                  onChange={(e) => setInviteUsername(e.target.value)} 
+                  placeholder="Type a username..." 
+                  value={searchQuery} 
+                  onChange={(e) => setSearchQuery(e.target.value)} 
                   disabled={isInviting}
-                  required 
                 />
               </div>
             </div>
-            <DialogFooter>
-              <Button type="button" variant="ghost" onClick={() => setIsInviteOpen(false)} disabled={isInviting}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isInviting || !inviteUsername.trim()}>
-                {isInviting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Check className="h-4 w-4 mr-2" />}
-                Add Member
-              </Button>
-            </DialogFooter>
-          </form>
+
+            <div className="space-y-2 min-h-[120px]">
+              <h4 className="text-[10px] font-bold uppercase text-muted-foreground px-1">Search Results</h4>
+              {isSearching ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground/30" />
+                </div>
+              ) : searchQuery.trim().length < 2 ? (
+                <div className="flex items-center justify-center py-8 opacity-30">
+                  <p className="text-xs">Type at least 2 characters...</p>
+                </div>
+              ) : searchResults.length === 0 ? (
+                <div className="flex items-center justify-center py-8 opacity-30">
+                  <p className="text-xs">No users found.</p>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {searchResults.map((u) => {
+                    const isSelected = selectedUsers.some(sel => sel.id === u.id);
+                    return (
+                      <button
+                        key={u.id}
+                        type="button"
+                        onClick={() => toggleUserSelection(u)}
+                        className={cn(
+                          "w-full flex items-center gap-2 p-2 rounded-lg transition-colors text-left",
+                          isSelected ? "bg-primary/10 border border-primary/20" : "hover:bg-gray-100 border border-transparent"
+                        )}
+                      >
+                        <Avatar className="h-6 w-6">
+                          <AvatarImage src={u.photoURL} />
+                          <AvatarFallback className="text-[8px] bg-primary text-white">{u.username?.[0]?.toUpperCase()}</AvatarFallback>
+                        </Avatar>
+                        <span className="text-xs font-bold flex-1">{u.username}</span>
+                        {isSelected && <Check className="h-3 w-3 text-primary" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={() => {
+              setIsInviteOpen(false);
+              setSelectedUsers([]);
+            }} disabled={isInviting}>
+              Cancel
+            </Button>
+            <Button onClick={handleInvite} disabled={isInviting || selectedUsers.length === 0}>
+              {isInviting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <UserPlus className="h-4 w-4 mr-2" />}
+              Invite {selectedUsers.length > 0 ? `(${selectedUsers.length})` : ""}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </aside>
