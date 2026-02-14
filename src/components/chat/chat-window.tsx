@@ -24,6 +24,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
   const db = useFirestore();
   const { user } = useUser();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const messageRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
   const [replyingTo, setReplyingTo] = useState<any | null>(null);
 
@@ -49,12 +50,12 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
     return rawMessages.filter(msg => !msg.deletedAt);
   }, [rawMessages, user?.uid]);
 
-  const handleSendMessage = async (text: string, audioUrl?: string, videoUrl?: string) => {
+  const handleSendMessage = async (text: string, audioUrl?: string, videoUrl?: string, replySenderName?: string) => {
     if (!db || !channelId || !serverId || !user) return;
     
     const messageRef = doc(collection(db, "communities", serverId, "channels", channelId, "messages"));
     
-    const data = {
+    const data: any = {
       id: messageRef.id,
       channelId,
       senderId: user.uid,
@@ -65,8 +66,25 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
       ...(videoUrl && { videoUrl })
     };
 
+    if (replyingTo && replySenderName) {
+      data.replyTo = {
+        messageId: replyingTo.id,
+        senderName: replySenderName,
+        text: replyingTo.content || (replyingTo.type === 'media' ? 'Media Message' : 'Message')
+      };
+    }
+
     setDocumentNonBlocking(messageRef, data, { merge: true });
     setReplyingTo(null);
+  };
+
+  const handleJumpToMessage = (messageId: string) => {
+    const el = messageRefs.current[messageId];
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('bg-primary/20');
+      setTimeout(() => el.classList.remove('bg-primary/20'), 2000);
+    }
   };
 
   useEffect(() => {
@@ -135,18 +153,20 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
             ) : (
               <div className="flex flex-col justify-end min-h-full">
                 {messages.map((msg) => (
-                  <MessageBubble 
-                    key={msg.id} 
-                    message={{
-                      ...msg,
-                      text: msg.content,
-                      createdAt: msg.sentAt
-                    }}
-                    channelId={channelId!}
-                    serverId={serverId!}
-                    isMe={msg.senderId === user?.uid}
-                    onReply={() => setReplyingTo(msg)}
-                  />
+                  <div key={msg.id} ref={(el) => { messageRefs.current[msg.id] = el; }} className="transition-colors duration-500 rounded-lg">
+                    <MessageBubble 
+                      message={{
+                        ...msg,
+                        text: msg.content,
+                        createdAt: msg.sentAt
+                      }}
+                      channelId={channelId!}
+                      serverId={serverId!}
+                      isMe={msg.senderId === user?.uid}
+                      onReply={() => setReplyingTo(msg)}
+                      onQuoteClick={() => handleJumpToMessage(msg.replyTo?.messageId)}
+                    />
+                  </div>
                 ))}
               </div>
             )}

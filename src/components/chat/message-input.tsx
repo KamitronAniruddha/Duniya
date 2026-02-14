@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -12,7 +13,7 @@ import { doc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 
 interface MessageInputProps {
-  onSendMessage: (content: string, audioUrl?: string, videoUrl?: string) => void;
+  onSendMessage: (content: string, audioUrl?: string, videoUrl?: string, replySenderName?: string) => void;
   inputRef?: React.RefObject<HTMLInputElement>;
   replyingTo?: any | null;
   onCancelReply?: () => void;
@@ -73,7 +74,7 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (text.trim()) {
-      onSendMessage(text);
+      onSendMessage(text, undefined, undefined, replyUser?.username);
       setText("");
     }
   };
@@ -105,7 +106,7 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
         const reader = new FileReader();
         reader.readAsDataURL(blob);
         reader.onloadend = () => {
-          onSendMessage("", reader.result as string);
+          onSendMessage("", reader.result as string, undefined, replyUser?.username);
         };
         stream.getTracks().forEach(track => track.stop());
       };
@@ -145,7 +146,7 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
         const reader = new FileReader();
         reader.readAsDataURL(blob);
         reader.onloadend = () => {
-          onSendMessage("", undefined, reader.result as string);
+          onSendMessage("", undefined, reader.result as string, replyUser?.username);
         };
         stream.getTracks().forEach(track => track.stop());
       };
@@ -194,7 +195,7 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
           </div>
           <div className="flex-1 min-w-0 flex flex-col">
             <span className="text-[10px] font-bold text-primary uppercase tracking-wider">Replying to {replyUser?.username || "..."}</span>
-            <p className="text-xs text-muted-foreground truncate italic">{replyingTo.text || (replyingTo.audioUrl ? "Voice Message" : "Video Message")}</p>
+            <p className="text-xs text-muted-foreground truncate italic">{replyingTo.content || replyingTo.text || (replyingTo.audioUrl ? "Voice Message" : "Video Message")}</p>
           </div>
           <button onClick={onCancelReply} className="h-6 w-6 rounded-full hover:bg-muted flex items-center justify-center">
             <X className="h-3 w-3" />

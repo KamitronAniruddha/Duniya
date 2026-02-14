@@ -1,3 +1,4 @@
+
 "use client";
 
 import { cn } from "@/lib/utils";
@@ -33,7 +34,7 @@ interface MessageBubbleProps {
   serverId: string;
   isMe: boolean;
   onReply?: () => void;
-  onQuoteClick?: (messageId: string) => void;
+  onQuoteClick?: () => void;
 }
 
 export function MessageBubble({ message, channelId, serverId, isMe, onReply, onQuoteClick }: MessageBubbleProps) {
@@ -77,6 +78,7 @@ export function MessageBubble({ message, channelId, serverId, isMe, onReply, onQ
     const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
     const diff = clientX - startX.current;
     
+    // Only drag to the right for reply
     if (diff > 0) {
       const rubberBand = Math.pow(diff, 0.85);
       setDragX(Math.min(rubberBand * 2, 100));
@@ -195,7 +197,7 @@ export function MessageBubble({ message, channelId, serverId, isMe, onReply, onQ
   return (
     <div 
       className={cn(
-        "flex w-full py-0.5 group items-end transition-colors duration-500 rounded-lg relative touch-none select-none", 
+        "flex w-full py-0.5 group items-end relative transition-colors duration-500 rounded-lg touch-none select-none", 
         isMe ? "flex-row-reverse" : "flex-row"
       )}
       onTouchStart={handleTouchStart}
@@ -207,11 +209,11 @@ export function MessageBubble({ message, channelId, serverId, isMe, onReply, onQ
       onMouseLeave={handleTouchEnd}
     >
       <div 
-        className="absolute left-4 top-1/2 -translate-y-1/2 transition-all duration-75 flex items-center justify-center bg-primary/10 rounded-full h-8 w-8"
+        className="absolute left-4 top-1/2 -translate-y-1/2 transition-all duration-75 flex items-center justify-center bg-primary/10 rounded-full h-8 w-8 pointer-events-none"
         style={{ 
-          opacity: dragX / swipeThreshold,
-          transform: `scale(${Math.min(dragX / swipeThreshold, 1.2)})`,
-          left: `${dragX / 2}px`
+          opacity: Math.min(dragX / swipeThreshold, 1),
+          transform: `scale(${Math.min(dragX / swipeThreshold, 1)})`,
+          left: `${Math.min(dragX / 2, 20)}px`
         }}
       >
         <Reply className={cn("h-4 w-4", dragX >= swipeThreshold ? "text-primary" : "text-muted-foreground")} />
@@ -251,7 +253,7 @@ export function MessageBubble({ message, channelId, serverId, isMe, onReply, onQ
         )}>
           {message.replyTo && (
             <button 
-              onClick={() => onQuoteClick?.(message.replyTo!.messageId)}
+              onClick={onQuoteClick}
               className={cn(
                 "w-full text-left mb-2 p-2 rounded-lg border-l-4 text-xs bg-black/5 flex flex-col gap-0.5 transition-opacity hover:opacity-80",
                 isMe ? "border-white/30" : "border-primary/50"
