@@ -14,8 +14,10 @@ service cloud.firestore {
       // 1. If the user is the owner (full access)
       // 2. If another user is inviting them (only serverIds allowed)
       // 3. For presence updates (status, lastSeen)
-      allow update: if (isSignedIn() && request.auth.uid == userId) || 
-        (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['serverIds', 'onlineStatus', 'lastSeen']));
+      allow update: if isSignedIn() && (
+        (request.auth.uid == userId) || 
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['serverIds', 'onlineStatus', 'lastSeen']))
+      );
     }
 
     match /servers/{serverId} {

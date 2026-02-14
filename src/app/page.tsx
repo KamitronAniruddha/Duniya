@@ -9,7 +9,7 @@ import { MembersPanel } from "@/components/members/members-panel";
 import { useUser, useFirestore, useCollection, useMemoFirebase, useAuth } from "@/firebase";
 import { doc, serverTimestamp, collection, query, where } from "firebase/firestore";
 import { Loader2, Menu } from "lucide-react";
-import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 
@@ -43,10 +43,11 @@ export default function ConnectVerseApp() {
     
     const updateStatus = (status: "online" | "idle" | "offline") => {
       if (!auth.currentUser) return;
-      updateDocumentNonBlocking(userRef, {
+      // Use set with merge to handle cases where the user document might not exist yet (new users)
+      setDocumentNonBlocking(userRef, {
         onlineStatus: status,
         lastSeen: serverTimestamp()
-      });
+      }, { merge: true });
     };
 
     updateStatus("online");
