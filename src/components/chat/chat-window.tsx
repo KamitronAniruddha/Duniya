@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useRef, useEffect } from "react";
@@ -22,17 +23,17 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
   const { user } = useUser();
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const channelRef = useMemoFirebase(() => (channelId ? doc(db, "channels", channelId) : null), [db, channelId]);
+  const channelRef = useMemoFirebase(() => (channelId && user ? doc(db, "channels", channelId) : null), [db, channelId, user?.uid]);
   const { data: channel } = useDoc(channelRef);
 
   const messagesQuery = useMemoFirebase(() => {
-    if (!db || !channelId) return null;
+    if (!db || !channelId || !user) return null;
     return query(
       collection(db, "messages", channelId, "chatMessages"),
       orderBy("createdAt", "asc"),
       limit(50)
     );
-  }, [db, channelId]);
+  }, [db, channelId, user?.uid]);
 
   const { data: messages, isLoading: messagesLoading } = useCollection(messagesQuery);
 

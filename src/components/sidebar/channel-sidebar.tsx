@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -25,13 +26,13 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
   const [profileOpen, setProfileOpen] = useState(false);
   const [serverSettingsOpen, setServerSettingsOpen] = useState(false);
 
-  const serverRef = useMemoFirebase(() => (serverId ? doc(db, "servers", serverId) : null), [db, serverId]);
+  const serverRef = useMemoFirebase(() => (serverId && user ? doc(db, "servers", serverId) : null), [db, serverId, user?.uid]);
   const { data: server } = useDoc(serverRef);
 
   const channelsQuery = useMemoFirebase(() => {
-    if (!db || !serverId) return null;
+    if (!db || !serverId || !user) return null;
     return query(collection(db, "channels"), where("serverId", "==", serverId));
-  }, [db, serverId]);
+  }, [db, serverId, user?.uid]);
 
   const { data: channels, isLoading } = useCollection(channelsQuery);
 

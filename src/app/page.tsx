@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -25,11 +26,11 @@ export default function ConnectVerseApp() {
   const [activeChannelId, setActiveChannelId] = useState<string | null>(null);
   const [showMembers, setShowMembers] = useState(false);
 
-  // Fetch channels for the active server
+  // Fetch channels for the active server - only if user is logged in
   const channelsQuery = useMemoFirebase(() => {
-    if (!db || !activeServerId) return null;
+    if (!db || !activeServerId || !user) return null;
     return query(collection(db, "channels"), where("serverId", "==", activeServerId));
-  }, [db, activeServerId]);
+  }, [db, activeServerId, user?.uid]);
 
   const { data: channels } = useCollection(channelsQuery);
 
