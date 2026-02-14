@@ -8,13 +8,16 @@ import { MessageInput } from "./message-input";
 import { Hash, Phone, Video, Users, Loader2, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { cn } from "@/lib/utils";
 
 interface ChatWindowProps {
   channelId: string | null;
   serverId: string | null;
+  showMembers?: boolean;
+  onToggleMembers?: () => void;
 }
 
-export function ChatWindow({ channelId, serverId }: ChatWindowProps) {
+export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }: ChatWindowProps) {
   const db = useFirestore();
   const { user } = useUser();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -50,13 +53,11 @@ export function ChatWindow({ channelId, serverId }: ChatWindowProps) {
 
   useEffect(() => {
     if (scrollRef.current) {
-      // Use requestAnimationFrame to ensure the scroll happens after the browser has painted
       const scrollDown = () => {
         if (scrollRef.current) {
           scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
         }
       };
-      
       const timeoutId = setTimeout(scrollDown, 100);
       return () => clearTimeout(timeoutId);
     }
@@ -86,20 +87,29 @@ export function ChatWindow({ channelId, serverId }: ChatWindowProps) {
           <h2 className="font-bold text-sm truncate">{channel?.name || "..."}</h2>
         </div>
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" className="h-8 w-8"><Phone className="h-4 w-4 text-muted-foreground" /></Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8"><Video className="h-4 w-4 text-muted-foreground" /></Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8 hidden sm:inline-flex">
+            <Phone className="h-4 w-4 text-muted-foreground" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8 hidden sm:inline-flex">
+            <Video className="h-4 w-4 text-muted-foreground" />
+          </Button>
           <div className="hidden sm:block w-px h-4 bg-border mx-1" />
-          <Button variant="ghost" size="icon" className="h-8 w-8 hidden sm:inline-flex"><Users className="h-4 w-4 text-muted-foreground" /></Button>
+          <Button 
+            variant={showMembers ? "secondary" : "ghost"} 
+            size="icon" 
+            className="h-8 w-8"
+            onClick={onToggleMembers}
+          >
+            <Users className={cn("h-4 w-4", showMembers ? "text-primary" : "text-muted-foreground")} />
+          </Button>
         </div>
       </header>
 
-      {/* Message List area: flex-1 ensures it grows, overflow-y-auto ensures it scrolls, min-h-0 is essential for nested flexbox scrolling */}
       <div 
         ref={scrollRef} 
         className="flex-1 overflow-y-auto scroll-smooth custom-scrollbar bg-gray-50/30 min-h-0"
       >
         <div className="p-4 flex flex-col gap-1 min-h-full">
-          {/* Spacer to push content down if there aren't many messages */}
           <div className="flex-1" />
           
           {messagesLoading ? (
@@ -124,7 +134,6 @@ export function ChatWindow({ channelId, serverId }: ChatWindowProps) {
         </div>
       </div>
 
-      {/* Message input area: shrink-0 ensures it stays at the bottom and doesn't get squashed */}
       <div className="shrink-0">
         <MessageInput onSendMessage={handleSendMessage} />
       </div>

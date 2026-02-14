@@ -5,6 +5,7 @@ import { ServerSidebar } from "@/components/sidebar/server-sidebar";
 import { ChannelSidebar } from "@/components/sidebar/channel-sidebar";
 import { ChatWindow } from "@/components/chat/chat-window";
 import { AuthScreen } from "@/components/auth/auth-screen";
+import { MembersPanel } from "@/components/members/members-panel";
 import { useUser, useFirestore, useCollection, useMemoFirebase, useAuth } from "@/firebase";
 import { doc, serverTimestamp, collection, query, where } from "firebase/firestore";
 import { Loader2, Menu } from "lucide-react";
@@ -22,6 +23,7 @@ export default function ConnectVerseApp() {
   const auth = useAuth();
   const [activeServerId, setActiveServerId] = useState<string | null>(null);
   const [activeChannelId, setActiveChannelId] = useState<string | null>(null);
+  const [showMembers, setShowMembers] = useState(false);
 
   // Fetch channels for the active server
   const channelsQuery = useMemoFirebase(() => {
@@ -45,7 +47,6 @@ export default function ConnectVerseApp() {
     const userRef = doc(db, "users", user.uid);
     
     const updateStatus = (status: "online" | "idle" | "offline") => {
-      // Final guard for unmount/logout race conditions to avoid permission errors
       if (!auth.currentUser) return;
       
       setDocumentNonBlocking(userRef, {
@@ -94,7 +95,7 @@ export default function ConnectVerseApp() {
 
   return (
     <div className="flex h-[100dvh] w-full bg-background overflow-hidden selection:bg-primary/20">
-      {/* Desktop Sidebars - Hidden on mobile/tablet breakpoints */}
+      {/* Desktop Sidebars */}
       <div className="hidden md:flex shrink-0 h-full overflow-hidden border-r border-border">
         <ServerSidebar 
           activeServerId={activeServerId} 
@@ -112,7 +113,7 @@ export default function ConnectVerseApp() {
 
       {/* Main Chat Area */}
       <main className="flex-1 flex flex-col min-w-0 h-full relative overflow-hidden bg-white">
-        {/* Mobile Header with Navigation Menu */}
+        {/* Mobile Header */}
         <div className="md:hidden p-2 border-b flex items-center gap-2 bg-white shrink-0">
           <Sheet>
             <SheetTrigger asChild>
@@ -144,12 +145,19 @@ export default function ConnectVerseApp() {
           <span className="font-bold text-sm truncate">ConnectVerse</span>
         </div>
         
-        {/* Chat window container - flex-1 and min-h-0 ensures it respects parent bounds for scrolling */}
-        <div className="flex-1 min-h-0 overflow-hidden relative">
+        <div className="flex-1 min-h-0 overflow-hidden relative flex">
           <ChatWindow 
             channelId={activeChannelId}
             serverId={activeServerId}
+            showMembers={showMembers}
+            onToggleMembers={() => setShowMembers(!showMembers)}
           />
+          
+          {showMembers && activeServerId && (
+            <div className="hidden lg:block">
+              <MembersPanel serverId={activeServerId} />
+            </div>
+          )}
         </div>
       </main>
     </div>
