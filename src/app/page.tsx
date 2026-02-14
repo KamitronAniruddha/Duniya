@@ -34,12 +34,12 @@ export default function ConnectVerseApp() {
   }, [channels, activeChannelId]);
 
   useEffect(() => {
-    if (!user || !db) return;
+    if (!user || !db || !auth.currentUser) return;
 
     const userRef = doc(db, "users", user.uid);
     
     const updateStatus = (status: "online" | "idle" | "offline") => {
-      // CRITICAL: Only attempt to update if still authenticated
+      // Final guard for unmount/logout race conditions
       if (!auth.currentUser) return;
       
       setDocumentNonBlocking(userRef, {
@@ -104,7 +104,7 @@ export default function ConnectVerseApp() {
         />
       </div>
 
-      {/* Main Chat Area */}
+      {/* Main Chat Area - min-h-0 is the secret to making internal scrolling work correctly */}
       <main className="flex-1 flex flex-col min-w-0 h-full relative overflow-hidden bg-white">
         {/* Mobile Header with Menu */}
         <div className="md:hidden p-2 border-b flex items-center gap-2 bg-white shrink-0">
@@ -138,7 +138,7 @@ export default function ConnectVerseApp() {
           <span className="font-bold text-sm truncate">ConnectVerse</span>
         </div>
         
-        {/* flex-1 min-h-0 is the secret to making internal scrolling work correctly in flexbox */}
+        {/* Container for the chat window - flex-1 and min-h-0 ensures it stays within parent bounds */}
         <div className="flex-1 min-h-0 overflow-hidden relative">
           <ChatWindow 
             channelId={activeChannelId}

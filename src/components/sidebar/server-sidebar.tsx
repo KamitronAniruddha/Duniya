@@ -85,6 +85,7 @@ export function ServerSidebar({ activeServerId, onSelectServer }: ServerSidebarP
 
     try {
       const serverRef = doc(db, "servers", trimmedId);
+      // Fetch explicitly to verify existence before joining
       const serverSnap = await getDoc(serverRef);
 
       if (!serverSnap.exists()) {
@@ -99,10 +100,12 @@ export function ServerSidebar({ activeServerId, onSelectServer }: ServerSidebarP
         return;
       }
 
+      // 1. Update Server Membership
       setDocumentNonBlocking(serverRef, {
         members: arrayUnion(user.uid)
       }, { merge: true });
 
+      // 2. Update User Server List
       const userRef = doc(db, "users", user.uid);
       setDocumentNonBlocking(userRef, {
         serverIds: arrayUnion(trimmedId)

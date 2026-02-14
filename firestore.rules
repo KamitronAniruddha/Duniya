@@ -10,18 +10,19 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      // Allow read for auth checks and profile lookups (needed for join/search)
-      allow read: if isSignedIn();
+      // Allow read for everyone to check username uniqueness during signup
+      allow read: if true;
       allow create, update: if isOwner(userId);
     }
 
     match /servers/{serverId} {
-      // Allow read for any signed in user so they can find/verify servers to join
+      // Allow read for any signed in user to discover/verify servers
       allow read: if isSignedIn();
       allow create: if isSignedIn();
+      // Allow update if owner OR if only the members list is being updated (for joining)
       allow update: if isSignedIn() && (
         request.auth.uid == resource.data.ownerId || 
-        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members']))
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members'])
       );
       allow delete: if isSignedIn() && request.auth.uid == resource.data.ownerId;
     }
