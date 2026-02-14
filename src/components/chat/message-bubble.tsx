@@ -58,25 +58,31 @@ export function MessageBubble({ message, channelId, isMe, onReply, onQuoteClick 
   const startX = useRef(0);
   const swipeThreshold = 60;
 
-  const timestamp = message.createdAt?.toDate
-    ? message.createdAt.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    : "";
+  // Hydration safe timestamp
+  const [formattedTime, setFormattedTime] = useState("");
+
+  useEffect(() => {
+    if (message.createdAt?.toDate) {
+      setFormattedTime(message.createdAt.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+    } else if (message.createdAt) {
+      const date = message.createdAt instanceof Date ? message.createdAt : new Date(message.createdAt);
+      setFormattedTime(date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+    }
+  }, [message.createdAt]);
 
   const handleTouchStart = (e: React.TouchEvent | React.MouseEvent) => {
     if (message.isDeleted) return;
-    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
     startX.current = clientX;
     setIsDragging(true);
   };
 
   const handleTouchMove = (e: React.TouchEvent | React.MouseEvent) => {
     if (!isDragging || message.isDeleted) return;
-    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
     const diff = clientX - startX.current;
     
-    // Only allow swiping to the right (standard WhatsApp behavior)
     if (diff > 0) {
-      // Add resistance as it goes further
       const rubberBand = Math.pow(diff, 0.85);
       setDragX(Math.min(rubberBand * 2, 100));
     }
@@ -86,8 +92,7 @@ export function MessageBubble({ message, channelId, isMe, onReply, onQuoteClick 
     if (!isDragging) return;
     if (dragX >= swipeThreshold) {
       onReply?.();
-      // Provide a small vibration feel if supported
-      if ('vibrate' in navigator) navigator.vibrate(10);
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate(10);
     }
     setDragX(0);
     setIsDragging(false);
@@ -216,7 +221,6 @@ export function MessageBubble({ message, channelId, isMe, onReply, onQuoteClick 
       onMouseUp={handleTouchEnd}
       onMouseLeave={handleTouchEnd}
     >
-      {/* Swipe Reveal Icon */}
       <div 
         className="absolute left-4 top-1/2 -translate-y-1/2 transition-all duration-75 flex items-center justify-center bg-primary/10 rounded-full h-8 w-8"
         style={{ 
@@ -263,7 +267,6 @@ export function MessageBubble({ message, channelId, isMe, onReply, onQuoteClick 
             ? "bg-primary text-white rounded-br-none" 
             : "bg-white text-foreground rounded-bl-none border border-border"
         )}>
-          {/* Reply Reference */}
           {message.replyTo && (
             <button 
               onClick={() => onQuoteClick?.(message.replyTo!.messageId)}
@@ -362,7 +365,7 @@ export function MessageBubble({ message, channelId, isMe, onReply, onQuoteClick 
             "text-[9px] mt-1 text-right leading-none opacity-70 font-medium",
             isMe ? "text-white/80" : "text-muted-foreground"
           )}>
-            {timestamp}
+            {formattedTime}
           </div>
         </div>
       </div>
