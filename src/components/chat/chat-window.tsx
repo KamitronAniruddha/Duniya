@@ -84,8 +84,8 @@ export function ChatWindow({ channelId, serverId }: ChatWindowProps) {
         <div className="flex items-center gap-1">
           <Button variant="ghost" size="icon" className="h-8 w-8"><Phone className="h-4 w-4 text-muted-foreground" /></Button>
           <Button variant="ghost" size="icon" className="h-8 w-8"><Video className="h-4 w-4 text-muted-foreground" /></Button>
-          <div className="w-px h-4 bg-border mx-1" />
-          <Button variant="ghost" size="icon" className="h-8 w-8"><Users className="h-4 w-4 text-muted-foreground" /></Button>
+          <div className="hidden sm:block w-px h-4 bg-border mx-1" />
+          <Button variant="ghost" size="icon" className="h-8 w-8 hidden sm:inline-flex"><Users className="h-4 w-4 text-muted-foreground" /></Button>
         </div>
       </header>
 

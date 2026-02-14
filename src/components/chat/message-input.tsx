@@ -1,9 +1,9 @@
-
 "use client";
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, SendHorizontal, Smile } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface MessageInputProps {
   onSendMessage: (content: string) => void;
@@ -23,7 +23,7 @@ export function MessageInput({ onSendMessage }: MessageInputProps) {
   return (
     <div className="p-4 bg-white border-t shrink-0">
       <form onSubmit={handleSubmit} className="flex items-center gap-2 max-w-5xl mx-auto">
-        <Button variant="ghost" size="icon" type="button" className="shrink-0 text-muted-foreground">
+        <Button variant="ghost" size="icon" type="button" className="shrink-0 text-muted-foreground hidden sm:flex">
           <Plus className="h-5 w-5" />
         </Button>
         
@@ -40,7 +40,7 @@ export function MessageInput({ onSendMessage }: MessageInputProps) {
               }
             }}
           />
-          <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary">
+          <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary hidden sm:block">
             <Smile className="h-4 w-4" />
           </button>
         </div>
@@ -60,5 +60,3 @@ export function MessageInput({ onSendMessage }: MessageInputProps) {
     </div>
   );
 }
-
-import { cn } from "@/lib/utils";

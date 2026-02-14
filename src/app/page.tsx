@@ -8,8 +8,10 @@ import { AuthScreen } from "@/components/auth/auth-screen";
 import { AISuggestionPanel } from "@/components/ai/ai-suggestion-panel";
 import { useUser, useFirestore, useCollection, useMemoFirebase, useAuth } from "@/firebase";
 import { doc, serverTimestamp, collection, query, where } from "firebase/firestore";
-import { Loader2 } from "lucide-react";
+import { Loader2, Menu } from "lucide-react";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
 
 export default function ConnectVerseApp() {
   const { user, isUserLoading } = useUser();
@@ -89,27 +91,58 @@ export default function ConnectVerseApp() {
 
   return (
     <div className="flex h-screen w-full bg-background overflow-hidden selection:bg-primary/20">
-      <ServerSidebar 
-        activeServerId={activeServerId} 
-        onSelectServer={(id) => {
-          setActiveServerId(id);
-          setActiveChannelId(null); 
-        }} 
-      />
+      {/* Desktop Sidebars */}
+      <div className="hidden md:flex shrink-0 h-full overflow-hidden border-r border-border">
+        <ServerSidebar 
+          activeServerId={activeServerId} 
+          onSelectServer={(id) => {
+            setActiveServerId(id);
+            setActiveChannelId(null); 
+          }} 
+        />
+        <ChannelSidebar 
+          serverId={activeServerId} 
+          activeChannelId={activeChannelId}
+          onSelectChannel={setActiveChannelId}
+        />
+      </div>
 
-      <ChannelSidebar 
-        serverId={activeServerId} 
-        activeChannelId={activeChannelId}
-        onSelectChannel={setActiveChannelId}
-      />
-
+      {/* Main Chat Area */}
       <main className="flex-1 flex flex-col min-w-0 h-full relative overflow-hidden bg-white">
+        <div className="md:hidden p-2 border-b flex items-center gap-2">
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <Menu className="h-5 w-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="p-0 flex w-[300px] border-none">
+              <div className="flex h-full w-full overflow-hidden">
+                <ServerSidebar 
+                  activeServerId={activeServerId} 
+                  onSelectServer={(id) => {
+                    setActiveServerId(id);
+                    setActiveChannelId(null); 
+                  }} 
+                />
+                <ChannelSidebar 
+                  serverId={activeServerId} 
+                  activeChannelId={activeChannelId}
+                  onSelectChannel={setActiveChannelId}
+                />
+              </div>
+            </SheetContent>
+          </Sheet>
+          <span className="font-bold text-sm truncate">ConnectVerse</span>
+        </div>
+        
         <ChatWindow 
           channelId={activeChannelId}
           serverId={activeServerId}
         />
       </main>
 
+      {/* Desktop AI Panel */}
       <div className="hidden lg:block shrink-0 h-full max-h-full">
         <AISuggestionPanel channelId={activeChannelId} />
       </div>
