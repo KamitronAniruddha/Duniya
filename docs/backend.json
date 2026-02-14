@@ -59,6 +59,8 @@
         "audioUrl": { "type": "string", "description": "Data URI for voice messages." },
         "createdAt": { "type": "string", "format": "date-time" },
         "edited": { "type": "boolean" },
+        "isDeleted": { "type": "boolean", "description": "Whether the message was deleted for everyone." },
+        "deletedBy": { "type": "array", "items": { "type": "string" }, "description": "List of user IDs who deleted the message for themselves." },
         "reactions": { "type": "object" },
         "seenBy": { "type": "array", "items": { "type": "string" } },
         "replyTo": {

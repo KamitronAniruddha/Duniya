@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, useMemo } from "react";
 import { useCollection, useFirestore, useUser, useDoc, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy, limit, doc, serverTimestamp, getDoc } from "firebase/firestore";
 import { MessageBubble } from "./message-bubble";
@@ -38,7 +38,13 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
     );
   }, [db, channelId, user?.uid]);
 
-  const { data: messages, isLoading: messagesLoading } = useCollection(messagesQuery);
+  const { data: rawMessages, isLoading: messagesLoading } = useCollection(messagesQuery);
+
+  // Filter messages that the user has "Deleted for me"
+  const messages = useMemo(() => {
+    if (!rawMessages || !user) return [];
+    return rawMessages.filter(msg => !msg.deletedBy?.includes(user.uid));
+  }, [rawMessages, user?.uid]);
 
   const handleSendMessage = async (text: string, audioUrl?: string) => {
     if (!db || !channelId || !user) return;
@@ -67,6 +73,8 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
       createdAt: serverTimestamp(),
       edited: false,
       seenBy: [user.uid],
+      isDeleted: false,
+      deletedBy: [],
       ...(replyData && { replyTo: replyData })
     }, { merge: true });
 
@@ -158,9 +166,11 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
             messages?.map((msg) => (
               <MessageBubble 
                 key={msg.id} 
-                message={msg} 
+                message={msg}
+                channelId={channelId!}
                 isMe={msg.senderId === user?.uid}
                 onReply={() => {
+                  if (msg.isDeleted) return;
                   setReplyingTo(msg);
                   inputRef.current?.focus();
                 }}
