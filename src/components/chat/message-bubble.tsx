@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useFirestore, useUser } from "@/firebase";
 import { doc, arrayUnion, deleteField } from "firebase/firestore";
 import { UserProfilePopover } from "@/components/profile/user-profile-popover";
-import { Reply, CornerDownRight, Play, Pause, Volume2, MoreHorizontal, Trash2, Ban, Copy, Timer, Eye } from "lucide-react";
+import { Reply, CornerDownRight, Play, Pause, Volume2, MoreHorizontal, Trash2, Ban, Copy, Timer, Eye, Check, CheckCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useRef, useEffect } from "react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -66,7 +66,7 @@ export function MessageBubble({ message, channelId, serverId, sender, isMe, onRe
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [isDisappeared, setIsDisappeared] = useState(false);
 
-  // Optimization: Format timestamp once
+  // Format timestamp once
   useEffect(() => {
     if (message.createdAt) {
       const date = typeof message.createdAt === 'string' ? new Date(message.createdAt) : message.createdAt.toDate?.() || new Date(message.createdAt);
@@ -74,22 +74,28 @@ export function MessageBubble({ message, channelId, serverId, sender, isMe, onRe
     }
   }, [message.createdAt]);
 
-  // Handle viewing disappearing messages
+  // Handle viewing messages (Seen Status)
   useEffect(() => {
-    if (!user || !message.disappearingEnabled || isMe || message.isDeleted || message.fullyDeleted) return;
+    if (!user || isMe || message.isDeleted || message.fullyDeleted) return;
     
     const hasSeen = message.seenBy?.includes(user.uid);
     if (!hasSeen && message.id) {
       const msgRef = doc(db, "communities", serverId, "channels", channelId, "messages", message.id);
-      const now = new Date();
-      const expireAt = new Date(now.getTime() + (message.disappearDuration || 10000)).toISOString();
       
-      updateDocumentNonBlocking(msgRef, {
+      const updateData: any = {
         seenBy: arrayUnion(user.uid),
-        [`viewerExpireAt.${user.uid}`]: expireAt
-      });
+      };
+
+      // Only set expiration if disappearing is enabled
+      if (message.disappearingEnabled) {
+        const now = new Date();
+        const expireAt = new Date(now.getTime() + (message.disappearDuration || 10000)).toISOString();
+        updateData[`viewerExpireAt.${user.uid}`] = expireAt;
+      }
+      
+      updateDocumentNonBlocking(msgRef, updateData);
     }
-  }, [message.id, user?.uid, isMe, message.disappearingEnabled]);
+  }, [message.id, user?.uid, isMe, message.disappearingEnabled, message.seenBy]);
 
   // Real-time Countdown logic
   useEffect(() => {
@@ -210,6 +216,9 @@ export function MessageBubble({ message, channelId, serverId, sender, isMe, onRe
     );
   }
 
+  // Seen Status logic for UI
+  const isSeenByOthers = (message.seenBy?.length || 0) > 0;
+
   return (
     <div 
       className={cn("flex w-full py-0.5 group items-end relative transition-colors duration-500 rounded-lg touch-none select-none", isMe ? "flex-row-reverse" : "flex-row")}
@@ -287,9 +296,17 @@ export function MessageBubble({ message, channelId, serverId, sender, isMe, onRe
                 )}
               </div>
             )}
-            <div className={cn("text-[9px] leading-none opacity-70 font-medium ml-auto flex items-center gap-1", isMe ? "text-white/80" : "text-muted-foreground")}>
-              {message.seenBy && message.seenBy.length > 0 && <Eye className="h-2.5 w-2.5" />}
+            <div className={cn("text-[9px] leading-none opacity-70 font-medium ml-auto flex items-center gap-1.5", isMe ? "text-white/80" : "text-muted-foreground")}>
               {formattedTime}
+              {isMe && (
+                <div className="flex items-center">
+                  {isSeenByOthers ? (
+                    <CheckCheck className="h-3.5 w-3.5 text-blue-400" />
+                  ) : (
+                    <Check className="h-3.5 w-3.5" />
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
