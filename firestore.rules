@@ -59,13 +59,14 @@ service cloud.firestore {
     }
 
     match /communities/{communityId} {
-      // Allow any signed in user to list and get communities for the directory/membership
+      // Allow listing for membership queries
       allow list: if isSignedIn();
       allow get: if isSignedIn();
       
+      // Allow any signed in user to create a community
       allow create: if isSignedIn();
       
-      // Allow joining (array update) or full updates for owners/admins
+      // Allow full updates for owners/admins, or specific array updates for public joins
       allow update: if isSignedIn() && (
         resource.data.ownerId == request.auth.uid || 
         isAdmin() ||
@@ -76,11 +77,13 @@ service cloud.firestore {
 
       match /members/{userId} {
         allow read: if isSignedIn();
+        // Allow write for initial creation and joins
         allow write: if isSignedIn();
       }
 
       match /channels/{channelId} {
         allow read: if isSignedIn();
+        // Allow write for initial creation and channel management
         allow write: if isSignedIn();
 
         match /messages/{messageId} {

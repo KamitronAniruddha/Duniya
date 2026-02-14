@@ -6,7 +6,7 @@ import { collection, query, where, doc, arrayUnion, getDocs, limit, writeBatch }
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Plus, Compass, Hash, Globe, Shield, Heart } from "lucide-react";
+import { Plus, Compass, Hash, Globe, Shield, Heart, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
