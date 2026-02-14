@@ -27,7 +27,6 @@ service cloud.firestore {
     function isCommunityMember(communityId) {
       return isSignedIn() && (
         exists(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid)) ||
-        (get(/databases/$(database)/documents/communities/$(communityId)).data.members.hasAny([request.auth.uid])) ||
         isAdmin()
       );
     }
@@ -35,8 +34,8 @@ service cloud.firestore {
     // --- COLLECTION RULES ---
 
     match /users/{userId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn(); 
+      // Allow public read for profiles and username uniqueness checks
+      allow get, list: if true; 
       allow create: if isOwner(userId);
       allow update: if isOwner(userId) || isAdmin();
       allow delete: if isAdmin();
@@ -75,32 +74,37 @@ service cloud.firestore {
     match /contact_form_submissions/{submissionId} {
       allow get: if isAdmin() || (isSignedIn() && resource.data.submitterId == request.auth.uid);
       allow list: if isAdmin();
-      allow create: if true;
+      allow create: if true; // Anyone can submit a contact form
       allow update, delete: if isAdmin();
     }
 
     match /communities/{communityId} {
       // Allow list if the user is in the members array or it's public
       allow list: if isSignedIn() && (
-        request.auth.uid in resource.data.members || 
+        (resource.data.members != null && request.auth.uid in resource.data.members) || 
         resource.data.isPublic == true || 
         isAdmin()
       );
+      
       allow get: if resource.data.isPublic == true || isCommunityMember(communityId) || isAdmin();
       allow create: if isSignedIn();
-      allow update: if (isSignedIn() && (isOwner(resource.data.ownerId) || isAdmin())) || 
+      
+      allow update: if (isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin())) || 
                     (resource.data.isPublic == true && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members']));
-      allow delete: if (resource != null && isOwner(resource.data.ownerId)) || isAdmin();
+      
+      allow delete: if (resource != null && resource.data.ownerId == request.auth.uid) || isAdmin();
 
       match /members/{userId} {
         allow get, list: if isCommunityMember(communityId) || isAdmin();
-        allow create: if isSignedIn();
+        allow create: if isSignedIn(); // Allow joining
         allow update, delete: if isAdmin() || isOwner(userId) || (get(/databases/$(database)/documents/communities/$(communityId)).data.ownerId == request.auth.uid);
       }
 
       match /channels/{channelId} {
         allow get, list: if isCommunityMember(communityId) || isAdmin();
-        allow create, update, delete: if isAdmin() || (get(/databases/$(database)/documents/communities/$(communityId)).data.ownerId == request.auth.uid);
+        // Allow creation if signed in (handles batch creation with parent)
+        allow create: if isSignedIn(); 
+        allow update, delete: if isAdmin() || (get(/databases/$(database)/documents/communities/$(communityId)).data.ownerId == request.auth.uid);
 
         match /messages/{messageId} {
           allow get, list: if isCommunityMember(communityId) || isAdmin();
