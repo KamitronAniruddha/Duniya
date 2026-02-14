@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, SendHorizontal, Smile, History, Ghost, X, CornerDownRight, Mic, Square, Trash2, Video, Camera } from "lucide-react";
+import { Plus, SendHorizontal, Smile, History, Ghost, X, CornerDownRight, Mic, Square, Trash2, Video, Timer, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -11,33 +11,36 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDoc, useFirestore, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface MessageInputProps {
-  onSendMessage: (content: string, audioUrl?: string, videoUrl?: string, replySenderName?: string) => void;
+  onSendMessage: (content: string, audioUrl?: string, videoUrl?: string, replySenderName?: string, disappearing?: DisappearingConfig) => void;
   inputRef?: React.RefObject<HTMLInputElement>;
   replyingTo?: any | null;
   onCancelReply?: () => void;
 }
 
+interface DisappearingConfig {
+  enabled: boolean;
+  duration: number;
+}
+
+const DISAPPEAR_OPTIONS = [
+  { label: "10s", value: 10000 },
+  { label: "30s", value: 30000 },
+  { label: "1m", value: 60000 },
+  { label: "5m", value: 300000 },
+  { label: "1h", value: 3600000 },
+  { label: "24h", value: 86400000 },
+  { label: "Custom", value: -1 },
+];
+
 const EMOJI_CATEGORIES = [
-  {
-    id: "recent",
-    icon: <History className="h-4 w-4" />,
-    label: "Recent",
-    emojis: []
-  },
-  {
-    id: "smileys",
-    icon: <Smile className="h-4 w-4" />,
-    label: "Smileys",
-    emojis: ["😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣", "😊", "😇", "🙂", "🙃", "😉", "😌", "😍", "🥰", "😘", "😗", "😙", "😚", "😋", "😛", "😝", "😜", "🤪", "🤨", "🧐", "🤓", "😎", "🤩", "🥳", "😏", "😒", "😞", "😔", "😟", "😕", "🙁", "☹️", "😮", "😯", "😲", "😳", "🥺", "😦", "😧", "😨", "😰", "😥", "😢", "😭", "😱", "😖", "😣", "😞", "😓", "😩", "😫", "🥱", "😤", "😡", "😠", "🤬", "😈", "👿", "💀", "☠️", "💩", "🤡", "👹", "👺", "👻", "👽", "👾", "🤖"]
-  },
-  {
-    id: "animals",
-    icon: <Ghost className="h-4 w-4" />,
-    label: "Animals",
-    emojis: ["🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯", "🦁", "🐮", "🐷", "🐽", "🐸", "🐵", "🙈", "🙉", "🙊", "🐒", "🐔", "🐧", "🐦", "🐤", "🐣", "🐥", "🦆", "🦅", "🦉", "🦇", "🐺", "🐗", "🐴", "🦄", "🐝", "🐛", "🦋", "🐌", "🐞", "🐜", "🦟", "🦗", "🕷", "🕸", "蠍", "🐢", "🐍", "🦎", "REX", "🦕", "🐙", "🦑", "🦐", "🦞", "🦀", "🐡", "🐠", "🐟", "🐬", "🐳", "🐋", "🦈", "🐊", "🐅", " leopards", "🦓", "🦍", "🦧", "🐘", "🦛", "🦏", "🐪", "🐫", "🦒", "🦘", "🐃", "🐂", "🐄", "🐎", "🐖", "🐏", "🐑", "🐐", "🦌", "🐕", "🐩", "🦮", "🐕‍🦺", "🐈", "🐓", "🦃", "🦚", "🦜", "🦢", "🦩", "🕊", "🐇", "🦝", "🦨", "🦡", "🦦", "🦥", "🐁", "🐀", "🐿", "🦔"]
-  }
+  { id: "recent", icon: <History className="h-4 w-4" />, label: "Recent", emojis: [] },
+  { id: "smileys", icon: <Smile className="h-4 w-4" />, label: "Smileys", emojis: ["😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣", "😊", "😇", "🙂", "🙃", "😉", "😌", "😍", "🥰", "😘", "😗", "😙", "😚", "😋", "😛", "😝", "😜", "🤪", "🤨", "🧐", "🤓", "😎", "🤩", "🥳", "😏", "😒", "😞", "😔", "😟", "😕", "🙁", "☹️", "😮", "😯", "😲", "😳", "🥺", "😦", "😧", "😨", "😰", "😥", "😢", "😭", "😱", "😖", "😣", "😞", "😓", "😩", "😫", "🥱", "😤", "😡", "😠", "🤬", "😈", "👿", "💀", "☠️", "💩", "🤡", "👹", "👺", "👻", "👽", "👾", "🤖"] },
+  { id: "animals", icon: <Ghost className="h-4 w-4" />, label: "Animals", emojis: ["🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯", "🦁", "🐮", "🐷", "🐽", "🐸", "🐵", "🙈", "🙉", "🙊", "🐒", "🐔", "🐧", "🐦", "🐤", "🐣", "🐥", "🦆", "🦅", "🦉", "🦇", "🐺", "🐗", "🐴", "🦄", "🐝", "🐛", "🦋", "🐌", "🐞", "🐜", "🦟", "🦗", "🕷", "🕸", "🐢", "🐍", "🦎", "🐙", "🦑", "🦐", "🦞", "🦀", "🐡", "🐠", "🐟", "🐬", "🐳", "🐋", "🦈", "🐊", "🐅", "🦓", "🦍", "🦧", "🐘", "🦛", "🦏", "🐪", "🐫", "🦒", "🦘", "🐃", "🐂", "🐄", "🐎", "🐖", "🐏", "🐑", "🐐", "🦌", "🐕", "🐩", "🦮", "🐈", "🐓", "🦃", "🦚", "🦜", "🦢", "🦩", "🕊", "🐇", "🦝", "🦨", "🦡", "🦦", "🦥", "🐁", "🐀", "🐿", "🦔"] }
 ];
 
 export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelReply }: MessageInputProps) {
@@ -46,6 +49,11 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
   const [text, setText] = useState("");
   const [recentEmojis, setRecentEmojis] = useState<string[]>([]);
   
+  // Disappearing Message State
+  const [disappearingEnabled, setDisappearingEnabled] = useState(false);
+  const [disappearDuration, setDisappearDuration] = useState(10000);
+  const [customSeconds, setCustomSeconds] = useState("");
+
   // Recording State
   const [isRecording, setIsRecording] = useState(false);
   const [isRecordingVideo, setIsRecordingVideo] = useState(false);
@@ -74,7 +82,11 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (text.trim()) {
-      onSendMessage(text, undefined, undefined, replyUser?.username);
+      const duration = disappearDuration === -1 ? (parseInt(customSeconds) || 10) * 1000 : disappearDuration;
+      onSendMessage(text, undefined, undefined, replyUser?.username, {
+        enabled: disappearingEnabled,
+        duration: duration
+      });
       setText("");
     }
   };
@@ -86,31 +98,28 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
     localStorage.setItem("recent-emojis", JSON.stringify(updated));
   };
 
-  // Voice Recording Logic
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } 
       });
-
       const recorder = new MediaRecorder(stream, { audioBitsPerSecond: 128000 });
       mediaRecorderRef.current = recorder;
       chunksRef.current = [];
-
-      recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) chunksRef.current.push(e.data);
-      };
-
+      recorder.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
       recorder.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
         const reader = new FileReader();
         reader.readAsDataURL(blob);
         reader.onloadend = () => {
-          onSendMessage("", reader.result as string, undefined, replyUser?.username);
+          const duration = disappearDuration === -1 ? (parseInt(customSeconds) || 10) * 1000 : disappearDuration;
+          onSendMessage("", reader.result as string, undefined, replyUser?.username, {
+            enabled: disappearingEnabled,
+            duration: duration
+          });
         };
         stream.getTracks().forEach(track => track.stop());
       };
-
       recorder.start();
       setIsRecording(true);
       setRecordingTime(0);
@@ -120,7 +129,6 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
     }
   };
 
-  // Video Recording Logic
   const startVideoRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ 
@@ -128,35 +136,30 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
         audio: true 
       });
       streamRef.current = stream;
-      
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
-
+      if (videoRef.current) videoRef.current.srcObject = stream;
       const recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp8,opus' });
       mediaRecorderRef.current = recorder;
       chunksRef.current = [];
-
-      recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) chunksRef.current.push(e.data);
-      };
-
+      recorder.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
       recorder.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: 'video/webm' });
         const reader = new FileReader();
         reader.readAsDataURL(blob);
         reader.onloadend = () => {
-          onSendMessage("", undefined, reader.result as string, replyUser?.username);
+          const duration = disappearDuration === -1 ? (parseInt(customSeconds) || 10) * 1000 : disappearDuration;
+          onSendMessage("", undefined, reader.result as string, replyUser?.username, {
+            enabled: disappearingEnabled,
+            duration: duration
+          });
         };
         stream.getTracks().forEach(track => track.stop());
       };
-
       recorder.start();
       setIsRecordingVideo(true);
       setRecordingTime(0);
       timerRef.current = setInterval(() => setRecordingTime(prev => prev + 1), 1000);
     } catch (err) {
-      toast({ variant: "destructive", title: "Camera Error", description: "Could not access camera for video message." });
+      toast({ variant: "destructive", title: "Camera Error", description: "Could not access camera." });
     }
   };
 
@@ -195,7 +198,7 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
           </div>
           <div className="flex-1 min-w-0 flex flex-col">
             <span className="text-[10px] font-bold text-primary uppercase tracking-wider">Replying to {replyUser?.username || "..."}</span>
-            <p className="text-xs text-muted-foreground truncate italic">{replyingTo.content || replyingTo.text || (replyingTo.audioUrl ? "Voice Message" : "Video Message")}</p>
+            <p className="text-xs text-muted-foreground truncate italic">{replyingTo.content || replyingTo.text || "Media message"}</p>
           </div>
           <button onClick={onCancelReply} className="h-6 w-6 rounded-full hover:bg-muted flex items-center justify-center">
             <X className="h-3 w-3" />
@@ -208,14 +211,7 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
           <div className="flex items-center gap-4 max-w-5xl mx-auto bg-muted/20 p-2 rounded-xl animate-in fade-in zoom-in-95">
             {isRecordingVideo && (
               <div className="h-24 w-24 rounded-full overflow-hidden border-4 border-primary bg-black shrink-0 relative shadow-lg">
-                <video 
-                  ref={videoRef} 
-                  autoPlay 
-                  muted 
-                  playsInline 
-                  className="h-full w-full object-cover scale-x-[-1]" 
-                />
-                <div className="absolute inset-0 border-[6px] border-white/10 pointer-events-none rounded-full" />
+                <video ref={videoRef} autoPlay muted playsInline className="h-full w-full object-cover scale-x-[-1]" />
                 <div className="absolute top-2 right-2 h-3 w-3 rounded-full bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
               </div>
             )}
@@ -225,102 +221,140 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
                   <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
                   <span className="text-xs font-mono font-bold">{formatTime(recordingTime)}</span>
                 </div>
-                <span className="text-sm font-semibold text-primary">
-                  {isRecordingVideo ? "Video Message" : "Audio Message"}
-                </span>
-              </div>
-              <div className="text-xs text-muted-foreground font-medium italic">
-                {isRecordingVideo ? "Recording your circle Verse..." : "Recording clear audio..."}
+                <span className="text-sm font-semibold text-primary">{isRecordingVideo ? "Video Message" : "Audio Message"}</span>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-10 w-10 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full" 
-                onClick={cancelRecording}
-              >
-                <Trash2 className="h-5 w-5" />
-              </Button>
-              <Button 
-                size="icon" 
-                className="h-12 w-12 rounded-full bg-red-500 hover:bg-red-600 shadow-lg text-white transition-transform hover:scale-105" 
-                onClick={stopRecording}
-              >
-                <Square className="h-5 w-5 fill-current" />
-              </Button>
+              <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full" onClick={cancelRecording}><Trash2 className="h-5 w-5" /></Button>
+              <Button size="icon" className="h-12 w-12 rounded-full bg-red-500 hover:bg-red-600 shadow-lg text-white" onClick={stopRecording}><Square className="h-5 w-5 fill-current" /></Button>
             </div>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="flex items-center gap-2 max-w-5xl mx-auto">
-            <Button variant="ghost" size="icon" type="button" className="shrink-0 text-muted-foreground hidden sm:flex">
-              <Plus className="h-5 w-5" />
-            </Button>
-            
-            <div className="flex-1 relative">
-              <input 
-                ref={inputRef}
-                placeholder={replyingTo ? "Write a reply..." : "Write a message..."}
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                className="w-full bg-muted/40 border-none rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary/20 transition-all text-foreground"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSubmit(e);
-                  }
-                }}
-              />
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button type="button" className="text-muted-foreground hover:text-primary transition-colors p-1">
-                      <Smile className="h-4 w-4" />
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent side="top" align="end" className="w-80 p-0 overflow-hidden bg-popover">
-                    <Tabs defaultValue="smileys" className="w-full">
-                      <TabsList className="w-full justify-start rounded-none border-b bg-muted/50 p-0 h-10">
-                        {EMOJI_CATEGORIES.map((cat) => (
-                          <TabsTrigger key={cat.id} value={cat.id} className="flex-1 rounded-none data-[state=active]:bg-background">
-                            {cat.icon}
-                          </TabsTrigger>
-                        ))}
-                      </TabsList>
-                      {EMOJI_CATEGORIES.map((cat) => (
-                        <TabsContent key={cat.id} value={cat.id} className="m-0">
-                          <ScrollArea className="h-64 p-2">
-                            <div className="grid grid-cols-8 gap-1">
-                              {(cat.id === 'recent' ? recentEmojis : cat.emojis).map((emoji, idx) => (
-                                <button key={idx} type="button" onClick={() => addEmoji(emoji)} className="text-xl hover:bg-muted rounded aspect-square flex items-center justify-center">
-                                  {emoji}
-                                </button>
-                              ))}
-                            </div>
-                          </ScrollArea>
-                        </TabsContent>
+          <form onSubmit={handleSubmit} className="flex flex-col gap-2 max-w-5xl mx-auto">
+            {disappearingEnabled && (
+              <div className="flex items-center gap-3 px-3 py-2 bg-primary/5 border border-primary/10 rounded-lg animate-in slide-in-from-top-2 duration-200">
+                <Timer className="h-4 w-4 text-primary animate-pulse" />
+                <div className="flex-1 flex items-center gap-2">
+                  <span className="text-[10px] font-black uppercase text-primary tracking-widest">Disappearing Settings</span>
+                  <Select 
+                    value={disappearDuration.toString()} 
+                    onValueChange={(val) => setDisappearDuration(parseInt(val))}
+                  >
+                    <SelectTrigger className="h-7 text-[10px] w-24 bg-background border-primary/20">
+                      <SelectValue placeholder="Duration" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DISAPPEAR_OPTIONS.map(opt => (
+                        <SelectItem key={opt.value} value={opt.value.toString()} className="text-[10px] font-bold">
+                          {opt.label}
+                        </SelectItem>
                       ))}
-                    </Tabs>
-                  </PopoverContent>
-                </Popover>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-1.5">
-              {text.trim() ? (
-                <Button type="submit" size="icon" className="rounded-xl h-10 w-10 shrink-0 bg-primary text-primary-foreground shadow-md hover:bg-primary/90">
-                  <SendHorizontal className="h-4 w-4" />
+                    </SelectContent>
+                  </Select>
+                  {disappearDuration === -1 && (
+                    <Input 
+                      placeholder="Secs" 
+                      className="h-7 w-16 text-[10px] p-1" 
+                      value={customSeconds}
+                      onChange={(e) => setCustomSeconds(e.target.value)}
+                    />
+                  )}
+                </div>
+                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setDisappearingEnabled(false)}>
+                  <X className="h-3 w-3" />
                 </Button>
-              ) : (
-                <>
-                  <Button type="button" variant="ghost" size="icon" onClick={startVideoRecording} className="rounded-xl h-10 w-10 shrink-0 text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors">
-                    <Video className="h-5 w-5" />
+              </div>
+            )}
+
+            <div className="flex items-center gap-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    type="button" 
+                    className={cn("shrink-0 transition-colors rounded-xl", disappearingEnabled ? "text-primary bg-primary/10" : "text-muted-foreground")}
+                  >
+                    <Clock className="h-5 w-5" />
                   </Button>
-                  <Button type="button" size="icon" onClick={startRecording} className="rounded-xl h-10 w-10 shrink-0 bg-muted text-muted-foreground hover:bg-primary hover:text-primary-foreground transition-all shadow-sm">
-                    <Mic className="h-5 w-5" />
+                </PopoverTrigger>
+                <PopoverContent side="top" align="start" className="w-56 p-3">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs font-bold">Disappearing Message</Label>
+                      <Button 
+                        size="sm" 
+                        variant={disappearingEnabled ? "default" : "outline"} 
+                        className="h-6 text-[10px]"
+                        onClick={() => setDisappearingEnabled(!disappearingEnabled)}
+                      >
+                        {disappearingEnabled ? "Enabled" : "Disabled"}
+                      </Button>
+                    </div>
+                    {disappearingEnabled && (
+                      <p className="text-[10px] text-muted-foreground leading-snug">
+                        Messages vanish after they are viewed by participants.
+                      </p>
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
+
+              <div className="flex-1 relative">
+                <input 
+                  ref={inputRef}
+                  placeholder={replyingTo ? "Write a reply..." : "Write a message..."}
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  className="w-full bg-muted/40 border-none rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary/20 transition-all text-foreground"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSubmit(e);
+                    }
+                  }}
+                />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button type="button" className="text-muted-foreground hover:text-primary transition-colors p-1"><Smile className="h-4 w-4" /></button>
+                    </PopoverTrigger>
+                    <PopoverContent side="top" align="end" className="w-80 p-0 overflow-hidden bg-popover">
+                      <Tabs defaultValue="smileys" className="w-full">
+                        <TabsList className="w-full justify-start rounded-none border-b bg-muted/50 p-0 h-10">
+                          {EMOJI_CATEGORIES.map((cat) => (
+                            <TabsTrigger key={cat.id} value={cat.id} className="flex-1 rounded-none data-[state=active]:bg-background">{cat.icon}</TabsTrigger>
+                          ))}
+                        </TabsList>
+                        {EMOJI_CATEGORIES.map((cat) => (
+                          <TabsContent key={cat.id} value={cat.id} className="m-0">
+                            <ScrollArea className="h-64 p-2">
+                              <div className="grid grid-cols-8 gap-1">
+                                {(cat.id === 'recent' ? recentEmojis : cat.emojis).map((emoji, idx) => (
+                                  <button key={idx} type="button" onClick={() => addEmoji(emoji)} className="text-xl hover:bg-muted rounded aspect-square flex items-center justify-center">{emoji}</button>
+                                ))}
+                              </div>
+                            </ScrollArea>
+                          </TabsContent>
+                        ))}
+                      </Tabs>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                {text.trim() ? (
+                  <Button type="submit" size="icon" className="rounded-xl h-10 w-10 shrink-0 bg-primary text-primary-foreground shadow-md hover:bg-primary/90">
+                    <SendHorizontal className="h-4 w-4" />
                   </Button>
-                </>
-              )}
+                ) : (
+                  <>
+                    <Button type="button" variant="ghost" size="icon" onClick={startVideoRecording} className="rounded-xl h-10 w-10 shrink-0 text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors"><Video className="h-5 w-5" /></Button>
+                    <Button type="button" size="icon" onClick={startRecording} className="rounded-xl h-10 w-10 shrink-0 bg-muted text-muted-foreground hover:bg-primary hover:text-primary-foreground transition-all shadow-sm"><Mic className="h-5 w-5" /></Button>
+                  </>
+                )}
+              </div>
             </div>
           </form>
         )}

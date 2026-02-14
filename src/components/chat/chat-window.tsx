@@ -47,13 +47,15 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
 
   const messages = useMemo(() => {
     if (!rawMessages || !user) return [];
-    return rawMessages.filter(msg => !msg.deletedAt);
+    // Filter out messages that are fully deleted or specifically deleted for this user
+    return rawMessages.filter(msg => !msg.fullyDeleted && !msg.deletedFor?.includes(user.uid));
   }, [rawMessages, user?.uid]);
 
-  const handleSendMessage = async (text: string, audioUrl?: string, videoUrl?: string, replySenderName?: string) => {
+  const handleSendMessage = async (text: string, audioUrl?: string, videoUrl?: string, replySenderName?: string, disappearing?: { enabled: boolean; duration: number }) => {
     if (!db || !channelId || !serverId || !user) return;
     
     const messageRef = doc(collection(db, "communities", serverId, "channels", channelId, "messages"));
+    const sentAt = new Date();
     
     const data: any = {
       id: messageRef.id,
@@ -61,10 +63,22 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
       senderId: user.uid,
       content: text,
       type: videoUrl ? "media" : (audioUrl ? "media" : "text"),
-      sentAt: new Date().toISOString(),
+      sentAt: sentAt.toISOString(),
       ...(audioUrl && { audioUrl }),
-      ...(videoUrl && { videoUrl })
+      ...(videoUrl && { videoUrl }),
+      // Disappearing Message logic
+      disappearingEnabled: disappearing?.enabled || false,
+      disappearDuration: disappearing?.duration || 0,
+      fullyDeleted: false,
+      seenBy: [],
+      deletedFor: [],
+      viewerExpireAt: {}
     };
+
+    if (disappearing?.enabled) {
+      const expireDate = new Date(sentAt.getTime() + disappearing.duration);
+      data.senderExpireAt = expireDate.toISOString();
+    }
 
     if (replyingTo && replySenderName) {
       data.replyTo = {

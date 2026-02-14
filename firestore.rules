@@ -24,19 +24,11 @@ service cloud.firestore {
     // --- COLLECTION RULES ---
 
     match /users/{userId} {
-      // Allow reading user profiles for search and identification
       allow read: if true; 
-      
-      // Users can create their own profile document
       allow create: if isOwner(userId);
-      
-      // Users can update their own status/profile, or admins can manage
       allow update: if isOwner(userId) || isAdmin();
-      
-      // Only admins can delete users
       allow delete: if isAdmin();
 
-      // Nested subcollections
       match /{allPaths=**} {
         allow read: if isSignedIn();
         allow write: if isOwner(userId) || isAdmin();
@@ -56,19 +48,28 @@ service cloud.firestore {
     }
 
     match /communities/{communityId} {
-      // Allow authenticated users to browse communities
       allow read: if isSignedIn();
-      
-      // Allow authenticated users to create communities
       allow create: if isSignedIn();
-      
-      // Allow owners or admins to update community settings
-      allow update: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
-      
-      // Allow owners or admins to delete communities
+      allow update: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin() || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members'])));
       allow delete: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
 
-      // Nested channels, messages, members, etc.
+      match /channels/{channelId} {
+        allow read, write: if isSignedIn();
+
+        match /messages/{messageId} {
+          allow read: if isSignedIn();
+          allow create: if isSignedIn();
+          // Specific rule for disappearing messages: only allow updating seenBy and viewerExpireAt
+          // unless user is admin or sender (sender might delete)
+          allow update: if isSignedIn() && (
+            isAdmin() || 
+            resource.data.senderId == request.auth.uid ||
+            (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['seenBy', 'viewerExpireAt']))
+          );
+          allow delete: if isSignedIn() && (resource.data.senderId == request.auth.uid || isAdmin());
+        }
+      }
+
       match /{allPaths=**} {
         allow read, write: if isSignedIn();
       }
