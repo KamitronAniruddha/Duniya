@@ -96,94 +96,96 @@ export function AuthScreen() {
   };
 
   return (
-    <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md shadow-2xl border-none bg-card">
-        <CardHeader className="space-y-1 text-center">
-          <div className="flex justify-center mb-6">
-            <div className="p-4 bg-primary/10 rounded-3xl shadow-inner">
-              <Logo size={48} />
+    <div className="min-h-svh w-full flex flex-col bg-background overflow-y-auto custom-scrollbar">
+      <div className="flex-1 flex flex-col items-center justify-center p-4 py-12">
+        <Card className="w-full max-w-md shadow-2xl border-none bg-card mb-8">
+          <CardHeader className="space-y-1 text-center">
+            <div className="flex justify-center mb-6">
+              <div className="p-4 bg-primary/10 rounded-3xl shadow-inner">
+                <Logo size={48} />
+              </div>
             </div>
-          </div>
-          <CardTitle className="text-3xl font-black tracking-tighter text-foreground">Duniya</CardTitle>
-          <CardDescription className="text-sm font-medium">
-            {isLogin ? "Welcome back to the Verse" : "Join the modern community platform"}
-          </CardDescription>
-        </CardHeader>
-        <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-4">
-            {!isLogin && (
+            <CardTitle className="text-3xl font-black tracking-tighter text-foreground">Duniya</CardTitle>
+            <CardDescription className="text-sm font-medium">
+              {isLogin ? "Welcome back to the Verse" : "Join the modern community platform"}
+            </CardDescription>
+          </CardHeader>
+          <form onSubmit={handleSubmit}>
+            <CardContent className="space-y-4">
+              {!isLogin && (
+                <div className="space-y-2">
+                  <Label htmlFor="username">Unique Username</Label>
+                  <Input 
+                    id="username" 
+                    placeholder="johndoe" 
+                    required 
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    disabled={isLoading}
+                    className="bg-muted/50 border-none h-11"
+                  />
+                </div>
+              )}
               <div className="space-y-2">
-                <Label htmlFor="username">Unique Username</Label>
+                <Label htmlFor="email">Email</Label>
                 <Input 
-                  id="username" 
-                  placeholder="johndoe" 
+                  id="email" 
+                  type="email" 
+                  placeholder="name@example.com" 
                   required 
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   disabled={isLoading}
                   className="bg-muted/50 border-none h-11"
                 />
               </div>
-            )}
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input 
-                id="email" 
-                type="email" 
-                placeholder="name@example.com" 
-                required 
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={isLoading}
-                className="bg-muted/50 border-none h-11"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input 
-                id="password" 
-                type="password" 
-                required 
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={isLoading}
-                className="bg-muted/50 border-none h-11"
-              />
-            </div>
-            {!isLogin && (
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <Label htmlFor="password">Password</Label>
                 <Input 
-                  id="confirmPassword" 
+                  id="password" 
                   type="password" 
                   required 
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   disabled={isLoading}
                   className="bg-muted/50 border-none h-11"
                 />
               </div>
-            )}
-          </CardContent>
-          <CardFooter className="flex flex-col space-y-4">
-            <Button type="submit" className="w-full h-12 text-md font-bold rounded-xl shadow-lg shadow-primary/20" disabled={isLoading}>
-              {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : (isLogin ? "Sign In" : "Create Account")}
-            </Button>
-            <button 
-              type="button"
-              className="text-sm text-primary hover:underline font-bold"
-              onClick={() => setIsLogin(!isLogin)}
-              disabled={isLoading}
-            >
-              {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
-            </button>
-          </CardFooter>
-        </form>
-      </Card>
-      
-      <div className="mt-8 flex items-center gap-2 text-muted-foreground/40 text-[10px] font-black uppercase tracking-[0.2em] animate-in fade-in slide-in-from-bottom-2 duration-1000">
-        <span>Made by Aniruddha with love</span>
-        <Heart className="h-2.5 w-2.5 text-red-500 fill-red-500 animate-pulse" />
+              {!isLogin && (
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirm Password</Label>
+                  <Input 
+                    id="confirmPassword" 
+                    type="password" 
+                    required 
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    disabled={isLoading}
+                    className="bg-muted/50 border-none h-11"
+                  />
+                </div>
+              )}
+            </CardContent>
+            <CardFooter className="flex flex-col space-y-4">
+              <Button type="submit" className="w-full h-12 text-md font-bold rounded-xl shadow-lg shadow-primary/20" disabled={isLoading}>
+                {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : (isLogin ? "Sign In" : "Create Account")}
+              </Button>
+              <button 
+                type="button"
+                className="text-sm text-primary hover:underline font-bold"
+                onClick={() => setIsLogin(!isLogin)}
+                disabled={isLoading}
+              >
+                {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
+              </button>
+            </CardFooter>
+          </form>
+        </Card>
+        
+        <div className="flex items-center gap-2 text-muted-foreground/40 text-[10px] font-black uppercase tracking-[0.2em] animate-in fade-in slide-in-from-bottom-2 duration-1000">
+          <span>Made by Aniruddha with love</span>
+          <Heart className="h-2.5 w-2.5 text-red-500 fill-red-500 animate-pulse" />
+        </div>
       </div>
     </div>
   );
