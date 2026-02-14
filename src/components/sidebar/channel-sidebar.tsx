@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useCollection, useFirestore, useUser, useDoc, useMemoFirebase, useAuth } from "@/firebase";
 import { collection, query, where, doc, serverTimestamp } from "firebase/firestore";
-import { Hash, Settings, ChevronDown, LogOut, Loader2, Plus, Users, Check, Edit2 } from "lucide-react";
+import { Hash, Settings, ChevronDown, LogOut, Loader2, Plus, Users, Check, Edit2, Copy, Share2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -36,7 +36,6 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
   const [newChannelName, setNewChannelName] = useState("");
   const [isCreating, setIsCreating] = useState(false);
 
-  // Fetch Firestore user doc for synced photoURL and bio
   const userDocRef = useMemoFirebase(() => (user ? doc(db, "users", user.uid) : null), [db, user?.uid]);
   const { data: userData } = useDoc(userDocRef);
 
@@ -87,6 +86,13 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
     }
   };
 
+  const copyJoinCode = () => {
+    if (server?.joinCode) {
+      navigator.clipboard.writeText(server.joinCode);
+      toast({ title: "Code Copied!", description: `Join code ${server.joinCode} copied to clipboard.` });
+    }
+  };
+
   return (
     <aside className="w-60 bg-white border-r border-border flex flex-col h-full overflow-hidden shrink-0">
       {serverId ? (
@@ -94,7 +100,10 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <header className="h-14 px-4 border-b flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer shrink-0">
-                <h2 className="font-bold truncate text-sm">{server?.name || "..."}</h2>
+                <div className="flex flex-col min-w-0">
+                  <h2 className="font-bold truncate text-sm">{server?.name || "..."}</h2>
+                  {server?.joinCode && <span className="text-[9px] text-primary font-mono font-bold tracking-widest uppercase">Code: {server.joinCode}</span>}
+                </div>
                 <ChevronDown className="h-4 w-4 text-muted-foreground" />
               </header>
             </DropdownMenuTrigger>
@@ -105,11 +114,17 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
                   Server Settings
                 </DropdownMenuItem>
               )}
+              {server?.joinCode && (
+                <DropdownMenuItem onClick={copyJoinCode}>
+                  <Share2 className="h-4 w-4 mr-2" />
+                  Copy Join Code ({server.joinCode})
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem onClick={() => {
                 navigator.clipboard.writeText(serverId);
                 toast({ title: "Copied!", description: "Server ID copied to clipboard." });
               }}>
-                <Users className="h-4 w-4 mr-2" />
+                <Copy className="h-4 w-4 mr-2" />
                 Copy Server ID
               </DropdownMenuItem>
               <DropdownMenuSeparator />
