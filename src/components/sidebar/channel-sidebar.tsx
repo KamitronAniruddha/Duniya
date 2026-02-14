@@ -194,7 +194,7 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
           <div className="flex items-center gap-2 min-w-0">
             <div className="relative">
               <Avatar className="h-8 w-8 ring-1 ring-border shadow-sm border border-border">
-                <AvatarImage src={userData?.photoURL || ""} />
+                <AvatarImage src={userData?.photoURL || undefined} />
                 <AvatarFallback className="bg-primary text-white text-[10px] font-bold">
                   {userData?.username?.[0]?.toUpperCase() || "?"}
                 </AvatarFallback>

@@ -126,7 +126,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
             <form onSubmit={handleUpdateProfile} className="space-y-4 py-4">
               <div className="flex flex-col items-center justify-center gap-4 mb-4">
                 <Avatar className="h-20 w-20 ring-2 ring-primary ring-offset-2">
-                  <AvatarImage src={photoURL} />
+                  <AvatarImage src={photoURL || undefined} />
                   <AvatarFallback className="text-2xl bg-primary text-white font-bold">
                     {username?.[0]?.toUpperCase() || "?"}
                   </AvatarFallback>

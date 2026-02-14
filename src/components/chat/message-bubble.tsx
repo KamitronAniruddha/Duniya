@@ -31,7 +31,7 @@ export function MessageBubble({ message, isMe }: MessageBubbleProps) {
         <UserProfilePopover userId={message.senderId}>
           <button className="h-8 w-8 mt-0.5 mr-2 shrink-0 transition-transform hover:scale-105">
             <Avatar className="h-full w-full shadow-sm border border-border">
-              <AvatarImage src={sender?.photoURL} />
+              <AvatarImage src={sender?.photoURL || undefined} />
               <AvatarFallback className="text-[10px] font-bold bg-primary text-white">
                 {sender?.username?.[0]?.toUpperCase() || "?"}
               </AvatarFallback>

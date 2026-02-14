@@ -251,7 +251,7 @@ function MemberItem({
       <UserProfilePopover userId={member.id}>
         <button className="relative transition-transform hover:scale-110">
           <Avatar className="h-8 w-8 border border-white shadow-sm">
-            <AvatarImage src={member.photoURL} />
+            <AvatarImage src={member.photoURL || undefined} />
             <AvatarFallback className="bg-primary text-white text-[10px] font-bold">
               {member.username?.[0]?.toUpperCase() || "?"}
             </AvatarFallback>

@@ -41,7 +41,7 @@ export function UserProfilePopover({ userId, children }: UserProfilePopoverProps
                 className="group relative h-20 w-20 rounded-full border-4 border-white shadow-md overflow-hidden transition-transform hover:scale-105"
               >
                 <Avatar className="h-full w-full rounded-none">
-                  <AvatarImage src={userData?.photoURL} className="object-cover" />
+                  <AvatarImage src={userData?.photoURL || undefined} className="object-cover" />
                   <AvatarFallback className="bg-primary text-white text-2xl font-bold">
                     {userData?.username?.[0]?.toUpperCase() || "?"}
                   </AvatarFallback>
