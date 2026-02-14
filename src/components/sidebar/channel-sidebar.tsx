@@ -34,22 +34,22 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
       await updateDoc(doc(db, "users", user.uid), {
         onlineStatus: "offline",
         lastSeen: serverTimestamp()
-      });
+      }).catch(() => {});
     }
     auth.signOut();
   };
 
   if (!serverId) {
     return (
-      <aside className="w-60 bg-white border-r border-border flex flex-col p-6 text-center space-y-4">
-        <div className="flex-1 flex flex-col items-center justify-center">
-          <div className="w-12 h-12 bg-gray-100 rounded-2xl flex items-center justify-center mb-4">
+      <aside className="w-60 bg-white border-r border-border flex flex-col h-full overflow-hidden shrink-0">
+        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+          <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center mb-4">
             <Settings className="h-6 w-6 text-muted-foreground opacity-30" />
           </div>
-          <p className="text-sm text-muted-foreground font-medium">Select a server from the left sidebar to view channels</p>
+          <p className="text-xs text-muted-foreground font-medium">Select a server from the left sidebar to view channels</p>
         </div>
-        <div className="pt-4 border-t">
-          <Button variant="outline" className="w-full justify-start text-muted-foreground" onClick={handleLogout}>
+        <div className="p-4 border-t">
+          <Button variant="outline" className="w-full justify-start text-xs h-9" onClick={handleLogout}>
             <LogOut className="h-4 w-4 mr-2" />
             Sign Out
           </Button>

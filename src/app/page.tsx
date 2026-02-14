@@ -36,11 +36,11 @@ export default function ConnectVerseApp() {
 
     const userRef = doc(db, "users", user.uid);
     
-    const updateStatus = (status: "online" | "offline") => {
+    const updateStatus = (status: "online" | "idle" | "offline") => {
       updateDoc(userRef, {
         onlineStatus: status,
         lastSeen: serverTimestamp()
-      });
+      }).catch(() => {}); // Fail silently for background updates
     };
 
     updateStatus("online");
@@ -49,12 +49,11 @@ export default function ConnectVerseApp() {
       if (document.visibilityState === 'visible') {
         updateStatus("online");
       } else {
-        updateStatus("idle" as any);
+        updateStatus("idle");
       }
     };
 
     const handleUnload = () => {
-      // Best effort for tab close
       updateStatus("offline");
     };
 
@@ -84,12 +83,12 @@ export default function ConnectVerseApp() {
   }
 
   return (
-    <div className="flex h-screen w-full bg-background overflow-hidden text-foreground antialiased">
+    <div className="flex h-screen w-full bg-background overflow-hidden text-foreground antialiased selection:bg-primary/20">
       <ServerSidebar 
         activeServerId={activeServerId} 
         onSelectServer={(id) => {
           setActiveServerId(id);
-          setActiveChannelId(null); // Reset channel when switching server
+          setActiveChannelId(null); 
         }} 
       />
 

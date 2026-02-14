@@ -8,7 +8,6 @@ import { MessageBubble } from "./message-bubble";
 import { MessageInput } from "./message-input";
 import { Hash, Phone, Video, Users, MoreHorizontal, Loader2, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 
 interface ChatWindowProps {
@@ -59,15 +58,8 @@ export function ChatWindow({ channelId, serverId }: ChatWindowProps) {
   };
 
   useEffect(() => {
-    // Scroll to bottom on new messages
     if (scrollRef.current) {
-      const scrollContainer = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
-      if (scrollContainer) {
-        scrollContainer.scrollTo({
-          top: scrollContainer.scrollHeight,
-          behavior: 'smooth'
-        });
-      }
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
 
@@ -99,7 +91,7 @@ export function ChatWindow({ channelId, serverId }: ChatWindowProps) {
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-gray-50 h-full overflow-hidden">
+    <div className="flex-1 flex flex-col min-w-0 bg-gray-50 h-full overflow-hidden">
       <header className="h-14 px-6 border-b flex items-center justify-between bg-white shrink-0 z-10 shadow-sm">
         <div className="flex items-center space-x-2 overflow-hidden">
           <Hash className="h-5 w-5 text-muted-foreground shrink-0" />
@@ -123,8 +115,11 @@ export function ChatWindow({ channelId, serverId }: ChatWindowProps) {
         </div>
       </header>
 
-      <ScrollArea ref={scrollRef} className="flex-1 h-full">
-        <div className="py-6 px-6 max-w-6xl mx-auto">
+      <div 
+        ref={scrollRef} 
+        className="flex-1 overflow-y-auto scroll-smooth custom-scrollbar"
+      >
+        <div className="py-8 px-6 max-w-5xl mx-auto space-y-1">
           {messagesLoading ? (
             <div className="flex flex-col items-center justify-center py-20 space-y-4">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -134,21 +129,19 @@ export function ChatWindow({ channelId, serverId }: ChatWindowProps) {
             <div className="flex flex-col items-center justify-center py-20 text-center opacity-40 grayscale">
               <Hash className="h-16 w-16 mb-4" />
               <h3 className="text-xl font-bold">Welcome to #{channel?.name}</h3>
-              <p>This is the start of this channel. Say hi!</p>
+              <p className="text-sm">This is the start of this channel. Say hi!</p>
             </div>
           ) : (
-            <div className="space-y-1">
-              {messages?.map((msg) => (
-                <MessageBubble 
-                  key={msg.id} 
-                  message={msg} 
-                  isMe={msg.senderId === user?.uid} 
-                />
-              ))}
-            </div>
+            messages?.map((msg) => (
+              <MessageBubble 
+                key={msg.id} 
+                message={msg} 
+                isMe={msg.senderId === user?.uid} 
+              />
+            ))
           )}
         </div>
-      </ScrollArea>
+      </div>
 
       <MessageInput onSendMessage={handleSendMessage} />
     </div>

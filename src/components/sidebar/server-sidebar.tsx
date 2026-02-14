@@ -114,37 +114,37 @@ export function ServerSidebar({ activeServerId, onSelectServer }: ServerSidebarP
 
         <div className="w-8 h-[2px] bg-sidebar-accent rounded-full mx-auto" />
 
-        {isLoading ? (
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        ) : (
-          servers?.map(server => (
-            <Tooltip key={server.id}>
-              <TooltipTrigger asChild>
-                <button 
-                  onClick={() => onSelectServer(server.id)}
-                  className="group relative flex items-center justify-center"
-                >
-                  <div className={cn(
-                    "absolute left-0 w-1 bg-white rounded-r-full transition-all duration-200",
-                    activeServerId === server.id ? "h-8" : "h-0 group-hover:h-5"
-                  )} />
-                  <div className={cn(
-                    "w-12 h-12 flex items-center justify-center rounded-[24px] group-hover:rounded-[16px] transition-all duration-200 overflow-hidden bg-sidebar-accent",
-                    activeServerId === server.id && "rounded-[16px]"
-                  )}>
-                    <Avatar className="w-full h-full rounded-none">
-                      <AvatarImage src={server.icon} />
-                      <AvatarFallback className="bg-sidebar-accent text-white font-bold">{server.name?.[0]}</AvatarFallback>
-                    </Avatar>
-                  </div>
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="right">{server.name}</TooltipContent>
-            </Tooltip>
-          ))
-        )}
-
-        <div className="flex-1" />
+        <div className="flex flex-col space-y-2 w-full items-center">
+          {isLoading ? (
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground/50" />
+          ) : (
+            servers?.map(server => (
+              <Tooltip key={server.id}>
+                <TooltipTrigger asChild>
+                  <button 
+                    onClick={() => onSelectServer(server.id)}
+                    className="group relative flex items-center justify-center"
+                  >
+                    <div className={cn(
+                      "absolute left-0 w-1 bg-white rounded-r-full transition-all duration-200",
+                      activeServerId === server.id ? "h-8" : "h-0 group-hover:h-5"
+                    )} />
+                    <div className={cn(
+                      "w-12 h-12 flex items-center justify-center rounded-[24px] group-hover:rounded-[16px] transition-all duration-200 overflow-hidden bg-sidebar-accent",
+                      activeServerId === server.id && "rounded-[16px]"
+                    )}>
+                      <Avatar className="w-full h-full rounded-none">
+                        <AvatarImage src={server.icon} />
+                        <AvatarFallback className="bg-sidebar-accent text-white font-bold">{server.name?.[0]}</AvatarFallback>
+                      </Avatar>
+                    </div>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="right">{server.name}</TooltipContent>
+              </Tooltip>
+            ))
+          )}
+        </div>
 
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
           <DialogTrigger asChild>
