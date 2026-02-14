@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -40,6 +39,7 @@ export default function ConnectVerseApp() {
     const userRef = doc(db, "users", user.uid);
     
     const updateStatus = (status: "online" | "idle" | "offline") => {
+      // CRITICAL: Only attempt to update if still authenticated
       if (!auth.currentUser) return;
       
       setDocumentNonBlocking(userRef, {

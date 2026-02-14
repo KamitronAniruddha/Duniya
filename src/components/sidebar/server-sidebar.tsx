@@ -79,15 +79,24 @@ export function ServerSidebar({ activeServerId, onSelectServer }: ServerSidebarP
   };
 
   const handleJoinServer = async () => {
-    if (!joinId.trim() || !user || !db) return;
+    const trimmedId = joinId.trim();
+    if (!trimmedId || !user || !db) return;
     setIsLoading(true);
 
     try {
-      const serverRef = doc(db, "servers", joinId.trim());
+      const serverRef = doc(db, "servers", trimmedId);
       const serverSnap = await getDoc(serverRef);
 
       if (!serverSnap.exists()) {
         throw new Error("Server not found. Please check the ID.");
+      }
+
+      const serverData = serverSnap.data();
+      if (serverData.members?.includes(user.uid)) {
+        toast({ title: "Already a member", description: "You are already in this server." });
+        onSelectServer(trimmedId);
+        setIsJoinModalOpen(false);
+        return;
       }
 
       setDocumentNonBlocking(serverRef, {
@@ -96,15 +105,19 @@ export function ServerSidebar({ activeServerId, onSelectServer }: ServerSidebarP
 
       const userRef = doc(db, "users", user.uid);
       setDocumentNonBlocking(userRef, {
-        serverIds: arrayUnion(joinId.trim())
+        serverIds: arrayUnion(trimmedId)
       }, { merge: true });
 
       toast({ title: "Joined Server", description: "You have joined the community!" });
       setJoinId("");
       setIsJoinModalOpen(false);
-      onSelectServer(joinId.trim());
+      onSelectServer(trimmedId);
     } catch (e: any) {
-      toast({ variant: "destructive", title: "Join Error", description: e.message });
+      toast({ 
+        variant: "destructive", 
+        title: "Join Error", 
+        description: e.message || "Could not join server." 
+      });
     } finally {
       setIsLoading(false);
     }
