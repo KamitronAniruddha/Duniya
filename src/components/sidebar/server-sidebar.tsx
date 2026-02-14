@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -52,7 +51,7 @@ export function ServerSidebar({ activeServerId, onSelectServer }: ServerSidebarP
       
       setDocumentNonBlocking(serverRef, {
         id: serverId,
-        name,
+        name: name.trim(),
         icon: `https://picsum.photos/seed/${Math.random()}/200`,
         ownerId: user.uid,
         joinCode: joinCode,

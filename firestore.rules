@@ -5,18 +5,17 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
     match /users/{userId} {
       // Allow read for everyone to check username uniqueness and show members
       allow read: if true;
       // Allow owner to create their own doc
-      allow create: if isOwner(userId);
-      // Allow updates to specific fields (serverIds, status) by any signed-in user for invites/presence
-      // This is crucial for the "Invite" feature to work across user boundaries
-      allow update: if isOwner(userId) || (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['serverIds', 'onlineStatus', 'lastSeen']));
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      // Allow updates:
+      // 1. If the user is the owner (full access)
+      // 2. If another user is inviting them (only serverIds allowed)
+      // 3. For presence updates (status, lastSeen)
+      allow update: if (isSignedIn() && request.auth.uid == userId) || 
+        (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['serverIds', 'onlineStatus', 'lastSeen']));
     }
 
     match /servers/{serverId} {
@@ -25,7 +24,7 @@ service cloud.firestore {
       // Allow update if owner OR if only the members list is being updated (for joining/inviting)
       allow update: if isSignedIn() && (
         request.auth.uid == resource.data.ownerId || 
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members'])
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'name', 'icon'])
       );
       allow delete: if isSignedIn() && request.auth.uid == resource.data.ownerId;
     }

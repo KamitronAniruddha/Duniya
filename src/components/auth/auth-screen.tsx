@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -29,15 +28,18 @@ export function AuthScreen() {
     e.preventDefault();
     setIsLoading(true);
 
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanUsername = username.trim().toLowerCase();
+
     try {
       if (isLogin) {
-        await signInWithEmailAndPassword(auth, email, password);
+        await signInWithEmailAndPassword(auth, cleanEmail, password);
       } else {
         if (password !== confirmPassword) throw new Error("Passwords do not match");
-        if (username.length < 3) throw new Error("Username must be at least 3 characters");
+        if (cleanUsername.length < 3) throw new Error("Username must be at least 3 characters");
 
         // 1. Check uniqueness of username
-        const q = query(collection(db, "users"), where("username", "==", username.toLowerCase()));
+        const q = query(collection(db, "users"), where("username", "==", cleanUsername));
         try {
           const querySnapshot = await getDocs(q);
           if (!querySnapshot.empty) {
@@ -54,18 +56,18 @@ export function AuthScreen() {
         }
 
         // 2. Create Auth User
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const userCredential = await createUserWithEmailAndPassword(auth, cleanEmail, password);
         const user = userCredential.user;
 
         // 3. Update Auth profile
-        await updateProfile(user, { displayName: username });
+        await updateProfile(user, { displayName: username.trim() });
 
         // 4. Create Firestore user document
         const userRef = doc(db, "users", user.uid);
         const userData = {
           id: user.uid,
-          username: username.toLowerCase(),
-          email: email.toLowerCase(),
+          username: cleanUsername,
+          email: cleanEmail,
           photoURL: `https://picsum.photos/seed/${user.uid}/200`,
           bio: "",
           createdAt: serverTimestamp(),
@@ -89,7 +91,7 @@ export function AuthScreen() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+    <div className="min-h-[100dvh] flex items-center justify-center bg-gray-50 p-4">
       <Card className="w-full max-w-md shadow-xl border-none">
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-4">
