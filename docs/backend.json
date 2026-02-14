@@ -24,6 +24,7 @@
       "properties": {
         "id": { "type": "string" },
         "name": { "type": "string" },
+        "description": { "type": "string" },
         "icon": { "type": "string", "format": "uri" },
         "ownerId": { "type": "string" },
         "admins": { "type": "array", "items": { "type": "string" } },

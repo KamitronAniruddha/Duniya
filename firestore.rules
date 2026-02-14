@@ -30,16 +30,25 @@ service cloud.firestore {
     }
 
     match /servers/{serverId} {
-      // Allow reading if you are a member OR if the server is broadcasted (public discovery)
+      // Allow reading if you are signed in and:
+      // 1. You are a member
+      // 2. The server is public (isBroadcasted)
+      // 3. You are the owner (handles immediate post-creation navigation)
       allow read: if isSignedIn() && (
-        (request.auth.uid in resource.data.members) || 
-        (resource.data.isBroadcasted == true) ||
-        (existsAfter(/databases/$(database)/documents/servers/$(serverId)) && getAfter(/databases/$(database)/documents/servers/$(serverId)).data.ownerId == request.auth.uid)
+        (resource != null && (
+          (request.auth.uid in resource.data.get('members', [])) || 
+          (resource.data.get('isBroadcasted', false) == true) ||
+          (resource.data.get('ownerId', '') == request.auth.uid)
+        )) ||
+        // Handle atomic create/read context for batches
+        (existsAfter(/databases/$(database)/documents/servers/$(serverId)) && 
+         getAfter(/databases/$(database)/documents/servers/$(serverId)).data.ownerId == request.auth.uid)
       );
+      
       allow create: if isSignedIn();
       allow update: if isSignedIn() && (
         request.auth.uid == resource.data.ownerId || 
-        (request.auth.uid in resource.data.admins) ||
+        (request.auth.uid in resource.data.get('admins', [])) ||
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members'])
       );
       allow delete: if isSignedIn() && request.auth.uid == resource.data.ownerId;
