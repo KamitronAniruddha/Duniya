@@ -2,11 +2,12 @@
 "use client";
 
 import { useCollection, useFirestore, useUser, useDoc, useMemoFirebase, useAuth } from "@/firebase";
-import { collection, query, where, doc, updateDoc, serverTimestamp } from "firebase/firestore";
-import { Hash, Volume2, Settings, ChevronDown, LogOut, Loader2, Plus, Mic, Headphones } from "lucide-react";
+import { collection, query, where, doc, serverTimestamp } from "firebase/firestore";
+import { Hash, Settings, ChevronDown, LogOut, Loader2, Plus, Mic, Headphones } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 interface ChannelSidebarProps {
   serverId: string | null;
@@ -29,12 +30,13 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
 
   const { data: channels, isLoading } = useCollection(channelsQuery);
 
-  const handleLogout = async () => {
+  const handleLogout = () => {
     if (user && db) {
-      updateDoc(doc(db, "users", user.uid), {
+      const userRef = doc(db, "users", user.uid);
+      updateDocumentNonBlocking(userRef, {
         onlineStatus: "offline",
         lastSeen: serverTimestamp()
-      }).catch(() => {});
+      });
     }
     auth.signOut();
   };
@@ -82,7 +84,6 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
         </div>
       )}
 
-      {/* User Area */}
       <div className="p-3 bg-gray-50 border-t flex flex-col gap-2 shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 min-w-0">

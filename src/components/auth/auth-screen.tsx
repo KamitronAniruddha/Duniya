@@ -2,15 +2,16 @@
 "use client";
 
 import { useState } from "react";
-import { useAuth, useFirestore } from "@/firebase";
+import { useAuth, useFirestore, errorEmitter, FirestorePermissionError } from "@/firebase";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from "firebase/auth";
-import { doc, setDoc, getDocs, collection, query, where, serverTimestamp } from "firebase/firestore";
+import { doc, getDocs, collection, query, where, serverTimestamp, setDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { MessageSquare, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 export function AuthScreen() {
   const auth = useAuth();
@@ -35,11 +36,21 @@ export function AuthScreen() {
         if (password !== confirmPassword) throw new Error("Passwords do not match");
         if (username.length < 3) throw new Error("Username must be at least 3 characters");
 
-        // 1. Check uniqueness of username
+        // 1. Check uniqueness of username (Allowed by rules for public read)
         const q = query(collection(db, "users"), where("username", "==", username.toLowerCase()));
-        const querySnapshot = await getDocs(q);
-        if (!querySnapshot.empty) {
-          throw new Error("Username already taken. Please try another one.");
+        try {
+          const querySnapshot = await getDocs(q);
+          if (!querySnapshot.empty) {
+            throw new Error("Username already taken. Please try another one.");
+          }
+        } catch (err: any) {
+          if (err.code === 'permission-denied') {
+            errorEmitter.emit('permission-error', new FirestorePermissionError({
+              path: 'users',
+              operation: 'list',
+            }));
+          }
+          throw err;
         }
 
         // 2. Create Auth User
@@ -49,8 +60,9 @@ export function AuthScreen() {
         // 3. Update Auth profile
         await updateProfile(user, { displayName: username });
 
-        // 4. Create Firestore user document
-        await setDoc(doc(db, "users", user.uid), {
+        // 4. Create Firestore user document (Non-blocking)
+        const userRef = doc(db, "users", user.uid);
+        const userData = {
           id: user.uid,
           username: username.toLowerCase(),
           email: email.toLowerCase(),
@@ -61,7 +73,9 @@ export function AuthScreen() {
           lastSeen: serverTimestamp(),
           friends: [],
           serverIds: []
-        });
+        };
+        
+        setDocumentNonBlocking(userRef, userData, { merge: true });
       }
     } catch (error: any) {
       toast({

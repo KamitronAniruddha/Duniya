@@ -8,8 +8,9 @@ import { ChatWindow } from "@/components/chat/chat-window";
 import { AuthScreen } from "@/components/auth/auth-screen";
 import { AISuggestionPanel } from "@/components/ai/ai-suggestion-panel";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { doc, updateDoc, serverTimestamp, collection, query, where } from "firebase/firestore";
+import { doc, serverTimestamp, collection, query, where } from "firebase/firestore";
 import { Loader2 } from "lucide-react";
+import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 export default function ConnectVerseApp() {
   const { user, isUserLoading } = useUser();
@@ -38,10 +39,10 @@ export default function ConnectVerseApp() {
     const userRef = doc(db, "users", user.uid);
     
     const updateStatus = (status: "online" | "idle" | "offline") => {
-      updateDoc(userRef, {
+      updateDocumentNonBlocking(userRef, {
         onlineStatus: status,
         lastSeen: serverTimestamp()
-      }).catch(() => {}); 
+      });
     };
 
     updateStatus("online");
@@ -85,7 +86,6 @@ export default function ConnectVerseApp() {
 
   return (
     <div className="flex h-screen w-full bg-background overflow-hidden selection:bg-primary/20">
-      {/* 1. Server Icons (Fixed Width) */}
       <ServerSidebar 
         activeServerId={activeServerId} 
         onSelectServer={(id) => {
@@ -94,20 +94,17 @@ export default function ConnectVerseApp() {
         }} 
       />
 
-      {/* 2. Channels (Fixed Width, Scrollable) */}
       <ChannelSidebar 
         serverId={activeServerId} 
         activeChannelId={activeChannelId}
         onSelectChannel={setActiveChannelId}
       />
 
-      {/* 3. Main Chat (Flexible Width, Scrollable Content) */}
       <ChatWindow 
         channelId={activeChannelId}
         serverId={activeServerId}
       />
 
-      {/* 4. AI Panel (Hidden on small screens, Fixed Width) */}
       <div className="hidden lg:block">
         <AISuggestionPanel channelId={activeChannelId} />
       </div>

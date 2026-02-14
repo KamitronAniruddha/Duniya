@@ -3,16 +3,17 @@
 
 import { useState } from "react";
 import { useCollection, useFirestore, useUser, useMemoFirebase } from "@/firebase";
-import { collection, query, where, addDoc, serverTimestamp, doc, updateDoc, arrayUnion } from "firebase/firestore";
+import { collection, query, where, serverTimestamp, doc, arrayUnion } from "firebase/firestore";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Plus, Compass, Loader2 } from "lucide-react";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Plus, Loader2 } from "lucide-react";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { setDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 interface ServerSidebarProps {
   activeServerId: string | null;
@@ -34,33 +35,44 @@ export function ServerSidebar({ activeServerId, onSelectServer }: ServerSidebarP
 
   const { data: servers, isLoading } = useCollection(serversQuery);
 
-  const handleCreateServer = async () => {
+  const handleCreateServer = () => {
     if (!name.trim() || !user || !db) return;
     setIsCreating(true);
+    
     try {
-      const serverRef = await addDoc(collection(db, "servers"), {
+      // 1. Create Server Doc with Pre-generated ID
+      const serverRef = doc(collection(db, "servers"));
+      const serverId = serverRef.id;
+      
+      setDocumentNonBlocking(serverRef, {
+        id: serverId,
         name,
         icon: `https://picsum.photos/seed/${Math.random()}/200`,
         ownerId: user.uid,
         members: [user.uid],
         createdAt: serverTimestamp()
-      });
+      }, { merge: true });
 
-      await addDoc(collection(db, "channels"), {
-        serverId: serverRef.id,
+      // 2. Create Default Channel
+      const channelRef = doc(collection(db, "channels"));
+      setDocumentNonBlocking(channelRef, {
+        id: channelRef.id,
+        serverId: serverId,
         name: "general",
         type: "text",
         createdAt: serverTimestamp()
-      });
+      }, { merge: true });
 
-      await updateDoc(doc(db, "users", user.uid), {
-        serverIds: arrayUnion(serverRef.id)
+      // 3. Update User Server List
+      const userRef = doc(db, "users", user.uid);
+      updateDocumentNonBlocking(userRef, {
+        serverIds: arrayUnion(serverId)
       });
 
       toast({ title: "Server Created", description: `Welcome to ${name}!` });
       setName("");
       setIsModalOpen(false);
-      onSelectServer(serverRef.id);
+      onSelectServer(serverId);
     } catch (e: any) {
       toast({ variant: "destructive", title: "Error", description: e.message });
     } finally {

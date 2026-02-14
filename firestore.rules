@@ -11,26 +11,27 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow read: if isSignedIn();
+      // Allow public read for username uniqueness checks during signup
+      allow read: if true;
       allow create, update: if isOwner(userId);
     }
 
     match /servers/{serverId} {
+      // Allow read if user is a member
       allow read: if isSignedIn() && request.auth.uid in resource.data.members;
       allow create: if isSignedIn();
       allow update, delete: if isSignedIn() && request.auth.uid == resource.data.ownerId;
     }
 
     match /channels/{channelId} {
-      allow read: if isSignedIn(); // In a real app, verify server membership
+      allow read: if isSignedIn();
       allow create, update, delete: if isSignedIn();
     }
 
     match /messages/{channelId}/chatMessages/{messageId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn();
-      allow update: if isSignedIn() && request.auth.uid == resource.data.senderId;
-      allow delete: if isSignedIn() && request.auth.uid == resource.data.senderId;
+      allow update, delete: if isSignedIn() && request.auth.uid == resource.data.senderId;
     }
   }
 }

@@ -3,12 +3,12 @@
 
 import { useRef, useEffect } from "react";
 import { useCollection, useFirestore, useUser, useDoc, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy, limit, doc, serverTimestamp, setDoc } from "firebase/firestore";
+import { collection, query, orderBy, limit, doc, serverTimestamp } from "firebase/firestore";
 import { MessageBubble } from "./message-bubble";
 import { MessageInput } from "./message-input";
-import { Hash, Phone, Video, Users, MoreHorizontal, Loader2, MessageCircle } from "lucide-react";
+import { Hash, Phone, Video, Users, Loader2, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
+import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 interface ChatWindowProps {
   channelId: string | null;
@@ -18,7 +18,6 @@ interface ChatWindowProps {
 export function ChatWindow({ channelId, serverId }: ChatWindowProps) {
   const db = useFirestore();
   const { user } = useUser();
-  const { toast } = useToast();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const channelRef = useMemoFirebase(() => (channelId ? doc(db, "channels", channelId) : null), [db, channelId]);
@@ -38,23 +37,17 @@ export function ChatWindow({ channelId, serverId }: ChatWindowProps) {
   const handleSendMessage = (text: string) => {
     if (!db || !channelId || !user) return;
     
-    const messageId = Math.random().toString(36).substr(2, 9);
-    const messageRef = doc(db, "messages", channelId, "chatMessages", messageId);
+    // Pre-generate ID for non-blocking set
+    const messageRef = doc(collection(db, "messages", channelId, "chatMessages"));
     
-    setDoc(messageRef, {
-      id: messageId,
+    setDocumentNonBlocking(messageRef, {
+      id: messageRef.id,
       senderId: user.uid,
       text,
       createdAt: serverTimestamp(),
       edited: false,
       seenBy: [user.uid]
-    }).catch((error) => {
-      toast({
-        variant: "destructive",
-        title: "Failed to send",
-        description: error.message || "Something went wrong",
-      });
-    });
+    }, { merge: true });
   };
 
   // Auto-scroll logic
@@ -82,7 +75,6 @@ export function ChatWindow({ channelId, serverId }: ChatWindowProps) {
 
   return (
     <div className="flex-1 flex flex-col h-full bg-white overflow-hidden">
-      {/* Header */}
       <header className="h-14 border-b flex items-center justify-between px-4 shrink-0">
         <div className="flex items-center gap-2 min-w-0">
           <Hash className="h-5 w-5 text-muted-foreground shrink-0" />
@@ -96,13 +88,12 @@ export function ChatWindow({ channelId, serverId }: ChatWindowProps) {
         </div>
       </header>
 
-      {/* Messages Scroll Area */}
       <div 
         ref={scrollRef} 
         className="flex-1 overflow-y-auto scroll-smooth custom-scrollbar bg-gray-50/50"
       >
         <div className="p-4 flex flex-col gap-1 min-h-full">
-          <div className="flex-1" /> {/* Spacer to push messages to bottom if few */}
+          <div className="flex-1" />
           
           {messagesLoading ? (
             <div className="flex justify-center py-10">
@@ -126,7 +117,6 @@ export function ChatWindow({ channelId, serverId }: ChatWindowProps) {
         </div>
       </div>
 
-      {/* Input */}
       <MessageInput onSendMessage={handleSendMessage} />
     </div>
   );
