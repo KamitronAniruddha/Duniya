@@ -59,31 +59,31 @@ service cloud.firestore {
     }
 
     match /communities/{communityId} {
-      // Allow listing for membership queries
-      allow list: if isSignedIn();
-      allow get: if isSignedIn();
+      // Allow listing and getting for discovery and joining
+      allow list, get: if isSignedIn();
       
       // Allow any signed in user to create a community
       allow create: if isSignedIn();
       
-      // Allow full updates for owners/admins, or specific array updates for public joins
+      // Allow update if owner/admin OR if a user is joining (adding themselves to members)
       allow update: if isSignedIn() && (
         resource.data.ownerId == request.auth.uid || 
         isAdmin() ||
-        (resource.data.isPublic == true && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members']))
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'updatedAt']) && 
+         request.auth.uid in request.resource.data.members)
       );
       
       allow delete: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
 
       match /members/{userId} {
         allow read: if isSignedIn();
-        // Allow write for initial creation and joins
+        // Allow write for joining or management
         allow write: if isSignedIn();
       }
 
       match /channels/{channelId} {
         allow read: if isSignedIn();
-        // Allow write for initial creation and channel management
+        // Broad write permission for channel creators during batch
         allow write: if isSignedIn();
 
         match /messages/{messageId} {

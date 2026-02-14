@@ -40,8 +40,8 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
   const userDocRef = useMemoFirebase(() => (user ? doc(db, "users", user.uid) : null), [db, user?.uid]);
   const { data: userData } = useDoc(userDocRef);
 
-  const serverRef = useMemoFirebase(() => (serverId && user ? doc(db, "communities", serverId) : null), [db, serverId, user?.uid]);
-  const { data: server } = useDoc(serverRef);
+  const communityRef = useMemoFirebase(() => (serverId && user ? doc(db, "communities", serverId) : null), [db, serverId, user?.uid]);
+  const { data: community } = useDoc(communityRef);
 
   const channelsQuery = useMemoFirebase(() => {
     if (!db || !serverId || !user) return null;
@@ -50,8 +50,8 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
 
   const { data: channels, isLoading } = useCollection(channelsQuery);
 
-  const isOwner = server?.ownerId === user?.uid;
-  const isAdmin = isOwner || server?.admins?.includes(user?.uid);
+  const isOwner = community?.ownerId === user?.uid;
+  const isAdmin = isOwner || community?.admins?.includes(user?.uid);
 
   const handleLogout = () => {
     auth.signOut();
@@ -89,9 +89,9 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
             <DropdownMenuTrigger asChild>
               <header className="h-16 px-4 border-b flex items-center justify-between hover:bg-muted/30 transition-all cursor-pointer shrink-0 group">
                 <div className="flex flex-col min-w-0">
-                  <h2 className="font-black truncate text-sm text-foreground tracking-tight group-hover:text-primary transition-colors">{server?.name || "..." }</h2>
+                  <h2 className="font-black truncate text-sm text-foreground tracking-tight group-hover:text-primary transition-colors">{community?.name || "..." }</h2>
                   <div className="flex items-center gap-1.5">
-                    {server?.joinCode && <span className="text-[9px] text-primary font-black font-mono tracking-widest uppercase opacity-70">Code: {server.joinCode}</span>}
+                    {community?.joinCode && <span className="text-[9px] text-primary font-black font-mono tracking-widest uppercase opacity-70">Code: {community.joinCode}</span>}
                   </div>
                 </div>
                 <div className="p-1.5 rounded-lg bg-muted group-hover:bg-primary/10 transition-all">
@@ -107,7 +107,7 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
               )}
               {isOwner && (
                 <DropdownMenuItem onClick={() => setServerSettingsOpen(true)} className="gap-2">
-                  <Settings className="h-4 w-4" /> Server Settings
+                  <Settings className="h-4 w-4" /> Community Settings
                 </DropdownMenuItem>
               )}
               <DropdownMenuSeparator />
@@ -126,7 +126,9 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
                 )}
               </div>
               <div className="space-y-1 relative">
-                {channels?.map(c => {
+                {isLoading ? (
+                  <div className="flex justify-center py-4"><Loader2 className="h-4 w-4 animate-spin opacity-20" /></div>
+                ) : channels?.map(c => {
                   const isActive = c.id === activeChannelId;
                   return (
                     <div key={c.id} className="group flex items-center gap-1 relative">

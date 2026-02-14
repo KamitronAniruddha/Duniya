@@ -6,12 +6,13 @@ import { collection, query, where, doc, arrayUnion, getDocs, limit, writeBatch }
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Plus, Compass, Hash, Globe, Shield, Heart, Loader2 } from "lucide-react";
+import { Plus, Compass, Hash, Globe, Shield, Heart, Loader2, Share2, Check } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 interface ServerSidebarProps {
   activeServerId: string | null;
@@ -32,12 +33,12 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive, 
 
   const isAdminUser = user?.email === "aniruddha@duniya.app";
 
-  const serversQuery = useMemoFirebase(() => {
+  const communitiesQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
     return query(collection(db, "communities"), where("members", "array-contains", user.uid));
   }, [db, user?.uid]);
 
-  const { data: servers } = useCollection(serversQuery);
+  const { data: communities } = useCollection(communitiesQuery);
 
   const generateJoinCode = () => {
     return Math.floor(10000 + Math.random() * 90000).toString();
@@ -49,14 +50,14 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive, 
     
     try {
       const batch = writeBatch(db);
-      const serverRef = doc(collection(db, "communities"));
-      const serverId = serverRef.id;
+      const communityRef = doc(collection(db, "communities"));
+      const communityId = communityRef.id;
       const joinCode = generateJoinCode();
       
-      const serverData = {
-        id: serverId,
+      const communityData = {
+        id: communityId,
         name: name.trim(),
-        icon: `https://picsum.photos/seed/${serverId}/200`,
+        icon: `https://picsum.photos/seed/${communityId}/200`,
         ownerId: user.uid,
         admins: [],
         joinCode: joinCode,
@@ -65,22 +66,21 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive, 
         isPublic: false
       };
       
-      // Atomic creation of community, owner record, and initial channel
-      batch.set(serverRef, serverData);
+      batch.set(communityRef, communityData);
 
-      const memberRef = doc(db, "communities", serverId, "members", user.uid);
+      const memberRef = doc(db, "communities", communityId, "members", user.uid);
       batch.set(memberRef, {
         id: user.uid,
-        communityId: serverId,
+        communityId: communityId,
         userId: user.uid,
         role: "owner",
         joinedAt: new Date().toISOString()
       });
 
-      const channelRef = doc(collection(db, "communities", serverId, "channels"));
+      const channelRef = doc(collection(db, "communities", communityId, "channels"));
       batch.set(channelRef, {
         id: channelRef.id,
-        communityId: serverId,
+        communityId: communityId,
         name: "general",
         type: "text",
         createdAt: new Date().toISOString()
@@ -88,7 +88,7 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive, 
 
       const userRef = doc(db, "users", user.uid);
       batch.update(userRef, {
-        serverIds: arrayUnion(serverId)
+        serverIds: arrayUnion(communityId)
       });
 
       await batch.commit();
@@ -96,7 +96,7 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive, 
       toast({ title: "Community Created", description: `Welcome to ${name}!` });
       setName("");
       setIsModalOpen(false);
-      onSelectServer(serverId);
+      onSelectServer(communityId);
     } catch (e: any) {
       toast({ variant: "destructive", title: "Error", description: e.message });
     } finally {
@@ -117,11 +117,11 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive, 
         throw new Error("Community with this code not found.");
       }
       
-      const serverDoc = querySnapshot.docs[0];
-      const targetId = serverDoc.id;
-      const serverData = serverDoc.data();
+      const communityDoc = querySnapshot.docs[0];
+      const targetId = communityDoc.id;
+      const communityData = communityDoc.data();
 
-      if (serverData.members?.includes(user.uid)) {
+      if (communityData.members?.includes(user.uid)) {
         onSelectServer(targetId);
         setIsJoinModalOpen(false);
         return;
@@ -143,7 +143,7 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive, 
       });
 
       await batch.commit();
-      toast({ title: "Joined Community", description: `Welcome to ${serverData.name}!` });
+      toast({ title: "Joined Community", description: `Welcome to ${communityData.name}!` });
       setIsJoinModalOpen(false);
       onSelectServer(targetId);
     } catch (e: any) {
@@ -153,10 +153,15 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive, 
     }
   };
 
+  const handleShare = (community: any) => {
+    const url = `${window.location.origin}?join=${community.joinCode}`;
+    navigator.clipboard.writeText(url);
+    toast({ title: "Invite Link Copied", description: "Share this link with your friends to join!" });
+  };
+
   return (
     <aside className="w-[72px] bg-sidebar flex flex-col items-center py-4 gap-4 shrink-0 h-full overflow-y-auto custom-scrollbar border-r border-sidebar-border shadow-[4px_0_24px_rgba(0,0,0,0.1)] z-30">
       <TooltipProvider delayDuration={0}>
-        {/* Home Button */}
         <Tooltip>
           <TooltipTrigger asChild>
             <button onClick={() => onSelectServer(null as any)} className="group relative flex items-center justify-center h-12 w-full">
@@ -171,7 +176,6 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive, 
 
         <div className="w-8 h-[1px] bg-sidebar-accent/30 rounded-full shrink-0" />
 
-        {/* Duniya Public Directory */}
         <Tooltip>
           <TooltipTrigger asChild>
             <button onClick={() => onSelectServer("duniya")} className="group relative flex items-center justify-center h-12 w-full">
@@ -184,7 +188,6 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive, 
           <TooltipContent side="right">Public Directory</TooltipContent>
         </Tooltip>
 
-        {/* Admin Dashboard */}
         {isAdminUser && (
           <Tooltip>
             <TooltipTrigger asChild>
@@ -201,27 +204,35 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive, 
 
         <div className="w-8 h-[1px] bg-sidebar-accent/30 rounded-full shrink-0" />
 
-        {/* Community List */}
         <div className="flex flex-col items-center gap-3">
-          {servers?.map(s => (
+          {communities?.map(s => (
             <Tooltip key={s.id}>
-              <TooltipTrigger asChild>
-                <button onClick={() => onSelectServer(s.id)} className="group relative flex items-center justify-center h-12 w-full">
-                  <div className={cn("absolute left-0 w-1 bg-white rounded-r-full transition-all duration-300", activeServerId === s.id ? "h-8" : "h-0 group-hover:h-4")} />
-                  <div className={cn("w-12 h-12 flex items-center justify-center transition-all duration-300 overflow-hidden shadow-lg rounded-[24px] group-hover:rounded-[14px] bg-sidebar-accent group-hover:scale-110", activeServerId === s.id && "rounded-[14px] ring-2 ring-primary ring-offset-2 ring-offset-sidebar")}>
-                    <Avatar className="w-full h-full rounded-none">
-                      <AvatarImage src={s.icon} />
-                      <AvatarFallback className="bg-primary text-white font-black text-lg">{s.name?.[0]?.toUpperCase()}</AvatarFallback>
-                    </Avatar>
-                  </div>
-                </button>
-              </TooltipTrigger>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <TooltipTrigger asChild>
+                    <button onClick={() => onSelectServer(s.id)} className="group relative flex items-center justify-center h-12 w-full">
+                      <div className={cn("absolute left-0 w-1 bg-white rounded-r-full transition-all duration-300", activeServerId === s.id ? "h-8" : "h-0 group-hover:h-4")} />
+                      <div className={cn("w-12 h-12 flex items-center justify-center transition-all duration-300 overflow-hidden shadow-lg rounded-[24px] group-hover:rounded-[14px] bg-sidebar-accent group-hover:scale-110", activeServerId === s.id && "rounded-[14px] ring-2 ring-primary ring-offset-2 ring-offset-sidebar")}>
+                        <Avatar className="w-full h-full rounded-none">
+                          <AvatarImage src={s.icon} />
+                          <AvatarFallback className="bg-primary text-white font-black text-lg">{s.name?.[0]?.toUpperCase()}</AvatarFallback>
+                        </Avatar>
+                      </div>
+                    </button>
+                  </TooltipTrigger>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent side="right" align="start" className="w-48">
+                  <DropdownMenuItem onClick={() => onSelectServer(s.id)}>Open Community</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleShare(s)} className="gap-2">
+                    <Share2 className="h-4 w-4" /> Share Invite Link
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <TooltipContent side="right">{s.name}</TooltipContent>
             </Tooltip>
           ))}
         </div>
 
-        {/* Action Buttons */}
         <div className="flex flex-col items-center gap-3 mt-auto mb-4">
           <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
             <DialogTrigger asChild>
