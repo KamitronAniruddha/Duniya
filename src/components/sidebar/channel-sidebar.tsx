@@ -3,13 +3,14 @@
 import { useState } from "react";
 import { useCollection, useFirestore, useUser, useDoc, useMemoFirebase, useAuth } from "@/firebase";
 import { collection, query, where, doc, serverTimestamp } from "firebase/firestore";
-import { Hash, Settings, ChevronDown, LogOut, Loader2, Plus, Users, Check } from "lucide-react";
+import { Hash, Settings, ChevronDown, LogOut, Loader2, Plus, Users, Check, Edit2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { ProfileDialog } from "@/components/profile/profile-dialog";
 import { ServerSettingsDialog } from "@/components/servers/server-settings-dialog";
+import { ChannelSettingsDialog } from "@/components/channels/channel-settings-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -27,9 +28,11 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
   const auth = useAuth();
   const { user } = useUser();
   const { toast } = useToast();
+  
   const [profileOpen, setProfileOpen] = useState(false);
   const [serverSettingsOpen, setServerSettingsOpen] = useState(false);
   const [createChannelOpen, setCreateChannelOpen] = useState(false);
+  const [editChannelId, setEditChannelId] = useState<string | null>(null);
   const [newChannelName, setNewChannelName] = useState("");
   const [isCreating, setIsCreating] = useState(false);
 
@@ -129,19 +132,30 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
                   </div>
                   <div className="space-y-0.5">
                     {channels?.filter(c => c.type === 'text').map(c => (
-                      <button 
-                        key={c.id} 
-                        onClick={() => onSelectChannel(c.id)}
-                        className={cn(
-                          "w-full flex items-center px-2 py-1.5 rounded-md text-sm transition-all",
-                          c.id === activeChannelId 
-                            ? "bg-primary/10 text-primary font-semibold" 
-                            : "text-muted-foreground hover:bg-gray-100"
+                      <div key={c.id} className="group flex items-center gap-1">
+                        <button 
+                          onClick={() => onSelectChannel(c.id)}
+                          className={cn(
+                            "flex-1 flex items-center px-2 py-1.5 rounded-md text-sm transition-all",
+                            c.id === activeChannelId 
+                              ? "bg-primary/10 text-primary font-semibold" 
+                              : "text-muted-foreground hover:bg-gray-100"
+                          )}
+                        >
+                          <Hash className="h-4 w-4 mr-2" />
+                          <span className="truncate">{c.name}</span>
+                        </button>
+                        {isOwner && (
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={() => setEditChannelId(c.id)}
+                          >
+                            <Edit2 className="h-3 w-3 text-muted-foreground" />
+                          </Button>
                         )}
-                      >
-                        <Hash className="h-4 w-4 mr-2" />
-                        <span className="truncate">{c.name}</span>
-                      </button>
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -216,6 +230,13 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
 
       <ProfileDialog open={profileOpen} onOpenChange={setProfileOpen} />
       {serverId && <ServerSettingsDialog open={serverSettingsOpen} onOpenChange={setServerSettingsOpen} serverId={serverId} />}
+      {editChannelId && (
+        <ChannelSettingsDialog 
+          open={!!editChannelId} 
+          onOpenChange={(open) => !open && setEditChannelId(null)} 
+          channelId={editChannelId} 
+        />
+      )}
     </aside>
   );
 }

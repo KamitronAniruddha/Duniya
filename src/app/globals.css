@@ -41,10 +41,14 @@
   }
   html, body {
     height: 100dvh;
-    @apply overflow-hidden antialiased m-0 p-0;
+    margin: 0;
+    padding: 0;
+    @apply overflow-hidden antialiased;
   }
   body {
     @apply bg-background text-foreground font-body;
+    display: flex;
+    flex-direction: column;
   }
 }
 

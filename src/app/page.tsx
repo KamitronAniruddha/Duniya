@@ -17,9 +17,11 @@ export default function ConnectVerseApp() {
   const { user, isUserLoading } = useUser();
   const db = useFirestore();
   const auth = useAuth();
+  
   const [activeServerId, setActiveServerId] = useState<string | null>(null);
   const [activeChannelId, setActiveChannelId] = useState<string | null>(null);
   const [showMembers, setShowMembers] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const channelsQuery = useMemoFirebase(() => {
     if (!db || !activeServerId || !user) return null;
@@ -40,9 +42,7 @@ export default function ConnectVerseApp() {
     const userRef = doc(db, "users", user.uid);
     
     const updateStatus = (status: "online" | "idle" | "offline") => {
-      // Only attempt to update if we have a current session to avoid permission errors on logout
       if (!auth.currentUser) return;
-      
       updateDocumentNonBlocking(userRef, {
         onlineStatus: status,
         lastSeen: serverTimestamp()
@@ -109,7 +109,7 @@ export default function ConnectVerseApp() {
       <main className="flex-1 flex flex-col min-w-0 h-full relative overflow-hidden bg-white">
         {/* Mobile Header */}
         <div className="md:hidden p-2 border-b flex items-center gap-2 bg-white shrink-0">
-          <Sheet>
+          <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon">
                 <Menu className="h-5 w-5" />
@@ -131,7 +131,10 @@ export default function ConnectVerseApp() {
                 <ChannelSidebar 
                   serverId={activeServerId} 
                   activeChannelId={activeChannelId}
-                  onSelectChannel={setActiveChannelId}
+                  onSelectChannel={(id) => {
+                    setActiveChannelId(id);
+                    setIsMobileMenuOpen(false);
+                  }}
                 />
               </div>
             </SheetContent>
@@ -139,7 +142,7 @@ export default function ConnectVerseApp() {
           <span className="font-bold text-sm truncate">ConnectVerse</span>
         </div>
         
-        {/* Chat and Members Wrapper - Crucial flex-1 min-h-0 for scrolling */}
+        {/* Chat and Members Wrapper */}
         <div className="flex-1 min-h-0 flex relative overflow-hidden">
           <ChatWindow 
             channelId={activeChannelId}
