@@ -6,11 +6,12 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useDoc, useFirestore, useMemoFirebase, useUser } from "@/firebase";
 import { doc, arrayUnion } from "firebase/firestore";
 import { UserProfilePopover } from "@/components/profile/user-profile-popover";
-import { Reply, CornerDownRight, Play, Pause, Volume2, MoreHorizontal, Trash2, Ban } from "lucide-react";
+import { Reply, CornerDownRight, Play, Pause, Volume2, MoreHorizontal, Trash2, Ban, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useRef, useEffect } from "react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { useToast } from "@/hooks/use-toast";
 
 interface MessageBubbleProps {
   message: {
@@ -37,6 +38,7 @@ interface MessageBubbleProps {
 export function MessageBubble({ message, channelId, isMe, onReply, onQuoteClick }: MessageBubbleProps) {
   const db = useFirestore();
   const { user } = useUser();
+  const { toast } = useToast();
   const userRef = useMemoFirebase(() => doc(db, "users", message.senderId), [db, message.senderId]);
   const { data: sender } = useDoc(userRef);
 
@@ -96,6 +98,15 @@ export function MessageBubble({ message, channelId, isMe, onReply, onQuoteClick 
       audio.removeEventListener('ended', handleEnded);
     };
   }, []);
+
+  const handleCopy = () => {
+    if (!message.text || message.type === 'voice') return;
+    navigator.clipboard.writeText(message.text);
+    toast({
+      title: "Copied to clipboard",
+      description: "Message text has been copied successfully.",
+    });
+  };
 
   const handleDeleteForEveryone = () => {
     if (!db || !channelId || !message.id) return;
@@ -274,6 +285,12 @@ export function MessageBubble({ message, channelId, isMe, onReply, onQuoteClick 
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align={isMe ? "end" : "start"}>
+            {message.type !== 'voice' && !message.isDeleted && (
+              <DropdownMenuItem onClick={handleCopy}>
+                <Copy className="h-4 w-4 mr-2" />
+                Copy text
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem onClick={handleDeleteForMe} className="text-destructive font-medium">
               <Trash2 className="h-4 w-4 mr-2" />
               Delete for me
