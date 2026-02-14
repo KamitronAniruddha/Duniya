@@ -13,6 +13,7 @@ import { Loader2, Camera, Hash, Copy, Check, Globe, Clock } from "lucide-react";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface ServerSettingsDialogProps {
   open: boolean;
@@ -99,86 +100,91 @@ export function ServerSettingsDialog({ open, onOpenChange, serverId }: ServerSet
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[425px] flex flex-col max-h-[90dvh] p-0 overflow-hidden">
+        <DialogHeader className="p-6 pb-2 shrink-0">
           <DialogTitle>Server Settings</DialogTitle>
           <DialogDescription>Manage your community details and discovery.</DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleUpdate} className="space-y-4 py-2">
-          <div className="space-y-2">
-            <Label htmlFor="sname">Server Name</Label>
-            <div className="relative">
-              <Hash className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input id="sname" className="pl-9" value={name} onChange={(e) => setName(e.target.value)} required />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="sdesc">Description</Label>
-            <Input id="sdesc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What is this server about?" />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="sicon">Icon URL</Label>
-            <div className="relative">
-              <Camera className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input id="sicon" className="pl-9" value={icon} onChange={(e) => setIcon(e.target.value)} placeholder="https://..." />
-            </div>
-          </div>
-
-          <div className="space-y-3 p-3 bg-accent/5 rounded-xl border border-accent/10">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-accent rounded-lg">
-                  <Globe className="h-4 w-4 text-accent-foreground" />
-                </div>
-                <div className="flex flex-col">
-                  <Label className="text-sm font-bold">Broadcast to Duniya</Label>
-                  <p className="text-[10px] text-muted-foreground">Public directory visibility.</p>
+        
+        <form onSubmit={handleUpdate} className="flex flex-col flex-1 overflow-hidden">
+          <ScrollArea className="flex-1 px-6">
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <Label htmlFor="sname">Server Name</Label>
+                <div className="relative">
+                  <Hash className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input id="sname" className="pl-9" value={name} onChange={(e) => setName(e.target.value)} required />
                 </div>
               </div>
-              <Switch checked={isBroadcasted} onCheckedChange={setIsBroadcasted} />
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="sdesc">Description</Label>
+                <Input id="sdesc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What is this server about?" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="sicon">Icon URL</Label>
+                <div className="relative">
+                  <Camera className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input id="sicon" className="pl-9" value={icon} onChange={(e) => setIcon(e.target.value)} placeholder="https://..." />
+                </div>
+              </div>
 
-            {isBroadcasted && (
-              <div className="pt-2 animate-in fade-in slide-in-from-top-2 duration-200">
-                <Label className="text-[10px] uppercase font-bold text-muted-foreground mb-1.5 block">Broadcast Duration</Label>
-                <Select value={broadcastDuration} onValueChange={setBroadcastDuration}>
-                  <SelectTrigger className="w-full bg-white h-9 text-xs">
-                    <Clock className="h-3 w-3 mr-2 text-primary" />
-                    <SelectValue placeholder="Select duration" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {BROADCAST_DURATIONS.map(d => (
-                      <SelectItem key={d.value} value={d.value} className="text-xs">
-                        {d.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="space-y-3 p-3 bg-accent/5 rounded-xl border border-accent/10">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-accent rounded-lg">
+                      <Globe className="h-4 w-4 text-accent-foreground" />
+                    </div>
+                    <div className="flex flex-col">
+                      <Label className="text-sm font-bold">Broadcast to Duniya</Label>
+                      <p className="text-[10px] text-muted-foreground">Public directory visibility.</p>
+                    </div>
+                  </div>
+                  <Switch checked={isBroadcasted} onCheckedChange={setIsBroadcasted} />
+                </div>
+
+                {isBroadcasted && (
+                  <div className="pt-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <Label className="text-[10px] uppercase font-bold text-muted-foreground mb-1.5 block">Broadcast Duration</Label>
+                    <Select value={broadcastDuration} onValueChange={setBroadcastDuration}>
+                      <SelectTrigger className="w-full bg-white h-9 text-xs">
+                        <Clock className="h-3 w-3 mr-2 text-primary" />
+                        <SelectValue placeholder="Select duration" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {BROADCAST_DURATIONS.map(d => (
+                          <SelectItem key={d.value} value={d.value} className="text-xs">
+                            {d.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-          
-          <div className="pt-2 space-y-3">
-            <div className="p-3 bg-primary/5 rounded-xl border border-primary/10">
-              <div className="flex items-center justify-between mb-1">
-                <Label className="text-[10px] text-primary uppercase font-bold tracking-wider">Join Code (5 Digits)</Label>
-                <Button 
-                  type="button" 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-6 w-6 text-primary" 
-                  onClick={copyCode}
-                >
-                  {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                </Button>
-              </div>
-              <div className="text-2xl font-black tracking-[0.5em] text-center font-mono py-2 bg-white rounded-lg border border-primary/20">
-                {server?.joinCode || "-----"}
+              
+              <div className="pt-2 space-y-3">
+                <div className="p-3 bg-primary/5 rounded-xl border border-primary/10">
+                  <div className="flex items-center justify-between mb-1">
+                    <Label className="text-[10px] text-primary uppercase font-bold tracking-wider">Join Code (5 Digits)</Label>
+                    <Button 
+                      type="button" 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-6 w-6 text-primary" 
+                      onClick={copyCode}
+                    >
+                      {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                    </Button>
+                  </div>
+                  <div className="text-2xl font-black tracking-[0.5em] text-center font-mono py-2 bg-white rounded-lg border border-primary/20">
+                    {server?.joinCode || "-----"}
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
+          </ScrollArea>
 
-          <DialogFooter className="pt-2">
+          <DialogFooter className="p-6 pt-2 shrink-0 border-t mt-auto">
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
             <Button type="submit" disabled={isLoading || !name.trim()}>
               {isLoading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
