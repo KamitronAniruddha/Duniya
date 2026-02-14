@@ -43,10 +43,15 @@ export default function ConnectVerseApp() {
 
   // Optimized notification listener management
   useEffect(() => {
-    if (!db || !activeServerId || !user || !hasLoadedInitialData.current) {
-      // Cleanup all inner listeners if server becomes inactive
+    // Explicitly cleanup all listeners if conditions aren't met
+    const cleanupAll = () => {
       channelUnsubsRef.current.forEach(unsub => unsub());
       channelUnsubsRef.current.clear();
+      lastMessageIdsRef.current = {};
+    };
+
+    if (!db || !activeServerId || !user || isDuniyaActive) {
+      cleanupAll();
       return;
     }
 
@@ -60,6 +65,7 @@ export default function ConnectVerseApp() {
         if (!currentChannelIdsInSnapshot.includes(id)) {
           unsub();
           channelUnsubsRef.current.delete(id);
+          delete lastMessageIdsRef.current[id];
         }
       });
 
@@ -77,8 +83,9 @@ export default function ConnectVerseApp() {
 
           const unsubMsg = onSnapshot(messagesQuery, async (msgSnapshot) => {
             if (msgSnapshot.empty) return;
-            const lastMsg = msgSnapshot.docs[0].data();
-            const lastMsgId = msgSnapshot.docs[0].id;
+            const lastMsgDoc = msgSnapshot.docs[0];
+            const lastMsg = lastMsgDoc.data();
+            const lastMsgId = lastMsgDoc.id;
 
             // Only notify if:
             // - It's not our message
@@ -101,6 +108,7 @@ export default function ConnectVerseApp() {
                 action: (
                   <Button 
                     size="sm" 
+                    variant="outline"
                     onClick={() => {
                       setActiveChannelId(channelId);
                       dismiss();
@@ -117,14 +125,15 @@ export default function ConnectVerseApp() {
           channelUnsubsRef.current.set(channelId, unsubMsg);
         }
       });
+    }, (err) => {
+      console.error("Channel listener error:", err);
     });
 
     return () => {
       unsubChannels();
-      channelUnsubsRef.current.forEach(unsub => unsub());
-      channelUnsubsRef.current.clear();
+      cleanupAll();
     };
-  }, [db, activeServerId, user, activeChannelId, toast]);
+  }, [db, activeServerId, user, activeChannelId, toast, isDuniyaActive]);
 
   // Monitor membership changes (Access Revoked / New Members)
   useEffect(() => {
@@ -289,7 +298,7 @@ export default function ConnectVerseApp() {
               />
               
               {showMembers && activeServerId && (
-                <div className="hidden lg:block h-full border-l">
+                <div className="hidden lg:block h-full border-l shadow-2xl">
                   <MembersPanel serverId={activeServerId} />
                 </div>
               )}

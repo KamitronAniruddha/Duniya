@@ -100,15 +100,15 @@ export function ServerSettingsDialog({ open, onOpenChange, serverId }: ServerSet
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] flex flex-col max-h-[90dvh] p-0 overflow-hidden">
+      <DialogContent className="sm:max-w-[425px] flex flex-col h-[90vh] max-h-[600px] p-0 overflow-hidden">
         <DialogHeader className="p-6 pb-2 shrink-0">
           <DialogTitle>Server Settings</DialogTitle>
           <DialogDescription>Manage your community details and discovery.</DialogDescription>
         </DialogHeader>
         
         <form onSubmit={handleUpdate} className="flex flex-col flex-1 overflow-hidden">
-          <ScrollArea className="flex-1 px-6">
-            <div className="space-y-4 py-2">
+          <ScrollArea className="flex-1">
+            <div className="space-y-4 px-6 py-2 pb-6">
               <div className="space-y-2">
                 <Label htmlFor="sname">Server Name</Label>
                 <div className="relative">
@@ -184,7 +184,7 @@ export function ServerSettingsDialog({ open, onOpenChange, serverId }: ServerSet
             </div>
           </ScrollArea>
 
-          <DialogFooter className="p-6 pt-2 shrink-0 border-t mt-auto">
+          <DialogFooter className="p-6 pt-2 shrink-0 border-t mt-auto bg-white z-10">
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
             <Button type="submit" disabled={isLoading || !name.trim()}>
               {isLoading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
