@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -38,6 +37,7 @@ export default function ConnectVerseApp() {
     const userRef = doc(db, "users", user.uid);
     
     const updateStatus = (status: "online" | "idle" | "offline") => {
+      // Only write if we have an auth session to prevent permission errors on logout
       if (!auth.currentUser) return;
       
       setDocumentNonBlocking(userRef, {
