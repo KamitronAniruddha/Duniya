@@ -4,10 +4,18 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, SendHorizontal, Smile } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface MessageInputProps {
   onSendMessage: (content: string) => void;
 }
+
+const COMMON_EMOJIS = [
+  "😀", "😂", "🤣", "😊", "😍", "🥰", "🥳", "😎", "🤔", "🤨",
+  "👍", "👎", "🙌", "👏", "🔥", "✨", "❤️", "💔", "💯", "🎉",
+  "🚀", "💡", "💻", "🎮", "🍕", "🍔", "☕️", "🍺", "🌈", "☀️",
+  "🌙", "⚡️", "❄️", "🎈", "🎁", "📍", "🔔", "✅", "❌", "💬"
+];
 
 export function MessageInput({ onSendMessage }: MessageInputProps) {
   const [text, setText] = useState("");
@@ -18,6 +26,10 @@ export function MessageInput({ onSendMessage }: MessageInputProps) {
       onSendMessage(text);
       setText("");
     }
+  };
+
+  const addEmoji = (emoji: string) => {
+    setText(prev => prev + emoji);
   };
 
   return (
@@ -40,9 +52,32 @@ export function MessageInput({ onSendMessage }: MessageInputProps) {
               }
             }}
           />
-          <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary hidden sm:block">
-            <Smile className="h-4 w-4" />
-          </button>
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center">
+            <Popover>
+              <PopoverTrigger asChild>
+                <button 
+                  type="button" 
+                  className="text-muted-foreground hover:text-primary transition-colors p-1"
+                >
+                  <Smile className="h-4 w-4" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent side="top" align="end" className="w-64 p-2">
+                <div className="grid grid-cols-8 gap-1">
+                  {COMMON_EMOJIS.map((emoji) => (
+                    <button
+                      key={emoji}
+                      type="button"
+                      onClick={() => addEmoji(emoji)}
+                      className="text-lg hover:bg-gray-100 rounded p-1 transition-colors flex items-center justify-center"
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
         </div>
 
         <Button 
