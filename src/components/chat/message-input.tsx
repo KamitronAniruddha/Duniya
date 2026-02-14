@@ -207,24 +207,47 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
         {(isRecording || isRecordingVideo) ? (
           <div className="flex items-center gap-4 max-w-5xl mx-auto bg-gray-50 p-2 rounded-xl animate-in fade-in zoom-in-95">
             {isRecordingVideo && (
-              <div className="h-16 w-16 rounded-full overflow-hidden border-2 border-primary bg-black shrink-0 relative">
-                <video ref={videoRef} autoPlay muted playsInline className="h-full w-full object-cover scale-x-[-1]" />
-                <div className="absolute top-1 right-1 h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+              <div className="h-24 w-24 rounded-full overflow-hidden border-4 border-primary bg-black shrink-0 relative shadow-lg">
+                <video 
+                  ref={videoRef} 
+                  autoPlay 
+                  muted 
+                  playsInline 
+                  className="h-full w-full object-cover scale-x-[-1]" 
+                />
+                <div className="absolute inset-0 border-[6px] border-white/10 pointer-events-none rounded-full" />
+                <div className="absolute top-2 right-2 h-3 w-3 rounded-full bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
               </div>
             )}
-            <div className="flex items-center gap-2 px-3 py-1 bg-red-50 text-red-500 rounded-full">
-              <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
-              <span className="text-xs font-mono font-bold">{formatTime(recordingTime)}</span>
-            </div>
-            <div className="flex-1 text-sm text-muted-foreground font-medium italic">
-              {isRecordingVideo ? "Recording circular video..." : "Recording high-quality audio..."}
+            <div className="flex-1 flex flex-col gap-1">
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 px-3 py-1 bg-red-50 text-red-500 rounded-full w-fit">
+                  <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+                  <span className="text-xs font-mono font-bold">{formatTime(recordingTime)}</span>
+                </div>
+                <span className="text-sm font-semibold text-primary">
+                  {isRecordingVideo ? "Video Message" : "Audio Message"}
+                </span>
+              </div>
+              <div className="text-xs text-muted-foreground font-medium italic">
+                {isRecordingVideo ? "Recording your circle Verse..." : "Recording clear audio..."}
+              </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-destructive" onClick={cancelRecording}>
-                <Trash2 className="h-4 w-4" />
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-10 w-10 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full" 
+                onClick={cancelRecording}
+              >
+                <Trash2 className="h-5 w-5" />
               </Button>
-              <Button size="icon" className="h-10 w-10 rounded-xl bg-red-500 hover:bg-red-600 shadow-md text-white" onClick={stopRecording}>
-                <Square className="h-4 w-4 fill-current" />
+              <Button 
+                size="icon" 
+                className="h-12 w-12 rounded-full bg-red-500 hover:bg-red-600 shadow-lg text-white transition-transform hover:scale-105" 
+                onClick={stopRecording}
+              >
+                <Square className="h-5 w-5 fill-current" />
               </Button>
             </div>
           </div>
@@ -290,11 +313,11 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
                 </Button>
               ) : (
                 <>
-                  <Button type="button" variant="ghost" size="icon" onClick={startVideoRecording} className="rounded-xl h-10 w-10 shrink-0 text-muted-foreground hover:bg-primary/10 hover:text-primary">
-                    <Video className="h-4 w-4" />
+                  <Button type="button" variant="ghost" size="icon" onClick={startVideoRecording} className="rounded-xl h-10 w-10 shrink-0 text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors">
+                    <Video className="h-5 w-5" />
                   </Button>
-                  <Button type="button" size="icon" onClick={startRecording} className="rounded-xl h-10 w-10 shrink-0 bg-gray-100 text-muted-foreground hover:bg-primary hover:text-white transition-all">
-                    <Mic className="h-4 w-4" />
+                  <Button type="button" size="icon" onClick={startRecording} className="rounded-xl h-10 w-10 shrink-0 bg-gray-100 text-muted-foreground hover:bg-primary hover:text-white transition-all shadow-sm">
+                    <Mic className="h-5 w-5" />
                   </Button>
                 </>
               )}

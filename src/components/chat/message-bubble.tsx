@@ -125,7 +125,7 @@ export function MessageBubble({ message, channelId, isMe, onReply, onQuoteClick 
     if (!db || !channelId || !message.id) return;
     const msgRef = doc(db, "messages", channelId, "chatMessages", message.id);
     
-    // Using deleteField() to permanently remove media data from the server
+    // Using deleteField() to permanently remove media data from the server forever
     updateDocumentNonBlocking(msgRef, {
       isDeleted: true,
       text: "This message was deleted",
@@ -272,7 +272,7 @@ export function MessageBubble({ message, channelId, isMe, onReply, onQuoteClick 
               </div>
             </div>
           ) : message.type === 'video' && message.videoUrl ? (
-            <div className="relative group/video overflow-hidden rounded-full aspect-square w-64 md:w-80 shadow-inner bg-black">
+            <div className="relative group/video overflow-hidden rounded-full aspect-square w-64 md:w-80 shadow-inner bg-black border-4 border-white/10">
               <video 
                 ref={videoRef}
                 src={message.videoUrl} 
@@ -284,7 +284,7 @@ export function MessageBubble({ message, channelId, isMe, onReply, onQuoteClick 
                 onClick={toggleVideoPlay}
               />
               <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/video:opacity-100 transition-opacity bg-black/20 pointer-events-none">
-                 {isVideoPlaying ? <Volume2 className="h-8 w-8 text-white drop-shadow-lg" /> : <Ban className="h-8 w-8 text-white drop-shadow-lg" />}
+                 {isVideoPlaying ? <Volume2 className="h-8 w-8 text-white drop-shadow-lg" /> : <Play className="h-8 w-8 text-white drop-shadow-lg" />}
               </div>
               {!isVideoPlaying && (
                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/40 backdrop-blur-sm px-3 py-1 rounded-full text-[10px] text-white font-bold flex items-center gap-2">
