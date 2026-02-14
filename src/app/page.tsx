@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -10,7 +11,7 @@ import { AdminDashboard } from "@/components/admin/admin-dashboard";
 import { useUser, useFirestore, useMemoFirebase, useAuth, useDoc } from "@/firebase";
 import { doc } from "firebase/firestore";
 import { Loader2, Menu, Heart } from "lucide-react";
-import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 
@@ -31,17 +32,19 @@ export default function DuniyaApp() {
   const userRef = useMemoFirebase(() => (user ? doc(db, "users", user.uid) : null), [db, user?.uid]);
   const { data: userData } = useDoc(userRef);
 
-  // Presence logic
+  // Presence logic - using setDocumentNonBlocking with merge: true to avoid "not found" errors for new users
   useEffect(() => {
     if (!user || !db || !auth.currentUser) return;
 
     const userRef = doc(db, "users", user.uid);
     const updateStatus = (status: "online" | "idle" | "offline") => {
       if (!auth.currentUser) return;
-      updateDocumentNonBlocking(userRef, {
+      // Using setDocumentNonBlocking with merge: true is safer than updateDocumentNonBlocking
+      // because it will create the document if it doesn't exist yet (common right after signup)
+      setDocumentNonBlocking(userRef, {
         onlineStatus: status,
         lastOnlineAt: new Date().toISOString()
-      });
+      }, { merge: true });
     };
 
     updateStatus("online");

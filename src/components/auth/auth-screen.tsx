@@ -1,9 +1,10 @@
+
 "use client";
 
 import { useState } from "react";
-import { useAuth, useFirestore, errorEmitter, FirestorePermissionError } from "@/firebase";
+import { useAuth, useFirestore } from "@/firebase";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from "firebase/auth";
-import { doc, getDocs, collection, query, where, serverTimestamp, limit } from "firebase/firestore";
+import { doc, getDocs, collection, query, where, limit } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -61,18 +62,22 @@ export function AuthScreen() {
           photoURL: "" 
         });
 
-        // 4. Create Firestore user document
+        // 4. Create Firestore user document with all required schema fields
         const userRef = doc(db, "users", user.uid);
         const userData = {
           id: user.uid,
+          displayName: username.trim(), // Required field from backend.json
           username: cleanUsername,
           email: cleanEmail,
           photoURL: "",
+          avatarUrl: "",
           bio: "Welcome to Duniya!",
           createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
           onlineStatus: "online",
-          lastSeen: new Date().toISOString(),
-          friends: [],
+          lastOnlineAt: new Date().toISOString(),
+          isAdmin: cleanEmail === "aniruddha@duniya.app", // Set admin flag based on email
+          isBlocked: false,
           serverIds: []
         };
         
