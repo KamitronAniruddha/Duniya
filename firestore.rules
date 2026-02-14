@@ -23,6 +23,7 @@ service cloud.firestore {
     // --- COLLECTION RULES ---
 
     match /users/{userId} {
+      // Allow list and get for everyone to facilitate username checks and profile viewing
       allow get, list: if true; 
       allow create: if isOwner(userId);
       allow update: if isOwner(userId) || isAdmin();
@@ -62,10 +63,6 @@ service cloud.firestore {
       allow list, get: if isSignedIn();
       allow create: if isSignedIn();
       
-      // Allow update if:
-      // 1. User is the owner or a community admin
-      // 2. User is a global admin
-      // 3. User is joining (only updating members array with their own UID)
       allow update: if isSignedIn() && (
         resource.data.ownerId == request.auth.uid || 
         (resource.data.admins != null && request.auth.uid in resource.data.admins) ||
@@ -78,17 +75,16 @@ service cloud.firestore {
 
       match /members/{userId} {
         allow read: if isSignedIn();
-        // Allow write if you are managing your own membership or you are a community admin/owner
         allow write: if isSignedIn() && (
           isOwner(userId) || 
           get(/databases/$(database)/documents/communities/$(communityId)).data.ownerId == request.auth.uid ||
+          (get(/databases/$(database)/documents/communities/$(communityId)).data.admins != null && request.auth.uid in get(/databases/$(database)/documents/communities/$(communityId)).data.admins) ||
           isAdmin()
         );
       }
 
       match /channels/{channelId} {
         allow read: if isSignedIn();
-        // Allow management if owner/admin
         allow write: if isSignedIn();
 
         match /messages/{messageId} {

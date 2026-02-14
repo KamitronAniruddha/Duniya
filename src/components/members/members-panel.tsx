@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useCollection, useFirestore, useDoc, useMemoFirebase, useUser } from "@/firebase";
-import { collection, query, where, doc, getDocs, arrayUnion, arrayRemove, limit } from "firebase/firestore";
+import { collection, query, where, doc, getDocs, arrayUnion, arrayRemove, limit, deleteDoc } from "firebase/firestore";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ShieldCheck, Loader2, UserPlus, Check, AlertCircle, UserMinus, Shield, Search, X } from "lucide-react";
@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { cn } from "@/lib/utils";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { UserProfilePopover } from "@/components/profile/user-profile-popover";
@@ -138,10 +138,19 @@ export function MembersPanel({ serverId }: MembersPanelProps) {
     if (!db || !server || !serverRef) return;
 
     try {
+      // 1. Update the community document to remove from members and admins array
       updateDocumentNonBlocking(serverRef, {
         members: arrayRemove(targetUserId),
         admins: arrayRemove(targetUserId)
       });
+
+      // 2. Delete the member document in the subcollection
+      const memberDocRef = doc(db, "communities", serverId, "members", targetUserId);
+      deleteDocumentNonBlocking(memberDocRef);
+
+      // NOTE: We do NOT update the target user's private "users" document because 
+      // community admins don't have permission to write to other users' profiles.
+      // The community's "members" array is the source of truth.
 
       toast({ 
         title: "Member Removed", 
@@ -157,7 +166,7 @@ export function MembersPanel({ serverId }: MembersPanelProps) {
   };
 
   const handleToggleAdmin = (targetUserId: string, isAdmin: boolean) => {
-    if (!db || !server || !isOwner || !serverRef) return;
+    if (!db || !server || !serverRef) return;
 
     try {
       updateDocumentNonBlocking(serverRef, {
