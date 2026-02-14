@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useRef, useEffect, useState, useMemo } from "react";
@@ -5,12 +6,13 @@ import { useCollection, useFirestore, useUser, useDoc, useMemoFirebase } from "@
 import { collection, query, orderBy, limit, doc, serverTimestamp, getDoc, Timestamp } from "firebase/firestore";
 import { MessageBubble } from "./message-bubble";
 import { MessageInput } from "./message-input";
-import { Hash, Phone, Video, Users, Loader2, MessageCircle, Timer, Settings2, Heart } from "lucide-react";
+import { Hash, Phone, Video, Users, Loader2, MessageCircle, Timer, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DisappearingMessagesDialog } from "@/components/servers/disappearing-messages-dialog";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 interface ChatWindowProps {
   channelId: string | null;
@@ -56,22 +58,15 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
     return server.ownerId === user.uid || server.admins?.includes(user.uid);
   }, [server, user]);
 
-  // Filter messages that the user has "Deleted for me" AND messages that have expired
   const messages = useMemo(() => {
     if (!rawMessages || !user) return [];
-    
     const now = Date.now();
-    
     return rawMessages.filter(msg => {
-      // Filter out manually deleted messages
       if (msg.deletedBy?.includes(user.uid)) return false;
-      
-      // Filter out expired disappearing messages
       if (msg.expiresAt) {
         const expiryDate = msg.expiresAt.toDate ? msg.expiresAt.toDate() : new Date(msg.expiresAt);
         if (expiryDate.getTime() < now) return false;
       }
-      
       return true;
     });
   }, [rawMessages, user?.uid]);
@@ -94,7 +89,6 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
       };
     }
 
-    // Handle Disappearing Messages logic
     let expiresAt = null;
     const duration = server?.disappearingMessagesDuration;
     if (duration && duration !== "off") {
@@ -128,9 +122,9 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
     const element = document.getElementById(`message-${messageId}`);
     if (element) {
       element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      element.classList.add('bg-primary/10');
+      element.classList.add('bg-primary/20');
       setTimeout(() => {
-        element.classList.remove('bg-primary/10');
+        element.classList.remove('bg-primary/20');
       }, 2000);
     }
   };
@@ -147,21 +141,21 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
 
   if (!serverId) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 h-full p-6">
-        <div className="text-center max-w-sm flex flex-col items-center">
-          <div className="w-20 h-20 bg-primary/10 rounded-3xl mb-6 flex items-center justify-center">
-            <MessageCircle className="h-10 w-10 text-primary" />
+      <div className="flex-1 flex flex-col items-center justify-center bg-background h-full p-6">
+        <div className="text-center max-w-sm flex flex-col items-center animate-in fade-in zoom-in duration-500">
+          <div className="w-24 h-24 bg-primary/10 rounded-full mb-6 flex items-center justify-center shadow-inner">
+            <MessageCircle className="h-12 w-12 text-primary" />
           </div>
-          <h2 className="text-2xl font-black mb-2 flex items-center justify-center gap-2">
-            Karo Chutiyapaa <Heart className="h-6 w-6 text-red-500 fill-current animate-pulse" />
+          <h2 className="text-3xl font-black mb-2 flex items-center justify-center gap-2 tracking-tighter">
+            Karo Chutiyapaa <Heart className="h-8 w-8 text-red-500 fill-red-500 animate-pulse" />
           </h2>
-          <p className="text-muted-foreground text-sm mb-8">
-            Select a server from the left to start chatting, or explore Duniya.
+          <p className="text-muted-foreground text-sm mb-12 font-medium">
+            Select a community from the left to start chatting, or explore the Duniya directory.
           </p>
           
-          <div className="mt-4 flex items-center gap-1.5 text-muted-foreground/40 text-[10px] font-bold uppercase tracking-widest">
+          <div className="flex items-center gap-2 text-muted-foreground/40 text-[10px] font-black uppercase tracking-[0.3em]">
             <span>Made by Aniruddha with love</span>
-            <Heart className="h-2.5 w-2.5 text-red-400 fill-current" />
+            <Heart className="h-2.5 w-2.5 text-red-500 fill-red-500" />
           </div>
         </div>
       </div>
@@ -169,10 +163,12 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
   }
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-white overflow-hidden relative min-w-0">
-      <header className="h-14 border-b flex items-center justify-between px-4 shrink-0 bg-white z-10">
-        <div className="flex items-center gap-2 min-w-0">
-          <Hash className="h-5 w-5 text-muted-foreground shrink-0" />
+    <div className="flex-1 flex flex-col h-full bg-background overflow-hidden relative min-w-0">
+      <header className="h-14 border-b flex items-center justify-between px-4 shrink-0 bg-background/80 backdrop-blur-md z-10">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="p-1.5 bg-muted rounded-lg">
+            <Hash className="h-5 w-5 text-muted-foreground shrink-0" />
+          </div>
           <h2 className="font-bold text-sm truncate">{channel?.name || "..."}</h2>
           
           <TooltipProvider>
@@ -185,7 +181,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
                     "h-7 px-2 gap-1.5 rounded-full text-[10px] font-bold uppercase transition-all",
                     server?.disappearingMessagesDuration && server.disappearingMessagesDuration !== "off"
                       ? "bg-primary/10 text-primary hover:bg-primary/20"
-                      : "text-muted-foreground hover:bg-gray-100"
+                      : "text-muted-foreground hover:bg-muted"
                   )}
                   onClick={() => isAdmin && setIsDisappearingDialogOpen(true)}
                   disabled={!isAdmin && (!server?.disappearingMessagesDuration || server.disappearingMessagesDuration === "off")}
@@ -208,13 +204,14 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
         </div>
         
         <div className="flex items-center gap-1">
+          <ThemeToggle />
+          <div className="w-px h-4 bg-border mx-1" />
           <Button variant="ghost" size="icon" className="h-8 w-8 hidden sm:inline-flex">
             <Phone className="h-4 w-4 text-muted-foreground" />
           </Button>
           <Button variant="ghost" size="icon" className="h-8 w-8 hidden sm:inline-flex">
             <Video className="h-4 w-4 text-muted-foreground" />
           </Button>
-          <div className="hidden sm:block w-px h-4 bg-border mx-1" />
           <Button 
             variant={showMembers ? "secondary" : "ghost"} 
             size="icon" 
@@ -228,7 +225,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
 
       <div 
         ref={scrollRef} 
-        className="flex-1 overflow-y-auto scroll-smooth custom-scrollbar bg-gray-50/30 min-h-0"
+        className="flex-1 overflow-y-auto scroll-smooth custom-scrollbar bg-muted/20 min-h-0"
       >
         <div className="p-4 flex flex-col gap-1 min-h-full">
           <div className="flex-1" />
@@ -238,10 +235,14 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
               <Loader2 className="h-6 w-6 animate-spin text-primary/50" />
             </div>
           ) : messages?.length === 0 ? (
-            <div className="py-20 text-center space-y-2 opacity-50 flex flex-col items-center">
-              <Hash className="h-12 w-12 mx-auto text-primary" />
-              <h3 className="font-bold">Welcome to #{channel?.name}</h3>
-              <p className="text-xs">This is the start of your community story.</p>
+            <div className="py-20 text-center space-y-4 opacity-50 flex flex-col items-center animate-in fade-in slide-in-from-bottom-4">
+              <div className="p-4 bg-primary/10 rounded-full">
+                <Hash className="h-10 w-10 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-bold text-lg">Welcome to #{channel?.name}</h3>
+                <p className="text-xs max-w-[200px] mx-auto">This is the very beginning of your community story. Send a message to get started!</p>
+              </div>
             </div>
           ) : (
             messages?.map((msg) => (
@@ -262,7 +263,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
         </div>
       </div>
 
-      <div className="shrink-0 bg-white border-t">
+      <div className="shrink-0 bg-background border-t">
         <MessageInput 
           onSendMessage={handleSendMessage} 
           inputRef={inputRef}

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -8,9 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { MessageSquare, Loader2, Heart } from "lucide-react";
+import { Loader2, Heart } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { Logo } from "@/components/logo";
 
 export function AuthScreen() {
   const auth = useAuth();
@@ -59,7 +61,7 @@ export function AuthScreen() {
         const userCredential = await createUserWithEmailAndPassword(auth, cleanEmail, password);
         const user = userCredential.user;
 
-        // 3. Update Auth profile (Initial empty photoURL for fallback)
+        // 3. Update Auth profile
         await updateProfile(user, { 
           displayName: username.trim(),
           photoURL: "" 
@@ -94,17 +96,17 @@ export function AuthScreen() {
   };
 
   return (
-    <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-gray-50 p-4">
-      <Card className="w-full max-w-md shadow-xl border-none">
+    <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-md shadow-2xl border-none bg-card">
         <CardHeader className="space-y-1 text-center">
-          <div className="flex justify-center mb-4">
-            <div className="p-3 bg-primary rounded-2xl shadow-lg shadow-primary/20">
-              <MessageSquare className="h-8 w-8 text-white" />
+          <div className="flex justify-center mb-6">
+            <div className="p-4 bg-primary/10 rounded-3xl shadow-inner">
+              <Logo size={48} />
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold tracking-tight text-foreground">Duniya</CardTitle>
-          <CardDescription>
-            {isLogin ? "Welcome back! Enter your credentials" : "Join the modern communication era"}
+          <CardTitle className="text-3xl font-black tracking-tighter text-foreground">Duniya</CardTitle>
+          <CardDescription className="text-sm font-medium">
+            {isLogin ? "Welcome back to the Verse" : "Join the modern community platform"}
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
@@ -119,7 +121,7 @@ export function AuthScreen() {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   disabled={isLoading}
-                  className="bg-gray-50/50"
+                  className="bg-muted/50 border-none h-11"
                 />
               </div>
             )}
@@ -133,7 +135,7 @@ export function AuthScreen() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={isLoading}
-                className="bg-gray-50/50"
+                className="bg-muted/50 border-none h-11"
               />
             </div>
             <div className="space-y-2">
@@ -145,7 +147,7 @@ export function AuthScreen() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={isLoading}
-                className="bg-gray-50/50"
+                className="bg-muted/50 border-none h-11"
               />
             </div>
             {!isLogin && (
@@ -158,18 +160,18 @@ export function AuthScreen() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   disabled={isLoading}
-                  className="bg-gray-50/50"
+                  className="bg-muted/50 border-none h-11"
                 />
               </div>
             )}
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
-            <Button type="submit" className="w-full h-12 text-md font-semibold rounded-xl" disabled={isLoading}>
+            <Button type="submit" className="w-full h-12 text-md font-bold rounded-xl shadow-lg shadow-primary/20" disabled={isLoading}>
               {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : (isLogin ? "Sign In" : "Create Account")}
             </Button>
             <button 
               type="button"
-              className="text-sm text-primary hover:underline font-medium"
+              className="text-sm text-primary hover:underline font-bold"
               onClick={() => setIsLogin(!isLogin)}
               disabled={isLoading}
             >
@@ -179,9 +181,9 @@ export function AuthScreen() {
         </form>
       </Card>
       
-      <div className="mt-8 flex items-center gap-1.5 text-muted-foreground/60 text-xs font-medium uppercase tracking-widest animate-in fade-in slide-in-from-bottom-2 duration-700">
+      <div className="mt-8 flex items-center gap-2 text-muted-foreground/40 text-[10px] font-black uppercase tracking-[0.2em] animate-in fade-in slide-in-from-bottom-2 duration-1000">
         <span>Made by Aniruddha with love</span>
-        <Heart className="h-3 w-3 text-red-400 fill-current animate-pulse" />
+        <Heart className="h-2.5 w-2.5 text-red-500 fill-red-500 animate-pulse" />
       </div>
     </div>
   );

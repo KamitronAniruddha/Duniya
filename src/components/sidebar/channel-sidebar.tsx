@@ -1,9 +1,10 @@
+
 "use client";
 
 import { useState } from "react";
 import { useCollection, useFirestore, useUser, useDoc, useMemoFirebase, useAuth } from "@/firebase";
 import { collection, query, where, doc, serverTimestamp } from "firebase/firestore";
-import { Hash, Settings, ChevronDown, LogOut, Loader2, Plus, Users, Check, Edit2, Copy, Share2, Timer, Heart } from "lucide-react";
+import { Hash, Settings, ChevronDown, LogOut, Loader2, Plus, Edit2, Copy, Share2, Timer, Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -97,12 +98,12 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
   };
 
   return (
-    <aside className="w-60 bg-white border-r border-border flex flex-col h-full overflow-hidden shrink-0">
+    <aside className="w-60 bg-card border-r border-border flex flex-col h-full overflow-hidden shrink-0">
       {serverId ? (
         <>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <header className="h-14 px-4 border-b flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer shrink-0">
+              <header className="h-14 px-4 border-b flex items-center justify-between hover:bg-muted/50 transition-colors cursor-pointer shrink-0">
                 <div className="flex flex-col min-w-0">
                   <h2 className="font-bold truncate text-sm">{server?.name || "..."}</h2>
                   {server?.joinCode && <span className="text-[9px] text-primary font-mono font-bold tracking-widest uppercase">Code: {server.joinCode}</span>}
@@ -167,8 +168,8 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
                           className={cn(
                             "flex-1 flex items-center px-2 py-1.5 rounded-md text-sm transition-all",
                             c.id === activeChannelId 
-                              ? "bg-primary/10 text-primary font-semibold" 
-                              : "text-muted-foreground hover:bg-gray-100"
+                              ? "bg-primary/10 text-primary font-bold" 
+                              : "text-muted-foreground hover:bg-muted/50"
                           )}
                         >
                           <Hash className="h-4 w-4 mr-2" />
@@ -195,11 +196,11 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
       ) : (
         <div className="flex-1 flex flex-col items-center justify-center p-6 text-center opacity-50">
           <Settings className="h-8 w-8 mb-4 text-muted-foreground" />
-          <p className="text-xs">Select a server to view channels</p>
+          <p className="text-xs">Select a community to view channels</p>
         </div>
       )}
 
-      <div className="p-3 bg-gray-50 border-t flex flex-col gap-3 shrink-0">
+      <div className="p-3 bg-muted/30 border-t flex flex-col gap-3 shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 min-w-0">
             <div className="relative">
@@ -210,8 +211,8 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
                 </AvatarFallback>
               </Avatar>
               <div className={cn(
-                "absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white",
-                userData?.onlineStatus === "online" ? "bg-green-500" : "bg-gray-300"
+                "absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-background",
+                userData?.onlineStatus === "online" ? "bg-green-500" : "bg-muted-foreground/30"
               )} />
             </div>
             <div className="flex flex-col min-w-0">
@@ -224,15 +225,15 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
               <Settings className="h-3.5 w-3.5" />
             </Button>
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleLogout}>
-              <LogOut className="h-3.5 w-3.5 text-red-400" />
+              <LogOut className="h-3.5 w-3.5 text-destructive" />
             </Button>
           </div>
         </div>
         
-        <div className="flex flex-col items-center gap-1 opacity-40 hover:opacity-60 transition-opacity">
-          <div className="flex items-center gap-1 text-[8px] font-black uppercase tracking-[0.2em]">
+        <div className="flex flex-col items-center gap-1 opacity-40 hover:opacity-100 transition-all duration-300">
+          <div className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.3em]">
             <span>Made by Aniruddha with love</span>
-            <Heart className="h-2 w-2 text-red-500 fill-current" />
+            <Heart className="h-2 w-2 text-red-500 fill-red-500 animate-pulse" />
           </div>
         </div>
       </div>
@@ -262,8 +263,7 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
           <DialogFooter>
             <Button variant="ghost" onClick={() => setCreateChannelOpen(false)}>Cancel</Button>
             <Button onClick={handleCreateChannel} disabled={isCreating || !newChannelName.trim()}>
-              {isCreating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Check className="h-4 w-4 mr-2" />}
-              Create
+              {isCreating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "Create"}
             </Button>
           </DialogFooter>
         </DialogContent>
