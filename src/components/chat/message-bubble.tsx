@@ -6,14 +6,17 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useDoc, useFirestore, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
 import { UserProfilePopover } from "@/components/profile/user-profile-popover";
-import { Reply, CornerDownRight } from "lucide-react";
+import { Reply, CornerDownRight, Play, Pause } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useState, useRef, useEffect } from "react";
 
 interface MessageBubbleProps {
   message: {
     id: string;
     senderId: string;
     text: string;
+    type?: string;
+    audioUrl?: string;
     createdAt: any;
     replyTo?: {
       messageId: string;
@@ -31,9 +34,45 @@ export function MessageBubble({ message, isMe, onReply, onQuoteClick }: MessageB
   const userRef = useMemoFirebase(() => doc(db, "users", message.senderId), [db, message.senderId]);
   const { data: sender } = useDoc(userRef);
 
-  const timestamp = message.createdAt?.toDate() 
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const timestamp = message.createdAt?.toDate
     ? message.createdAt.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     : "";
+
+  const togglePlay = () => {
+    if (!audioRef.current) return;
+    if (isPlaying) {
+      audioRef.current.pause();
+    } else {
+      audioRef.current.play();
+    }
+    setIsPlaying(!isPlaying);
+  };
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const handleTimeUpdate = () => {
+      setProgress((audio.currentTime / audio.duration) * 100);
+    };
+
+    const handleEnded = () => {
+      setIsPlaying(false);
+      setProgress(0);
+    };
+
+    audio.addEventListener('timeupdate', handleTimeUpdate);
+    audio.addEventListener('ended', handleEnded);
+
+    return () => {
+      audio.removeEventListener('timeupdate', handleTimeUpdate);
+      audio.removeEventListener('ended', handleEnded);
+    };
+  }, []);
 
   return (
     <div 
@@ -71,7 +110,7 @@ export function MessageBubble({ message, isMe, onReply, onQuoteClick }: MessageB
             ? "bg-primary text-primary-foreground rounded-br-none" 
             : "bg-white text-foreground rounded-bl-none border border-border"
         )}>
-          {/* Reply Reference (Quoted Message) */}
+          {/* Reply Reference */}
           {message.replyTo && (
             <button 
               onClick={() => onQuoteClick?.(message.replyTo!.messageId)}
@@ -96,7 +135,45 @@ export function MessageBubble({ message, isMe, onReply, onQuoteClick }: MessageB
             </button>
           )}
 
-          <p className="whitespace-pre-wrap break-words leading-relaxed">{message.text}</p>
+          {message.type === 'voice' && message.audioUrl ? (
+            <div className="flex items-center gap-3 py-1 min-w-[180px]">
+              <audio ref={audioRef} src={message.audioUrl} />
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className={cn(
+                  "h-8 w-8 rounded-full shrink-0",
+                  isMe ? "text-white hover:bg-white/20" : "text-primary hover:bg-primary/10"
+                )}
+                onClick={togglePlay}
+              >
+                {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 fill-current" />}
+              </Button>
+              <div className="flex-1 space-y-1">
+                <div className={cn(
+                  "h-1.5 w-full rounded-full overflow-hidden",
+                  isMe ? "bg-white/20" : "bg-gray-100"
+                )}>
+                  <div 
+                    className={cn(
+                      "h-full transition-all duration-300 ease-linear",
+                      isMe ? "bg-white" : "bg-primary"
+                    )} 
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+                <div className={cn(
+                  "text-[9px] font-mono",
+                  isMe ? "text-white/70" : "text-muted-foreground"
+                )}>
+                  Voice Message
+                </div>
+              </div>
+            </div>
+          ) : (
+            <p className="whitespace-pre-wrap break-words leading-relaxed">{message.text}</p>
+          )}
+
           <div className={cn(
             "text-[9px] mt-1 text-right leading-none opacity-70",
             isMe ? "text-primary-foreground" : "text-muted-foreground"
@@ -106,7 +183,6 @@ export function MessageBubble({ message, isMe, onReply, onQuoteClick }: MessageB
         </div>
       </div>
 
-      {/* Reply Action Button */}
       <div className={cn(
         "mb-2 mx-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center",
         isMe ? "mr-1" : "ml-1"

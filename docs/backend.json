@@ -55,6 +55,8 @@
         "id": { "type": "string" },
         "senderId": { "type": "string" },
         "text": { "type": "string" },
+        "type": { "type": "string", "enum": ["text", "voice"] },
+        "audioUrl": { "type": "string", "description": "Data URI for voice messages." },
         "createdAt": { "type": "string", "format": "date-time" },
         "edited": { "type": "boolean" },
         "reactions": { "type": "object" },
@@ -68,7 +70,7 @@
           }
         }
       },
-      "required": ["id", "senderId", "text", "createdAt"]
+      "required": ["id", "senderId", "createdAt"]
     }
   },
   "auth": {

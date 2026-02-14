@@ -40,14 +40,13 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
 
   const { data: messages, isLoading: messagesLoading } = useCollection(messagesQuery);
 
-  const handleSendMessage = async (text: string) => {
+  const handleSendMessage = async (text: string, audioUrl?: string) => {
     if (!db || !channelId || !user) return;
     
     const messageRef = doc(collection(db, "messages", channelId, "chatMessages"));
     
     let replyData = null;
     if (replyingTo) {
-      // Get the sender's username for the reply reference
       const senderRef = doc(db, "users", replyingTo.senderId);
       const senderSnap = await getDoc(senderRef);
       const senderName = senderSnap.exists() ? senderSnap.data().username : "Someone";
@@ -55,14 +54,16 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
       replyData = {
         messageId: replyingTo.id,
         senderName: senderName,
-        text: replyingTo.text.length > 100 ? replyingTo.text.substring(0, 100) + "..." : replyingTo.text
+        text: replyingTo.text ? (replyingTo.text.length > 100 ? replyingTo.text.substring(0, 100) + "..." : replyingTo.text) : "Voice Message"
       };
     }
 
     setDocumentNonBlocking(messageRef, {
       id: messageRef.id,
       senderId: user.uid,
-      text,
+      text: audioUrl ? "" : text,
+      type: audioUrl ? "voice" : "text",
+      audioUrl: audioUrl || null,
       createdAt: serverTimestamp(),
       edited: false,
       seenBy: [user.uid],
@@ -77,7 +78,6 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
     const element = document.getElementById(`message-${messageId}`);
     if (element) {
       element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      // Brief highlight effect
       element.classList.add('bg-primary/10');
       setTimeout(() => {
         element.classList.remove('bg-primary/10');
