@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useCollection, useFirestore, useUser, useDoc, useMemoFirebase, useAuth } from "@/firebase";
 import { collection, query, where, doc, serverTimestamp, updateDoc } from "firebase/firestore";
-import { Hash, Settings, ChevronDown, LogOut, Loader2, Plus, Edit2, Copy, Share2, Timer, Heart, Link as LinkIcon, Sparkles } from "lucide-react";
+import { Hash, Settings, ChevronDown, LogOut, Loader2, Plus, Edit2, Copy, Share2, Timer, Heart, Link as LinkIcon, Sparkles, Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
