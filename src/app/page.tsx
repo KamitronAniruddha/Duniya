@@ -5,7 +5,6 @@ import { ServerSidebar } from "@/components/sidebar/server-sidebar";
 import { ChannelSidebar } from "@/components/sidebar/channel-sidebar";
 import { ChatWindow } from "@/components/chat/chat-window";
 import { AuthScreen } from "@/components/auth/auth-screen";
-import { AISuggestionPanel } from "@/components/ai/ai-suggestion-panel";
 import { useUser, useFirestore, useCollection, useMemoFirebase, useAuth } from "@/firebase";
 import { doc, serverTimestamp, collection, query, where } from "firebase/firestore";
 import { Loader2, Menu } from "lucide-react";
@@ -13,6 +12,10 @@ import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 
+/**
+ * Main application entry point for ConnectVerse.
+ * Manages server/channel selection and global layout with responsive sidebars.
+ */
 export default function ConnectVerseApp() {
   const { user, isUserLoading } = useUser();
   const db = useFirestore();
@@ -20,6 +23,7 @@ export default function ConnectVerseApp() {
   const [activeServerId, setActiveServerId] = useState<string | null>(null);
   const [activeChannelId, setActiveChannelId] = useState<string | null>(null);
 
+  // Fetch channels for the active server
   const channelsQuery = useMemoFirebase(() => {
     if (!db || !activeServerId) return null;
     return query(collection(db, "channels"), where("serverId", "==", activeServerId));
@@ -27,19 +31,21 @@ export default function ConnectVerseApp() {
 
   const { data: channels } = useCollection(channelsQuery);
 
+  // Auto-select first channel when switching servers
   useEffect(() => {
     if (channels && channels.length > 0 && !activeChannelId) {
       setActiveChannelId(channels[0].id);
     }
   }, [channels, activeChannelId]);
 
+  // Handle online presence tracking
   useEffect(() => {
     if (!user || !db || !auth.currentUser) return;
 
     const userRef = doc(db, "users", user.uid);
     
     const updateStatus = (status: "online" | "idle" | "offline") => {
-      // Final guard for unmount/logout race conditions
+      // Final guard for unmount/logout race conditions to avoid permission errors
       if (!auth.currentUser) return;
       
       setDocumentNonBlocking(userRef, {
@@ -88,7 +94,7 @@ export default function ConnectVerseApp() {
 
   return (
     <div className="flex h-[100dvh] w-full bg-background overflow-hidden selection:bg-primary/20">
-      {/* Desktop Sidebars */}
+      {/* Desktop Sidebars - Hidden on mobile/tablet breakpoints */}
       <div className="hidden md:flex shrink-0 h-full overflow-hidden border-r border-border">
         <ServerSidebar 
           activeServerId={activeServerId} 
@@ -104,9 +110,9 @@ export default function ConnectVerseApp() {
         />
       </div>
 
-      {/* Main Chat Area - min-h-0 is the secret to making internal scrolling work correctly */}
+      {/* Main Chat Area */}
       <main className="flex-1 flex flex-col min-w-0 h-full relative overflow-hidden bg-white">
-        {/* Mobile Header with Menu */}
+        {/* Mobile Header with Navigation Menu */}
         <div className="md:hidden p-2 border-b flex items-center gap-2 bg-white shrink-0">
           <Sheet>
             <SheetTrigger asChild>
@@ -138,7 +144,7 @@ export default function ConnectVerseApp() {
           <span className="font-bold text-sm truncate">ConnectVerse</span>
         </div>
         
-        {/* Container for the chat window - flex-1 and min-h-0 ensures it stays within parent bounds */}
+        {/* Chat window container - flex-1 and min-h-0 ensures it respects parent bounds for scrolling */}
         <div className="flex-1 min-h-0 overflow-hidden relative">
           <ChatWindow 
             channelId={activeChannelId}
@@ -146,11 +152,6 @@ export default function ConnectVerseApp() {
           />
         </div>
       </main>
-
-      {/* Desktop AI Panel */}
-      <div className="hidden lg:block shrink-0 h-full max-h-full">
-        <AISuggestionPanel channelId={activeChannelId} />
-      </div>
     </div>
   );
 }
