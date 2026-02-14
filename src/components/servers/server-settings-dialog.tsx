@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -41,7 +40,8 @@ const DISAPPEARING_OPTIONS = [
 export function ServerSettingsDialog({ open, onOpenChange, serverId }: ServerSettingsDialogProps) {
   const db = useFirestore();
   const { toast } = useToast();
-  const serverRef = useMemoFirebase(() => doc(db, "servers", serverId), [db, serverId]);
+  // Corrected path from 'servers' to 'communities'
+  const serverRef = useMemoFirebase(() => (serverId ? doc(db, "communities", serverId) : null), [db, serverId]);
   const { data: server } = useDoc(serverRef);
 
   const [isLoading, setIsLoading] = useState(false);
@@ -65,7 +65,7 @@ export function ServerSettingsDialog({ open, onOpenChange, serverId }: ServerSet
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!name.trim() || !serverRef) return;
     setIsLoading(true);
 
     try {
@@ -89,7 +89,7 @@ export function ServerSettingsDialog({ open, onOpenChange, serverId }: ServerSet
       });
       
       toast({ 
-        title: "Server updated", 
+        title: "Community updated", 
         description: "Settings have been saved successfully."
       });
       onOpenChange(false);
@@ -113,7 +113,7 @@ export function ServerSettingsDialog({ open, onOpenChange, serverId }: ServerSet
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px] flex flex-col h-[90vh] max-h-[700px] p-0 overflow-hidden">
         <DialogHeader className="p-6 pb-2 shrink-0">
-          <DialogTitle>Server Settings</DialogTitle>
+          <DialogTitle>Community Settings</DialogTitle>
           <DialogDescription>Manage your community details, privacy, and discovery.</DialogDescription>
         </DialogHeader>
         
@@ -122,7 +122,7 @@ export function ServerSettingsDialog({ open, onOpenChange, serverId }: ServerSet
             <div className="space-y-6 px-6 py-2 pb-6">
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="sname">Server Name</Label>
+                  <Label htmlFor="sname">Community Name</Label>
                   <div className="relative">
                     <Hash className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input id="sname" className="pl-9" value={name} onChange={(e) => setName(e.target.value)} required />
@@ -130,7 +130,7 @@ export function ServerSettingsDialog({ open, onOpenChange, serverId }: ServerSet
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="sdesc">Description</Label>
-                  <Input id="sdesc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What is this server about?" />
+                  <Input id="sdesc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What is this group about?" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="sicon">Icon URL</Label>
@@ -150,10 +150,10 @@ export function ServerSettingsDialog({ open, onOpenChange, serverId }: ServerSet
                   <h4 className="text-sm font-bold">Privacy: Disappearing Messages</h4>
                 </div>
                 <p className="text-[11px] text-muted-foreground leading-snug">
-                  When enabled, new messages sent in this server will disappear for everyone after the specified duration.
+                  When enabled, new messages sent in this community will disappear for everyone after the specified duration.
                 </p>
                 <Select value={disappearingDuration} onValueChange={setDisappearingDuration}>
-                  <SelectTrigger className="w-full bg-gray-50/50">
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select duration" />
                   </SelectTrigger>
                   <SelectContent>
@@ -169,11 +169,11 @@ export function ServerSettingsDialog({ open, onOpenChange, serverId }: ServerSet
               <Separator />
 
               {/* Discovery: Duniya */}
-              <div className="space-y-3 p-3 bg-accent/5 rounded-xl border border-accent/10">
+              <div className="space-y-3 p-3 bg-primary/5 rounded-xl border border-primary/10">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-accent rounded-lg">
-                      <Globe className="h-4 w-4 text-accent-foreground" />
+                      <Globe className="h-4 w-4 text-white" />
                     </div>
                     <div className="flex flex-col">
                       <Label className="text-sm font-bold">Broadcast to Duniya</Label>
@@ -187,7 +187,7 @@ export function ServerSettingsDialog({ open, onOpenChange, serverId }: ServerSet
                   <div className="pt-2 animate-in fade-in slide-in-from-top-2 duration-200">
                     <Label className="text-[10px] uppercase font-bold text-muted-foreground mb-1.5 block">Broadcast Duration</Label>
                     <Select value={broadcastDuration} onValueChange={setBroadcastDuration}>
-                      <SelectTrigger className="w-full bg-white h-9 text-xs">
+                      <SelectTrigger className="w-full bg-background h-9 text-xs">
                         <Clock className="h-3 w-3 mr-2 text-primary" />
                         <SelectValue placeholder="Select duration" />
                       </SelectTrigger>
@@ -204,20 +204,20 @@ export function ServerSettingsDialog({ open, onOpenChange, serverId }: ServerSet
               </div>
               
               <div className="pt-2 space-y-3">
-                <div className="p-3 bg-primary/5 rounded-xl border border-primary/10">
+                <div className="p-3 bg-muted rounded-xl border border-border">
                   <div className="flex items-center justify-between mb-1">
-                    <Label className="text-[10px] text-primary uppercase font-bold tracking-wider">Join Code (5 Digits)</Label>
+                    <Label className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Join Code (5 Digits)</Label>
                     <Button 
                       type="button" 
                       variant="ghost" 
                       size="icon" 
-                      className="h-6 w-6 text-primary" 
+                      className="h-6 w-6" 
                       onClick={copyCode}
                     >
                       {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
                     </Button>
                   </div>
-                  <div className="text-2xl font-black tracking-[0.5em] text-center font-mono py-2 bg-white rounded-lg border border-primary/20">
+                  <div className="text-2xl font-black tracking-[0.5em] text-center font-mono py-2 bg-background rounded-lg border">
                     {server?.joinCode || "-----"}
                   </div>
                 </div>
@@ -225,7 +225,7 @@ export function ServerSettingsDialog({ open, onOpenChange, serverId }: ServerSet
             </div>
           </ScrollArea>
 
-          <DialogFooter className="p-6 pt-2 shrink-0 border-t mt-auto bg-white z-10">
+          <DialogFooter className="p-6 pt-2 shrink-0 border-t mt-auto bg-background z-10">
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
             <Button type="submit" disabled={isLoading || !name.trim()}>
               {isLoading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}

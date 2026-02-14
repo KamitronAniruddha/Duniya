@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -35,7 +34,8 @@ export function MembersPanel({ serverId }: MembersPanelProps) {
   const [selectedUsers, setSelectedUsers] = useState<any[]>([]);
   const [isInviting, setIsInviting] = useState(false);
 
-  const serverRef = useMemoFirebase(() => (serverId && currentUser ? doc(db, "servers", serverId) : null), [db, serverId, currentUser?.uid]);
+  // Corrected path from 'servers' to 'communities'
+  const serverRef = useMemoFirebase(() => (serverId && currentUser ? doc(db, "communities", serverId) : null), [db, serverId, currentUser?.uid]);
   const { data: server } = useDoc(serverRef);
 
   const membersQuery = useMemoFirebase(() => {
@@ -90,14 +90,14 @@ export function MembersPanel({ serverId }: MembersPanelProps) {
   const offlineMembers = members?.filter(m => m.onlineStatus !== "online") || [];
 
   const handleInvite = async () => {
-    if (selectedUsers.length === 0 || !db) return;
+    if (selectedUsers.length === 0 || !db || !serverRef) return;
     setIsInviting(true);
 
     try {
       const userIdsToAdd = selectedUsers.map(u => u.id);
 
-      // 1. Update Server document
-      updateDocumentNonBlocking(serverRef!, {
+      // 1. Update Community document
+      updateDocumentNonBlocking(serverRef, {
         members: arrayUnion(...userIdsToAdd)
       });
 
@@ -111,7 +111,7 @@ export function MembersPanel({ serverId }: MembersPanelProps) {
 
       toast({ 
         title: "Invites Sent", 
-        description: `Successfully added ${selectedUsers.length} user(s) to the server.` 
+        description: `Successfully added ${selectedUsers.length} user(s) to the community.` 
       });
       
       setSelectedUsers([]);
@@ -155,7 +155,7 @@ export function MembersPanel({ serverId }: MembersPanelProps) {
 
       toast({ 
         title: "Member Removed", 
-        description: `${targetUsername} has been removed from the server.` 
+        description: `${targetUsername} has been removed from the community.` 
       });
     } catch (error: any) {
       toast({ 
@@ -270,7 +270,7 @@ export function MembersPanel({ serverId }: MembersPanelProps) {
           <DialogHeader>
             <DialogTitle>Invite Members</DialogTitle>
             <DialogDescription>
-              Search for users by username and add them to your server.
+              Search for users by username and add them to your community.
             </DialogDescription>
           </DialogHeader>
           
@@ -440,14 +440,14 @@ function MemberItem({
                   <AlertDialogTrigger asChild>
                     <button className="w-full flex items-center gap-2 px-2 py-1.5">
                       <UserMinus className="h-4 w-4" />
-                      Remove from Server
+                      Remove from Community
                     </button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
                       <AlertDialogTitle>Remove Member</AlertDialogTitle>
                       <AlertDialogDescription>
-                        Are you sure you want to remove <strong>{member.username}</strong> from this server?
+                        Are you sure you want to remove <strong>{member.username}</strong> from this community?
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

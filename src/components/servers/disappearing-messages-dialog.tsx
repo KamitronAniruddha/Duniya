@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -28,7 +27,8 @@ const DISAPPEARING_OPTIONS = [
 export function DisappearingMessagesDialog({ open, onOpenChange, serverId }: DisappearingMessagesDialogProps) {
   const db = useFirestore();
   const { toast } = useToast();
-  const serverRef = useMemoFirebase(() => doc(db, "servers", serverId), [db, serverId]);
+  // Corrected path from 'servers' to 'communities'
+  const serverRef = useMemoFirebase(() => (serverId ? doc(db, "communities", serverId) : null), [db, serverId]);
   const { data: server } = useDoc(serverRef);
 
   const [isLoading, setIsLoading] = useState(false);
@@ -41,6 +41,7 @@ export function DisappearingMessagesDialog({ open, onOpenChange, serverId }: Dis
   }, [server]);
 
   const handleUpdate = async () => {
+    if (!serverRef) return;
     setIsLoading(true);
     try {
       updateDocumentNonBlocking(serverRef, {
@@ -59,8 +60,6 @@ export function DisappearingMessagesDialog({ open, onOpenChange, serverId }: Dis
     }
   };
 
-  const currentOption = DISAPPEARING_OPTIONS.find(opt => opt.value === duration);
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
@@ -70,7 +69,7 @@ export function DisappearingMessagesDialog({ open, onOpenChange, serverId }: Dis
             Disappearing Messages
           </DialogTitle>
           <DialogDescription>
-            For more privacy and storage, new messages will disappear from this server for everyone after the selected duration.
+            For more privacy and storage, new messages will disappear from this community for everyone after the selected duration.
           </DialogDescription>
         </DialogHeader>
 
@@ -85,7 +84,7 @@ export function DisappearingMessagesDialog({ open, onOpenChange, serverId }: Dis
                     "flex flex-col items-start p-4 rounded-xl border-2 transition-all text-left group",
                     duration === opt.value 
                       ? "border-primary bg-primary/5 shadow-sm" 
-                      : "border-transparent hover:bg-gray-100"
+                      : "border-transparent hover:bg-muted/50"
                   )}
                 >
                   <div className="flex items-center justify-between w-full mb-1">

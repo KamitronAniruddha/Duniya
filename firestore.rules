@@ -20,57 +20,35 @@ service cloud.firestore {
       );
     }
 
-    function isExistingOwner(userId) {
-      return resource != null && isOwner(userId);
-    }
-
-    // Helper to check membership via the denormalized array on the community document
-    function isMemberOfCommunity(communityId) {
-      let community = get(/databases/$(database)/documents/communities/$(communityId));
-      return isSignedIn() && (
-        (community.data.members != null && request.auth.uid in community.data.members) ||
-        isAdmin()
-      );
-    }
-
     // --- COLLECTION RULES ---
 
     match /users/{userId} {
-      // Allow public read for profiles and uniqueness checks
       allow get, list: if true; 
       allow create: if isOwner(userId);
       allow update: if isOwner(userId) || isAdmin();
       allow delete: if isAdmin();
 
       match /following/{followedId} {
-        allow get, list: if isOwner(userId) || isAdmin();
-        allow create: if isOwner(userId);
-        allow update, delete: if isOwner(userId);
+        allow read, write: if isOwner(userId) || isAdmin();
       }
 
       match /stories/{storyId} {
-        allow get, list: if isSignedIn();
-        allow create: if isOwner(userId);
-        allow update: if isOwner(userId);
-        allow delete: if isOwner(userId) || isAdmin();
+        allow read: if isSignedIn();
+        allow write: if isOwner(userId) || isAdmin();
       }
 
       match /notifications/{notificationId} {
-        allow get, list: if isOwner(userId);
-        allow create: if isSignedIn();
-        allow update, delete: if isOwner(userId);
+        allow read, write: if isOwner(userId) || isAdmin();
       }
 
       match /devices/{deviceId} {
-        allow get, list: if isOwner(userId);
-        allow create: if isOwner(userId);
-        allow update, delete: if isOwner(userId);
+        allow read, write: if isOwner(userId) || isAdmin();
       }
     }
 
     match /roles_admin/{userId} {
       allow get: if isSignedIn();
-      allow list, create, update, delete: if isAdmin();
+      allow list, write: if isAdmin();
     }
 
     match /contact_form_submissions/{submissionId} {
@@ -81,72 +59,57 @@ service cloud.firestore {
     }
 
     match /communities/{communityId} {
-      // Simplified list rule to ensure queries work for all users
+      // Allow any signed in user to list and get communities for the directory/membership
       allow list: if isSignedIn();
-      
-      // Get requires being a member, it being public, or being an admin
-      allow get: if isSignedIn() && (
-        resource.data.isPublic == true || 
-        (resource.data.members != null && request.auth.uid in resource.data.members) ||
-        isAdmin()
-      );
+      allow get: if isSignedIn();
       
       allow create: if isSignedIn();
       
-      // Allow joining public communities or full updates for owners/admins
-      allow update: if (isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin())) || 
-                    (resource.data.isPublic == true && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members']));
+      // Allow joining (array update) or full updates for owners/admins
+      allow update: if isSignedIn() && (
+        resource.data.ownerId == request.auth.uid || 
+        isAdmin() ||
+        (resource.data.isPublic == true && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members']))
+      );
       
-      allow delete: if (resource != null && resource.data.ownerId == request.auth.uid) || isAdmin();
+      allow delete: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
 
       match /members/{userId} {
-        allow get, list: if isSignedIn();
-        allow create: if isSignedIn(); 
-        allow update, delete: if isAdmin() || isOwner(userId) || (get(/databases/$(database)/documents/communities/$(communityId)).data.ownerId == request.auth.uid);
+        allow read: if isSignedIn();
+        allow write: if isSignedIn();
       }
 
       match /channels/{channelId} {
-        allow get, list: if isMemberOfCommunity(communityId) || isAdmin();
-        allow create: if isSignedIn(); 
-        allow update, delete: if isAdmin() || (get(/databases/$(database)/documents/communities/$(communityId)).data.ownerId == request.auth.uid);
+        allow read: if isSignedIn();
+        allow write: if isSignedIn();
 
         match /messages/{messageId} {
-          allow get, list: if isMemberOfCommunity(communityId) || isAdmin();
-          allow create: if isMemberOfCommunity(communityId) && request.resource.data.senderId == request.auth.uid;
-          allow update: if isExistingOwner(resource.data.senderId);
-          allow delete: if isExistingOwner(resource.data.senderId) || isAdmin();
+          allow read: if isSignedIn();
+          allow create: if isSignedIn();
+          allow update: if isSignedIn() && (resource.data.senderId == request.auth.uid || isAdmin());
+          allow delete: if isSignedIn() && (resource.data.senderId == request.auth.uid || isAdmin());
 
           match /reactions/{reactionId} {
-            allow get, list: if isMemberOfCommunity(communityId);
-            allow create: if isMemberOfCommunity(communityId) && request.resource.data.userId == request.auth.uid;
-            allow update, delete: if isExistingOwner(resource.data.userId);
+            allow read, write: if isSignedIn();
           }
 
           match /read_receipts/{receiptId} {
-            allow get, list: if isMemberOfCommunity(communityId);
-            allow create: if isMemberOfCommunity(communityId) && request.resource.data.readerId == request.auth.uid;
-            allow update, delete: if isExistingOwner(resource.data.readerId);
+            allow read, write: if isSignedIn();
           }
 
           match /media_attachments/{mediaId} {
-            allow get, list: if isMemberOfCommunity(communityId);
-            allow create: if isMemberOfCommunity(communityId) && request.resource.data.uploaderId == request.auth.uid;
-            allow update, delete: if isExistingOwner(resource.data.uploaderId);
+            allow read, write: if isSignedIn();
           }
         }
       }
     }
 
     match /call_sessions/{callSessionId} {
-      allow get: if isSignedIn();
-      allow list: if isAdmin();
-      allow create: if isSignedIn();
-      allow update, delete: if isExistingOwner(resource.data.initiatorId) || isAdmin();
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
 
       match /participants/{participantId} {
-        allow get, list: if isSignedIn();
-        allow create: if isOwner(request.resource.data.userId);
-        allow update, delete: if isExistingOwner(resource.data.userId) || isAdmin();
+        allow read, write: if isSignedIn();
       }
     }
   }
