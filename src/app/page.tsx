@@ -39,7 +39,6 @@ export default function ConnectVerseApp() {
     const userRef = doc(db, "users", user.uid);
     
     const updateStatus = (status: "online" | "idle" | "offline") => {
-      // Only write if we have an auth session to prevent permission errors on logout
       if (!auth.currentUser) return;
       
       setDocumentNonBlocking(userRef, {
@@ -137,10 +136,13 @@ export default function ConnectVerseApp() {
           <span className="font-bold text-sm truncate">ConnectVerse</span>
         </div>
         
-        <ChatWindow 
-          channelId={activeChannelId}
-          serverId={activeServerId}
-        />
+        {/* Important: flex-1 min-h-0 ensures the child can shrink and scroll */}
+        <div className="flex-1 min-h-0 overflow-hidden">
+          <ChatWindow 
+            channelId={activeChannelId}
+            serverId={activeServerId}
+          />
+        </div>
       </main>
 
       {/* Desktop AI Panel */}

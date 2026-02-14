@@ -21,7 +21,7 @@ export function MessageInput({ onSendMessage }: MessageInputProps) {
   };
 
   return (
-    <div className="p-4 bg-white border-t shrink-0">
+    <div className="p-4 bg-white border-t shrink-0 w-full">
       <form onSubmit={handleSubmit} className="flex items-center gap-2 max-w-5xl mx-auto">
         <Button variant="ghost" size="icon" type="button" className="shrink-0 text-muted-foreground hidden sm:flex">
           <Plus className="h-5 w-5" />
