@@ -12,7 +12,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 interface ServerSidebarProps {
   activeServerId: string | null;
@@ -161,108 +160,146 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive }
   };
 
   return (
-    <aside className="w-[72px] bg-sidebar flex flex-col items-center py-3 gap-3 shrink-0 h-full overflow-y-auto custom-scrollbar border-r border-sidebar-border">
+    <aside className="w-[72px] bg-sidebar flex flex-col items-center py-4 gap-4 shrink-0 h-full overflow-y-auto custom-scrollbar border-r border-sidebar-border shadow-[4px_0_24px_rgba(0,0,0,0.1)] z-30">
       <TooltipProvider delayDuration={0}>
         <Tooltip>
           <TooltipTrigger asChild>
             <button onClick={() => onSelectServer(null as any)} className="group relative flex items-center justify-center">
-              <div className={cn("absolute left-0 w-1 bg-white rounded-r-full transition-all", (!activeServerId && !isDuniyaActive) ? "h-8" : "h-0 group-hover:h-5")} />
-              <div className={cn("w-12 h-12 bg-sidebar-accent flex items-center justify-center rounded-[24px] group-hover:rounded-[16px] transition-all text-white", (!activeServerId && !isDuniyaActive) && "rounded-[16px] bg-primary")}>
-                <span className="font-bold text-lg">D</span>
+              <div className={cn(
+                "absolute left-0 w-1.5 bg-white rounded-r-full transition-all duration-300", 
+                (!activeServerId && !isDuniyaActive) ? "h-10" : "h-0 group-hover:h-5"
+              )} />
+              <div className={cn(
+                "w-12 h-12 flex items-center justify-center transition-all duration-300 shadow-lg",
+                (!activeServerId && !isDuniyaActive) 
+                  ? "rounded-[16px] bg-primary scale-110" 
+                  : "rounded-[24px] group-hover:rounded-[16px] bg-sidebar-accent text-white group-hover:bg-primary group-hover:scale-105"
+              )}>
+                <span className="font-black text-xl tracking-tighter">D</span>
               </div>
             </button>
           </TooltipTrigger>
-          <TooltipContent side="right">Duniya Home</TooltipContent>
+          <TooltipContent side="right" sideOffset={12}>Duniya Home</TooltipContent>
         </Tooltip>
 
-        <div className="w-8 h-[2px] bg-sidebar-accent/50 rounded-full shrink-0" />
+        <div className="w-10 h-[2px] bg-sidebar-accent/30 rounded-full shrink-0" />
 
         <Tooltip>
           <TooltipTrigger asChild>
             <button onClick={() => onSelectServer("duniya")} className="group relative flex items-center justify-center">
-              <div className={cn("absolute left-0 w-1 bg-white rounded-r-full transition-all", isDuniyaActive ? "h-8" : "h-0 group-hover:h-5")} />
-              <div className={cn("w-12 h-12 flex items-center justify-center rounded-[24px] group-hover:rounded-[16px] transition-all overflow-hidden bg-accent/20 text-accent", isDuniyaActive && "rounded-[16px] bg-accent text-white")}>
+              <div className={cn(
+                "absolute left-0 w-1.5 bg-white rounded-r-full transition-all duration-300", 
+                isDuniyaActive ? "h-10" : "h-0 group-hover:h-5"
+              )} />
+              <div className={cn(
+                "w-12 h-12 flex items-center justify-center transition-all duration-300 shadow-lg",
+                isDuniyaActive 
+                  ? "rounded-[16px] bg-accent text-white scale-110" 
+                  : "rounded-[24px] group-hover:rounded-[16px] bg-accent/10 text-accent group-hover:bg-accent group-hover:text-white group-hover:scale-105"
+              )}>
                 <Globe className="h-6 w-6" />
               </div>
             </button>
           </TooltipTrigger>
-          <TooltipContent side="right">Duniya (Public Directory)</TooltipContent>
+          <TooltipContent side="right" sideOffset={12}>Duniya (Public Directory)</TooltipContent>
         </Tooltip>
 
-        <div className="w-8 h-[2px] bg-sidebar-accent/50 rounded-full shrink-0" />
+        <div className="w-10 h-[2px] bg-sidebar-accent/30 rounded-full shrink-0" />
 
-        {isServersLoading ? (
-          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground/50" />
-        ) : (
-          servers?.map(s => (
-            <Tooltip key={s.id}>
+        <div className="flex flex-col items-center gap-3">
+          {isServersLoading ? (
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground/50" />
+          ) : (
+            servers?.map(s => (
+              <Tooltip key={s.id}>
+                <TooltipTrigger asChild>
+                  <button onClick={() => onSelectServer(s.id)} className="group relative flex items-center justify-center">
+                    <div className={cn(
+                      "absolute left-0 w-1.5 bg-white rounded-r-full transition-all duration-300", 
+                      activeServerId === s.id ? "h-10" : "h-0 group-hover:h-5"
+                    )} />
+                    <div className={cn(
+                      "w-12 h-12 flex items-center justify-center transition-all duration-300 overflow-hidden shadow-lg",
+                      activeServerId === s.id 
+                        ? "rounded-[16px] ring-2 ring-primary ring-offset-2 ring-offset-sidebar scale-110" 
+                        : "rounded-[24px] group-hover:rounded-[16px] bg-sidebar-accent group-hover:scale-105"
+                    )}>
+                      <Avatar className="w-full h-full rounded-none">
+                        <AvatarImage src={s.icon} />
+                        <AvatarFallback className="bg-primary text-white font-black text-lg">{s.name?.[0]?.toUpperCase()}</AvatarFallback>
+                      </Avatar>
+                    </div>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="right" sideOffset={12}>{s.name}</TooltipContent>
+              </Tooltip>
+            ))
+          )}
+        </div>
+
+        <div className="flex flex-col items-center gap-3 mt-auto">
+          <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+            <Tooltip>
               <TooltipTrigger asChild>
-                <button onClick={() => onSelectServer(s.id)} className="group relative flex items-center justify-center">
-                  <div className={cn("absolute left-0 w-1 bg-white rounded-r-full transition-all", activeServerId === s.id ? "h-8" : "h-0 group-hover:h-5")} />
-                  <div className={cn("w-12 h-12 flex items-center justify-center rounded-[24px] group-hover:rounded-[16px] transition-all overflow-hidden bg-sidebar-accent", activeServerId === s.id && "rounded-[16px]")}>
-                    <Avatar className="w-full h-full rounded-none">
-                      <AvatarImage src={s.icon} />
-                      <AvatarFallback className="bg-sidebar-accent text-white font-bold">{s.name?.[0]}</AvatarFallback>
-                    </Avatar>
-                  </div>
-                </button>
+                <DialogTrigger asChild>
+                  <button className="w-12 h-12 flex items-center justify-center rounded-[24px] hover:rounded-[16px] bg-sidebar-accent hover:bg-green-600 text-green-500 hover:text-white transition-all duration-300 shadow-md hover:scale-110">
+                    <Plus className="h-6 w-6" />
+                  </button>
+                </DialogTrigger>
               </TooltipTrigger>
-              <TooltipContent side="right">{s.name}</TooltipContent>
+              <TooltipContent side="right" sideOffset={12}>Create Server</TooltipContent>
             </Tooltip>
-          ))
-        )}
-
-        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <DialogTrigger asChild>
-            <button className="w-12 h-12 flex items-center justify-center rounded-[24px] hover:rounded-[16px] bg-sidebar-accent hover:bg-green-600 text-green-500 hover:text-white transition-all">
-              <Plus className="h-6 w-6" />
-            </button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Create your server</DialogTitle></DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label>Server Name</Label>
-                <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="My Cool Server" disabled={isLoading} />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="ghost" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-              <Button onClick={handleCreateServer} disabled={isLoading || !name.trim()}>Create</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        <Dialog open={isJoinModalOpen} onOpenChange={setIsJoinModalOpen}>
-          <DialogTrigger asChild>
-            <button className="w-12 h-12 flex items-center justify-center rounded-[24px] hover:rounded-[16px] bg-sidebar-accent hover:bg-primary text-primary hover:text-white transition-all">
-              <Compass className="h-6 w-6" />
-            </button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Join a Server</DialogTitle></DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label>Server ID or 5-Digit Code</Label>
-                <div className="relative">
-                  <Hash className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input 
-                    className="pl-9"
-                    value={joinId} 
-                    onChange={(e) => setJoinId(e.target.value)} 
-                    placeholder="e.g. 12345" 
-                    disabled={isLoading} 
-                  />
+            <DialogContent>
+              <DialogHeader><DialogTitle>Create your server</DialogTitle></DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label>Server Name</Label>
+                  <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="My Cool Server" disabled={isLoading} />
                 </div>
-                <p className="text-[10px] text-muted-foreground">Enter a 5-digit join code or a full server ID.</p>
               </div>
-            </div>
-            <DialogFooter>
-              <Button variant="ghost" onClick={() => setIsJoinModalOpen(false)}>Cancel</Button>
-              <Button onClick={handleJoinServer} disabled={isLoading || !joinId.trim()}>Join Server</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+              <DialogFooter>
+                <Button variant="ghost" onClick={() => setIsModalOpen(false)}>Cancel</Button>
+                <Button onClick={handleCreateServer} disabled={isLoading || !name.trim()}>Create</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={isJoinModalOpen} onOpenChange={setIsJoinModalOpen}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <DialogTrigger asChild>
+                  <button className="w-12 h-12 flex items-center justify-center rounded-[24px] hover:rounded-[16px] bg-sidebar-accent hover:bg-primary text-primary hover:text-white transition-all duration-300 shadow-md hover:scale-110 mb-2">
+                    <Compass className="h-6 w-6" />
+                  </button>
+                </DialogTrigger>
+              </TooltipTrigger>
+              <TooltipContent side="right" sideOffset={12}>Join a Server</TooltipContent>
+            </Tooltip>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Join a Server</DialogTitle></DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label>Server ID or 5-Digit Code</Label>
+                  <div className="relative">
+                    <Hash className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                      className="pl-9"
+                      value={joinId} 
+                      onChange={(e) => setJoinId(e.target.value)} 
+                      placeholder="e.g. 12345" 
+                      disabled={isLoading} 
+                    />
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">Enter a 5-digit join code or a full server ID.</p>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="ghost" onClick={() => setIsJoinModalOpen(false)}>Cancel</Button>
+                <Button onClick={handleJoinServer} disabled={isLoading || !joinId.trim()}>Join Server</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
       </TooltipProvider>
     </aside>
   );
