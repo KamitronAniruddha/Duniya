@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useRef, useEffect, useState, useMemo } from "react";
@@ -130,17 +131,14 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
 
   useEffect(() => {
     if (scrollRef.current) {
-      requestAnimationFrame(() => {
-        if (scrollRef.current) {
-          scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-        }
-      });
+      const container = scrollRef.current;
+      container.scrollTop = container.scrollHeight;
     }
   }, [messages]);
 
   if (!serverId) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center bg-background h-full p-6">
+      <div className="flex-1 flex flex-col items-center justify-center bg-background h-full p-6 overflow-hidden">
         <div className="text-center max-w-sm flex flex-col items-center animate-in fade-in zoom-in duration-500">
           <div className="w-24 h-24 bg-primary/10 rounded-full mb-6 flex items-center justify-center shadow-inner">
             <MessageCircle className="h-12 w-12 text-primary" />
@@ -224,7 +222,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
 
       <div 
         ref={scrollRef} 
-        className="flex-1 overflow-y-auto scroll-smooth custom-scrollbar bg-muted/10 min-h-0"
+        className="flex-1 overflow-y-auto custom-scrollbar bg-muted/10 min-h-0"
       >
         <div className="p-4 flex flex-col gap-1 min-h-full">
           <div className="flex-1" />

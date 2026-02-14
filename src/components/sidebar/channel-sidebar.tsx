@@ -1,9 +1,10 @@
+
 "use client";
 
 import { useState } from "react";
 import { useCollection, useFirestore, useUser, useDoc, useMemoFirebase, useAuth } from "@/firebase";
 import { collection, query, where, doc, serverTimestamp } from "firebase/firestore";
-import { Hash, Settings, ChevronDown, LogOut, Loader2, Plus, Edit2, Copy, Share2, Timer, Heart } from "lucide-react";
+import { Hash, Settings, ChevronDown, LogOut, Loader2, Plus, Edit2, Copy, Share2, Timer, Heart, Link as LinkIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -96,6 +97,18 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
     }
   };
 
+  const shareInviteLink = () => {
+    if (server?.joinCode) {
+      const origin = typeof window !== 'undefined' ? window.location.origin : '';
+      const inviteLink = `${origin}?join=${server.joinCode}`;
+      navigator.clipboard.writeText(inviteLink);
+      toast({ 
+        title: "Invite Link Copied!", 
+        description: "A direct join link for this group has been copied to your clipboard." 
+      });
+    }
+  };
+
   return (
     <aside className="w-60 bg-card border-r border-border flex flex-col h-full overflow-hidden shrink-0">
       {serverId ? (
@@ -111,6 +124,10 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
               </header>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56">
+              <DropdownMenuItem onClick={shareInviteLink} className="flex items-center gap-2">
+                <LinkIcon className="h-4 w-4 text-primary" />
+                Share Invite Link
+              </DropdownMenuItem>
               {isAdmin && (
                 <DropdownMenuItem onClick={() => setDisappearingOpen(true)} className="flex items-center gap-2">
                   <Timer className="h-4 w-4 text-primary" />

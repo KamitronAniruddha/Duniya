@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -9,7 +10,7 @@ import { MembersPanel } from "@/components/members/members-panel";
 import { DuniyaPanel } from "@/components/duniya/duniya-panel";
 import { useUser, useFirestore, useCollection, useMemoFirebase, useAuth, useDoc } from "@/firebase";
 import { doc, serverTimestamp, collection, query, where, getDoc, onSnapshot, orderBy, limit } from "firebase/firestore";
-import { Loader2, Menu } from "lucide-react";
+import { Loader2, Menu, Heart } from "lucide-react";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -86,11 +87,6 @@ export default function ConnectVerseApp() {
             const lastMsg = lastMsgDoc.data();
             const lastMsgId = lastMsgDoc.id;
 
-            // Only notify if:
-            // - It's not our message
-            // - We've seen this channel before (avoid initial load popups)
-            // - It's a new message ID we haven't seen this session
-            // - We aren't currently looking at the channel
             if (
               lastMsg.senderId !== user.uid && 
               lastMessageIdsRef.current[channelId] && 
@@ -134,7 +130,7 @@ export default function ConnectVerseApp() {
     };
   }, [db, activeServerId, user, activeChannelId, toast, isDuniyaActive]);
 
-  // Monitor membership changes (Access Revoked / New Members)
+  // Monitor membership changes
   useEffect(() => {
     if (!userData) return;
     
@@ -288,7 +284,7 @@ export default function ConnectVerseApp() {
               setActiveServerId(id);
             }} />
           ) : (
-            <>
+            <div className="flex-1 flex min-w-0 h-full overflow-hidden">
               <ChatWindow 
                 channelId={activeChannelId}
                 serverId={activeServerId}
@@ -297,12 +293,20 @@ export default function ConnectVerseApp() {
               />
               
               {showMembers && activeServerId && (
-                <div className="hidden lg:block h-full border-l shadow-2xl bg-background">
+                <div className="hidden lg:block h-full border-l shadow-2xl bg-background shrink-0 overflow-hidden">
                   <MembersPanel serverId={activeServerId} />
                 </div>
               )}
-            </>
+            </div>
           )}
+        </div>
+        
+        {/* Persistent footer credit */}
+        <div className="hidden md:flex justify-center py-1 bg-background border-t">
+          <div className="flex items-center gap-1 text-[8px] font-black uppercase tracking-[0.3em] text-muted-foreground/40">
+            <span>Made by Aniruddha with love</span>
+            <Heart className="h-2 w-2 text-red-500 fill-red-500 animate-pulse" />
+          </div>
         </div>
       </main>
     </div>
