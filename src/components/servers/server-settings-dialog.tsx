@@ -3,21 +3,31 @@
 
 import { useState, useEffect } from "react";
 import { useFirestore, useDoc, useMemoFirebase } from "@/firebase";
-import { doc } from "firebase/firestore";
+import { doc, Timestamp } from "firebase/firestore";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Camera, Hash, Copy, Check, Globe } from "lucide-react";
+import { Loader2, Camera, Hash, Copy, Check, Globe, Clock } from "lucide-react";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface ServerSettingsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   serverId: string;
 }
+
+const BROADCAST_DURATIONS = [
+  { label: "30 Seconds", value: "30s", ms: 30 * 1000 },
+  { label: "10 Minutes", value: "10m", ms: 10 * 60 * 1000 },
+  { label: "1 Hour", value: "1h", ms: 60 * 60 * 1000 },
+  { label: "1 Day", value: "1d", ms: 24 * 60 * 60 * 1000 },
+  { label: "7 Days", value: "7d", ms: 7 * 24 * 60 * 60 * 1000 },
+  { label: "30 Days", value: "30d", ms: 30 * 24 * 60 * 60 * 1000 },
+];
 
 export function ServerSettingsDialog({ open, onOpenChange, serverId }: ServerSettingsDialogProps) {
   const db = useFirestore();
@@ -28,13 +38,16 @@ export function ServerSettingsDialog({ open, onOpenChange, serverId }: ServerSet
   const [isLoading, setIsLoading] = useState(false);
   const [name, setName] = useState("");
   const [icon, setIcon] = useState("");
+  const [description, setDescription] = useState("");
   const [isBroadcasted, setIsBroadcasted] = useState(false);
+  const [broadcastDuration, setBroadcastDuration] = useState("1d");
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (server) {
       setName(server.name || "");
       setIcon(server.icon || "");
+      setDescription(server.description || "");
       setIsBroadcasted(server.isBroadcasted || false);
     }
   }, [server]);
@@ -45,12 +58,28 @@ export function ServerSettingsDialog({ open, onOpenChange, serverId }: ServerSet
     setIsLoading(true);
 
     try {
+      let broadcastExpiry = server?.broadcastExpiry || null;
+      
+      if (isBroadcasted) {
+        const duration = BROADCAST_DURATIONS.find(d => d.value === broadcastDuration);
+        if (duration) {
+          const expiryDate = new Date(Date.now() + duration.ms);
+          broadcastExpiry = Timestamp.fromDate(expiryDate);
+        }
+      }
+
       updateDocumentNonBlocking(serverRef, {
         name: name.trim(),
         icon: icon.trim(),
+        description: description.trim(),
         isBroadcasted: isBroadcasted,
+        broadcastExpiry: broadcastExpiry,
       });
-      toast({ title: "Server updated" });
+      
+      toast({ 
+        title: "Server updated", 
+        description: isBroadcasted ? `Broadcasting for ${BROADCAST_DURATIONS.find(d => d.value === broadcastDuration)?.label}` : "Settings saved." 
+      });
       onOpenChange(false);
     } catch (error: any) {
       toast({ variant: "destructive", title: "Error", description: error.message });
@@ -84,6 +113,10 @@ export function ServerSettingsDialog({ open, onOpenChange, serverId }: ServerSet
             </div>
           </div>
           <div className="space-y-2">
+            <Label htmlFor="sdesc">Description</Label>
+            <Input id="sdesc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What is this server about?" />
+          </div>
+          <div className="space-y-2">
             <Label htmlFor="sicon">Icon URL</Label>
             <div className="relative">
               <Camera className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -91,20 +124,41 @@ export function ServerSettingsDialog({ open, onOpenChange, serverId }: ServerSet
             </div>
           </div>
 
-          <div className="flex items-center justify-between p-3 bg-accent/10 rounded-xl border border-accent/20">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-accent rounded-lg">
-                <Globe className="h-4 w-4 text-accent-foreground" />
+          <div className="space-y-3 p-3 bg-accent/5 rounded-xl border border-accent/10">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-accent rounded-lg">
+                  <Globe className="h-4 w-4 text-accent-foreground" />
+                </div>
+                <div className="flex flex-col">
+                  <Label className="text-sm font-bold">Broadcast to Duniya</Label>
+                  <p className="text-[10px] text-muted-foreground">Public directory visibility.</p>
+                </div>
               </div>
-              <div className="flex flex-col">
-                <Label className="text-sm font-bold">Broadcast to Duniya</Label>
-                <p className="text-[10px] text-muted-foreground">Make this server visible in the public directory.</p>
-              </div>
+              <Switch checked={isBroadcasted} onCheckedChange={setIsBroadcasted} />
             </div>
-            <Switch checked={isBroadcasted} onCheckedChange={setIsBroadcasted} />
+
+            {isBroadcasted && (
+              <div className="pt-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                <Label className="text-[10px] uppercase font-bold text-muted-foreground mb-1.5 block">Broadcast Duration</Label>
+                <Select value={broadcastDuration} onValueChange={setBroadcastDuration}>
+                  <SelectTrigger className="w-full bg-white h-9 text-xs">
+                    <Clock className="h-3 w-3 mr-2 text-primary" />
+                    <SelectValue placeholder="Select duration" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {BROADCAST_DURATIONS.map(d => (
+                      <SelectItem key={d.value} value={d.value} className="text-xs">
+                        {d.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
           
-          <div className="pt-4 space-y-3">
+          <div className="pt-2 space-y-3">
             <div className="p-3 bg-primary/5 rounded-xl border border-primary/10">
               <div className="flex items-center justify-between mb-1">
                 <Label className="text-[10px] text-primary uppercase font-bold tracking-wider">Join Code (5 Digits)</Label>
@@ -121,14 +175,13 @@ export function ServerSettingsDialog({ open, onOpenChange, serverId }: ServerSet
               <div className="text-2xl font-black tracking-[0.5em] text-center font-mono py-2 bg-white rounded-lg border border-primary/20">
                 {server?.joinCode || "-----"}
               </div>
-              <p className="text-[10px] text-muted-foreground mt-2 text-center">Share this code to let people join quickly.</p>
             </div>
           </div>
 
-          <DialogFooter className="pt-4">
+          <DialogFooter className="pt-2">
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
             <Button type="submit" disabled={isLoading || !name.trim()}>
-              {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              {isLoading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
               Save Changes
             </Button>
           </DialogFooter>

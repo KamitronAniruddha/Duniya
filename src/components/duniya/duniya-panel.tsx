@@ -1,9 +1,10 @@
+
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useCollection, useFirestore, useUser, useMemoFirebase } from "@/firebase";
-import { collection, query, where, doc, arrayUnion } from "firebase/firestore";
-import { Globe, Search, Users, Loader2, Plus, Check, AlertCircle } from "lucide-react";
+import { collection, query, where, doc, arrayUnion, Timestamp } from "firebase/firestore";
+import { Globe, Search, Users, Loader2, Plus, Check, AlertCircle, Clock } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,7 +20,6 @@ export function DuniyaPanel({ onJoinSuccess }: { onJoinSuccess: (serverId: strin
   const [searchQuery, setSearchQuery] = useState("");
   const [joiningId, setJoiningId] = useState<string | null>(null);
 
-  // Note: orderBy removed to avoid composite index requirements which can cause permission-like errors.
   const publicServersQuery = useMemoFirebase(() => {
     if (!db) return null;
     return query(
@@ -30,9 +30,26 @@ export function DuniyaPanel({ onJoinSuccess }: { onJoinSuccess: (serverId: strin
 
   const { data: publicServers, isLoading, error } = useCollection(publicServersQuery);
 
-  const filteredServers = publicServers?.filter(s => 
-    s.name.toLowerCase().includes(searchQuery.toLowerCase())
-  ) || [];
+  // Filter for search and expiry on the client to avoid complex index requirements
+  const filteredServers = useMemo(() => {
+    if (!publicServers) return [];
+    
+    const now = Date.now();
+    
+    return publicServers.filter(server => {
+      // 1. Basic text search
+      const matchesSearch = server.name.toLowerCase().includes(searchQuery.toLowerCase());
+      if (!matchesSearch) return false;
+
+      // 2. Check for expiry
+      if (server.broadcastExpiry) {
+        const expiryDate = server.broadcastExpiry.toDate ? server.broadcastExpiry.toDate() : new Date(server.broadcastExpiry);
+        if (expiryDate.getTime() < now) return false;
+      }
+
+      return true;
+    });
+  }, [publicServers, searchQuery]);
 
   const handleJoin = async (server: any) => {
     if (!user || !db) return;
@@ -116,7 +133,7 @@ export function DuniyaPanel({ onJoinSuccess }: { onJoinSuccess: (serverId: strin
           <div className="flex flex-col items-center justify-center h-64 text-center space-y-4 opacity-50">
             <Globe className="h-16 w-16 text-muted-foreground/30" />
             <div>
-              <h3 className="text-xl font-bold">No Public Groups Found</h3>
+              <h3 className="text-xl font-bold">No Active Broadcasts</h3>
               <p className="text-sm max-w-xs">Try searching for something else, or broadcast your own group to Duniya!</p>
             </div>
           </div>
@@ -124,17 +141,25 @@ export function DuniyaPanel({ onJoinSuccess }: { onJoinSuccess: (serverId: strin
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {filteredServers.map((server) => {
               const isMember = server.members?.includes(user?.uid);
+              const expiryDate = server.broadcastExpiry?.toDate ? server.broadcastExpiry.toDate() : (server.broadcastExpiry ? new Date(server.broadcastExpiry) : null);
+              
               return (
-                <Card key={server.id} className="group hover:shadow-xl transition-all border-none bg-white overflow-hidden ring-1 ring-border">
-                  <div className="h-20 bg-gradient-to-r from-primary/20 to-accent/20 relative">
+                <Card key={server.id} className="group hover:shadow-xl transition-all border-none bg-white overflow-hidden ring-1 ring-border flex flex-col">
+                  <div className="h-20 bg-gradient-to-r from-primary/20 to-accent/20 relative shrink-0">
                     <div className="absolute -bottom-6 left-4">
                       <Avatar className="h-12 w-12 border-4 border-white shadow-lg">
                         <AvatarImage src={server.icon || undefined} />
                         <AvatarFallback className="bg-primary text-white font-bold">{server.name?.[0]?.toUpperCase()}</AvatarFallback>
                       </Avatar>
                     </div>
+                    {expiryDate && (
+                      <div className="absolute top-2 right-2 bg-black/60 text-white text-[9px] px-2 py-0.5 rounded-full flex items-center gap-1 backdrop-blur-sm">
+                        <Clock className="h-2.5 w-2.5" />
+                        Ends {expiryDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                    )}
                   </div>
-                  <CardHeader className="pt-8 pb-3">
+                  <CardHeader className="pt-8 pb-3 shrink-0">
                     <CardTitle className="text-md flex items-center justify-between">
                       <span className="truncate">{server.name}</span>
                       <Badge variant="secondary" className="bg-gray-100 text-[10px]">
@@ -146,7 +171,7 @@ export function DuniyaPanel({ onJoinSuccess }: { onJoinSuccess: (serverId: strin
                       {server.description || `Welcome to ${server.name}! Join our public community.`}
                     </CardDescription>
                   </CardHeader>
-                  <CardFooter className="pt-0 border-t bg-gray-50/50 mt-auto">
+                  <CardFooter className="pt-0 border-t bg-gray-50/50 mt-auto shrink-0">
                     <Button 
                       className="w-full mt-4 rounded-xl" 
                       variant={isMember ? "secondary" : "default"}

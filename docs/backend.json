@@ -31,7 +31,8 @@
         "joinCode": { "type": "string" },
         "members": { "type": "array", "items": { "type": "string" } },
         "createdAt": { "type": "string", "format": "date-time" },
-        "isBroadcasted": { "type": "boolean", "description": "Whether the server is visible in Duniya." }
+        "isBroadcasted": { "type": "boolean", "description": "Whether the server is visible in Duniya." },
+        "broadcastExpiry": { "type": "string", "format": "date-time", "description": "When the Duniya broadcast expires." }
       },
       "required": ["id", "name", "ownerId", "members", "joinCode"]
     },
