@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo } from "react";
@@ -20,12 +21,13 @@ export function DuniyaPanel({ onJoinSuccess }: { onJoinSuccess: (serverId: strin
   const [joiningId, setJoiningId] = useState<string | null>(null);
 
   const publicServersQuery = useMemoFirebase(() => {
-    if (!db) return null;
+    // Critical: Add 'user' check to prevent permission errors on logout
+    if (!db || !user) return null;
     return query(
       collection(db, "servers"),
       where("isBroadcasted", "==", true)
     );
-  }, [db]);
+  }, [db, user?.uid]);
 
   const { data: publicServers, isLoading, error } = useCollection(publicServersQuery);
 

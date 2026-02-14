@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
+import { useCollection, useFirestore, useMemoFirebase, useUser } from "@/firebase";
 import { collection, query, orderBy, limit } from "firebase/firestore";
 import { Sparkles, Zap, BookOpen, Search, Loader2 } from "lucide-react";
 import { suggestContextualTools, type SuggestedAction } from "@/ai/flows/contextual-tool-suggestion";
@@ -14,22 +14,24 @@ interface AISuggestionPanelProps {
 
 export function AISuggestionPanel({ channelId }: AISuggestionPanelProps) {
   const db = useFirestore();
+  const { user } = useUser();
   const [suggestions, setSuggestions] = useState<SuggestedAction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const messagesQuery = useMemoFirebase(() => {
-    if (!db || !channelId) return null;
+    // Critical: Add 'user' check to prevent permission errors on logout
+    if (!db || !channelId || !user) return null;
     return query(
       collection(db, "messages", channelId, "chatMessages"),
       orderBy("createdAt", "desc"),
       limit(5)
     );
-  }, [db, channelId]);
+  }, [db, channelId, user?.uid]);
 
   const { data: messages } = useCollection(messagesQuery);
 
   useEffect(() => {
-    if (!messages || messages.length === 0) return;
+    if (!messages || messages.length === 0 || !user) return;
 
     const getSuggestions = async () => {
       setIsLoading(true);
@@ -42,6 +44,7 @@ export function AISuggestionPanel({ channelId }: AISuggestionPanelProps) {
         const result = await suggestContextualTools({ conversationHistory: history });
         setSuggestions(result.suggestedActions);
       } catch (e) {
+        // AI errors are non-critical
         console.error("AI Error:", e);
       } finally {
         setIsLoading(false);
@@ -50,7 +53,7 @@ export function AISuggestionPanel({ channelId }: AISuggestionPanelProps) {
 
     const timeout = setTimeout(getSuggestions, 2000);
     return () => clearTimeout(timeout);
-  }, [messages]);
+  }, [messages, user]);
 
   return (
     <aside className="w-80 bg-white border-l border-border flex flex-col h-full overflow-hidden">

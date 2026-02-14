@@ -38,7 +38,8 @@ export default function ConnectVerseApp() {
   const userRef = useMemoFirebase(() => (user ? doc(db, "users", user.uid) : null), [db, user?.uid]);
   const { data: userData } = useDoc(userRef);
 
-  const activeServerRef = useMemoFirebase(() => (activeServerId ? doc(db, "servers", activeServerId) : null), [db, activeServerId]);
+  // Critical fix: Gate server ref with user auth to prevent permission errors on logout
+  const activeServerRef = useMemoFirebase(() => (activeServerId && user ? doc(db, "servers", activeServerId) : null), [db, activeServerId, user?.uid]);
   const { data: serverData } = useDoc(activeServerRef);
 
   // Optimized notification listener management
@@ -121,7 +122,7 @@ export default function ConnectVerseApp() {
         }
       });
     }, (err) => {
-      console.error("Channel listener error:", err);
+      // Don't log permission errors here, they are handled by the gatekeeper
     });
 
     return () => {

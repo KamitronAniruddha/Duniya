@@ -3,7 +3,7 @@
 
 import { useState } from "react";
 import { useCollection, useFirestore, useUser, useDoc, useMemoFirebase, useAuth } from "@/firebase";
-import { collection, query, where, doc, serverTimestamp } from "firebase/firestore";
+import { collection, query, where, doc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { Hash, Settings, ChevronDown, LogOut, Loader2, Plus, Edit2, Copy, Share2, Timer, Heart, Link as LinkIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -58,12 +58,14 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
   const handleLogout = () => {
     if (user && db && auth.currentUser) {
       const userRef = doc(db, "users", user.uid);
-      setDocumentNonBlocking(userRef, {
+      // Attempt to update status, but don't let it block sign out
+      updateDoc(userRef, {
         onlineStatus: "offline",
         lastSeen: serverTimestamp()
-      }, { merge: true });
+      }).catch(() => {});
     }
-    setTimeout(() => auth.signOut(), 100);
+    // Perform sign out immediately to trigger listener cleanup
+    auth.signOut();
   };
 
   const handleCreateChannel = () => {
@@ -111,7 +113,7 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
 
   return (
     <aside className="w-60 bg-card border-r border-border flex flex-col h-full overflow-hidden shrink-0">
-      {serverId ? (
+      {serverId && user ? (
         <>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -148,6 +150,7 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
                 </DropdownMenuItem>
               )}
               <DropdownMenuItem onClick={() => {
+                if (!serverId) return;
                 navigator.clipboard.writeText(serverId);
                 toast({ title: "Copied!", description: "Server ID copied to clipboard." });
               }}>

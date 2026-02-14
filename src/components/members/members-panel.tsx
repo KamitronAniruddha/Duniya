@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -34,19 +35,20 @@ export function MembersPanel({ serverId }: MembersPanelProps) {
   const [selectedUsers, setSelectedUsers] = useState<any[]>([]);
   const [isInviting, setIsInviting] = useState(false);
 
-  const serverRef = useMemoFirebase(() => doc(db, "servers", serverId), [db, serverId]);
+  const serverRef = useMemoFirebase(() => (serverId && currentUser ? doc(db, "servers", serverId) : null), [db, serverId, currentUser?.uid]);
   const { data: server } = useDoc(serverRef);
 
   const membersQuery = useMemoFirebase(() => {
-    if (!db || !serverId) return null;
+    if (!db || !serverId || !currentUser) return null;
     return query(collection(db, "users"), where("serverIds", "array-contains", serverId));
-  }, [db, serverId]);
+  }, [db, serverId, currentUser?.uid]);
 
   const { data: members, isLoading: isMembersLoading } = useCollection(membersQuery);
 
   // Search logic
   useEffect(() => {
     const searchUsers = async () => {
+      if (!currentUser || !db) return;
       const cleanQuery = searchQuery.trim().toLowerCase();
       if (cleanQuery.length < 2) {
         setSearchResults([]);
@@ -77,7 +79,7 @@ export function MembersPanel({ serverId }: MembersPanelProps) {
 
     const timeoutId = setTimeout(searchUsers, 300);
     return () => clearTimeout(timeoutId);
-  }, [searchQuery, db, serverId]);
+  }, [searchQuery, db, serverId, currentUser]);
 
   if (!server) return null;
 
@@ -95,7 +97,7 @@ export function MembersPanel({ serverId }: MembersPanelProps) {
       const userIdsToAdd = selectedUsers.map(u => u.id);
 
       // 1. Update Server document
-      updateDocumentNonBlocking(serverRef, {
+      updateDocumentNonBlocking(serverRef!, {
         members: arrayUnion(...userIdsToAdd)
       });
 
@@ -138,7 +140,7 @@ export function MembersPanel({ serverId }: MembersPanelProps) {
   };
 
   const handleRemoveMember = (targetUserId: string, targetUsername: string) => {
-    if (!db || !server) return;
+    if (!db || !server || !serverRef) return;
 
     try {
       updateDocumentNonBlocking(serverRef, {
@@ -165,7 +167,7 @@ export function MembersPanel({ serverId }: MembersPanelProps) {
   };
 
   const handleToggleAdmin = (targetUserId: string, isAdmin: boolean) => {
-    if (!db || !server || !isOwner) return;
+    if (!db || !server || !isOwner || !serverRef) return;
 
     try {
       updateDocumentNonBlocking(serverRef, {

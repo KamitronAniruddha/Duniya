@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -9,6 +10,7 @@ import {
   QuerySnapshot,
   CollectionReference,
 } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
@@ -74,8 +76,10 @@ export function useCollection<T = any>(
         setIsLoading(false);
       },
       (error: FirestoreError) => {
-        // Only emit FirestorePermissionError if it's actually a permission issue.
-        if (error.code === 'permission-denied') {
+        // Gatekeeper: Only emit if the user is still authenticated. 
+        // Prevents permission errors during logout race conditions.
+        const auth = getAuth();
+        if (error.code === 'permission-denied' && auth.currentUser) {
           const path: string =
             memoizedTargetRefOrQuery.type === 'collection'
               ? (memoizedTargetRefOrQuery as CollectionReference).path
@@ -89,7 +93,7 @@ export function useCollection<T = any>(
           setError(contextualError)
           errorEmitter.emit('permission-error', contextualError);
         } else {
-          // For other errors (like missing indexes), pass them through normally.
+          // Silent failure during logout or generic error
           setError(error);
         }
         
