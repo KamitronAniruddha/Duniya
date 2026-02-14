@@ -55,8 +55,9 @@
         "id": { "type": "string" },
         "senderId": { "type": "string" },
         "text": { "type": "string" },
-        "type": { "type": "string", "enum": ["text", "voice"] },
+        "type": { "type": "string", "enum": ["text", "voice", "video"] },
         "audioUrl": { "type": "string", "description": "Data URI for voice messages." },
+        "videoUrl": { "type": "string", "description": "Data URI for circular video messages." },
         "createdAt": { "type": "string", "format": "date-time" },
         "edited": { "type": "boolean" },
         "isDeleted": { "type": "boolean", "description": "Whether the message was deleted for everyone." },
@@ -84,7 +85,7 @@
       "description": "User profile data."
     },
     "/servers/{serverId}": {
-      "schema": { "$ref": "#/backend/entities/Server" },
+      "schema": { "$ref": "#/backend/entities/User" },
       "description": "Server metadata."
     },
     "/channels/{channelId}": {

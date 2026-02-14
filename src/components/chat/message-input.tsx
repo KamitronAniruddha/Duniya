@@ -3,16 +3,17 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, SendHorizontal, Smile, History, Ghost, X, CornerDownRight, Mic, Square, Trash2 } from "lucide-react";
+import { Plus, SendHorizontal, Smile, History, Ghost, X, CornerDownRight, Mic, Square, Trash2, Video, Camera } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDoc, useFirestore, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
+import { useToast } from "@/hooks/use-toast";
 
 interface MessageInputProps {
-  onSendMessage: (content: string, audioUrl?: string) => void;
+  onSendMessage: (content: string, audioUrl?: string, videoUrl?: string) => void;
   inputRef?: React.RefObject<HTMLInputElement>;
   replyingTo?: any | null;
   onCancelReply?: () => void;
@@ -35,21 +36,26 @@ const EMOJI_CATEGORIES = [
     id: "animals",
     icon: <Ghost className="h-4 w-4" />,
     label: "Animals",
-    emojis: ["🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯", "🦁", "🐮", "🐷", "🐽", "🐸", "🐵", "🙈", "🙉", "🙊", "🐒", "🐔", "🐧", "🐦", "🐤", "🐣", "🐥", "🦆", "🦅", "🦉", "🦇", "🐺", "🐗", "🐴", "🦄", "🐝", "🐛", "🦋", "🐌", "🐞", "🐜", "🦟", "🦗", "🕷", "🕸", "蠍", "🐢", "🐍", "🦎", "REX", "🦕", "🐙", "🦑", "🦐", "🦞", "🦀", "🐡", "🐠", "🐟", "🐬", "🐳", "🐋", "🦈", "🐊", "🐅", "🐆", "🦓", "🦍", "🦧", "🐘", "🦛", "🦏", "🐪", "🐫", "🦒", "🦘", "🐃", "🐂", "🐄", "🐎", "🐖", "🐏", "🐑", "🐐", "🦌", "🐕", "🐩", "🦮", "🐕‍🦺", "🐈", "🐓", "🦃", "🦚", "🦜", "🦢", "🦩", "🕊", "🐇", "🦝", "🦨", "🦡", "🦦", "🦥", "🐁", "🐀", "🐿", "🦔"]
+    emojis: ["🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯", "🦁", "🐮", "🐷", "🐽", "🐸", "🐵", "🙈", "🙉", "🙊", "🐒", "🐔", "🐧", "🐦", "🐤", "🐣", "🐥", "🦆", "🦅", "🦉", "🦇", "🐺", "🐗", "🐴", "🦄", "🐝", "🐛", "🦋", "🐌", "🐞", "🐜", "🦟", "🦗", "🕷", "🕸", "蠍", "🐢", "🐍", "🦎", "REX", "🦕", "🐙", "🦑", "🦐", "🦞", "🦀", "🐡", "🐠", "🐟", "🐬", "🐳", "🐋", "🦈", "🐊", "🐅", " leopards", "🦓", "🦍", "🦧", "🐘", "🦛", "🦏", "🐪", "🐫", "🦒", "🦘", "🐃", "🐂", "🐄", "🐎", "🐖", "🐏", "🐑", "🐐", "🦌", "🐕", "🐩", "🦮", "🐕‍🦺", "🐈", "🐓", "🦃", "🦚", "🦜", "🦢", "🦩", "🕊", "🐇", "🦝", "🦨", "🦡", "🦦", "🦥", "🐁", "🐀", "🐿", "🦔"]
   }
 ];
 
 export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelReply }: MessageInputProps) {
   const db = useFirestore();
+  const { toast } = useToast();
   const [text, setText] = useState("");
   const [recentEmojis, setRecentEmojis] = useState<string[]>([]);
   
-  // Voice Recording State
+  // Recording State
   const [isRecording, setIsRecording] = useState(false);
+  const [isRecordingVideo, setIsRecordingVideo] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
+  
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   const replyUserRef = useMemoFirebase(() => (replyingTo ? doc(db, "users", replyingTo.senderId) : null), [db, replyingTo?.senderId]);
   const { data: replyUser } = useDoc(replyUserRef);
@@ -83,20 +89,11 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
   // Voice Recording Logic
   const startRecording = async () => {
     try {
-      // Clearer audio constraints
       const stream = await navigator.mediaDevices.getUserMedia({ 
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true
-        } 
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } 
       });
 
-      // Set high bitrate for clearer voice
-      const recorder = new MediaRecorder(stream, {
-        audioBitsPerSecond: 128000
-      });
-      
+      const recorder = new MediaRecorder(stream, { audioBitsPerSecond: 128000 });
       mediaRecorderRef.current = recorder;
       chunksRef.current = [];
 
@@ -109,8 +106,7 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
         const reader = new FileReader();
         reader.readAsDataURL(blob);
         reader.onloadend = () => {
-          const base64String = reader.result as string;
-          onSendMessage("", base64String);
+          onSendMessage("", reader.result as string);
         };
         stream.getTracks().forEach(track => track.stop());
       };
@@ -118,28 +114,69 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
       recorder.start();
       setIsRecording(true);
       setRecordingTime(0);
-      timerRef.current = setInterval(() => {
-        setRecordingTime(prev => prev + 1);
-      }, 1000);
+      timerRef.current = setInterval(() => setRecordingTime(prev => prev + 1), 1000);
     } catch (err) {
-      console.error("Failed to start recording:", err);
+      toast({ variant: "destructive", title: "Microphone Error", description: "Could not access microphone." });
+    }
+  };
+
+  // Video Recording Logic
+  const startVideoRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { width: 480, height: 480, facingMode: "user" },
+        audio: true 
+      });
+      streamRef.current = stream;
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+
+      const recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp8,opus' });
+      mediaRecorderRef.current = recorder;
+      chunksRef.current = [];
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data);
+      };
+
+      recorder.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: 'video/webm' });
+        const reader = new FileReader();
+        reader.readAsDataURL(blob);
+        reader.onloadend = () => {
+          onSendMessage("", undefined, reader.result as string);
+        };
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      recorder.start();
+      setIsRecordingVideo(true);
+      setRecordingTime(0);
+      timerRef.current = setInterval(() => setRecordingTime(prev => prev + 1), 1000);
+    } catch (err) {
+      toast({ variant: "destructive", title: "Camera Error", description: "Could not access camera for video message." });
     }
   };
 
   const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
+    if (mediaRecorderRef.current && (isRecording || isRecordingVideo)) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
+      setIsRecordingVideo(false);
       if (timerRef.current) clearInterval(timerRef.current);
     }
   };
 
   const cancelRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
+    if (mediaRecorderRef.current && (isRecording || isRecordingVideo)) {
+      mediaRecorderRef.current.onstop = null;
       mediaRecorderRef.current.stop();
-      mediaRecorderRef.current.onstop = null; // Prevent sending
       setIsRecording(false);
+      setIsRecordingVideo(false);
       if (timerRef.current) clearInterval(timerRef.current);
+      if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
     }
   };
 
@@ -158,7 +195,7 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
           </div>
           <div className="flex-1 min-w-0 flex flex-col">
             <span className="text-[10px] font-bold text-primary uppercase tracking-wider">Replying to {replyUser?.username || "..."}</span>
-            <p className="text-xs text-muted-foreground truncate italic">{replyingTo.text || "Voice Message"}</p>
+            <p className="text-xs text-muted-foreground truncate italic">{replyingTo.text || (replyingTo.audioUrl ? "Voice Message" : "Video Message")}</p>
           </div>
           <button onClick={onCancelReply} className="h-6 w-6 rounded-full hover:bg-gray-200 flex items-center justify-center">
             <X className="h-3 w-3" />
@@ -166,14 +203,22 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
         </div>
       )}
 
-      <div className="p-4 bg-white border-t">
-        {isRecording ? (
+      <div className="p-4 bg-white border-t relative">
+        {(isRecording || isRecordingVideo) ? (
           <div className="flex items-center gap-4 max-w-5xl mx-auto bg-gray-50 p-2 rounded-xl animate-in fade-in zoom-in-95">
+            {isRecordingVideo && (
+              <div className="h-16 w-16 rounded-full overflow-hidden border-2 border-primary bg-black shrink-0 relative">
+                <video ref={videoRef} autoPlay muted playsInline className="h-full w-full object-cover scale-x-[-1]" />
+                <div className="absolute top-1 right-1 h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+              </div>
+            )}
             <div className="flex items-center gap-2 px-3 py-1 bg-red-50 text-red-500 rounded-full">
-              <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
+              <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
               <span className="text-xs font-mono font-bold">{formatTime(recordingTime)}</span>
             </div>
-            <div className="flex-1 text-sm text-muted-foreground font-medium italic">Capturing high-quality audio...</div>
+            <div className="flex-1 text-sm text-muted-foreground font-medium italic">
+              {isRecordingVideo ? "Recording circular video..." : "Recording high-quality audio..."}
+            </div>
             <div className="flex items-center gap-2">
               <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-destructive" onClick={cancelRecording}>
                 <Trash2 className="h-4 w-4" />
@@ -212,9 +257,9 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
                   </PopoverTrigger>
                   <PopoverContent side="top" align="end" className="w-80 p-0 overflow-hidden">
                     <Tabs defaultValue="smileys" className="w-full">
-                      <TabsList className="w-full justify-start rounded-none border-b bg-gray-50/50 p-0 h-10 overflow-x-auto overflow-y-hidden custom-scrollbar">
+                      <TabsList className="w-full justify-start rounded-none border-b bg-gray-50/50 p-0 h-10">
                         {EMOJI_CATEGORIES.map((cat) => (
-                          <TabsTrigger key={cat.id} value={cat.id} className="flex-1 rounded-none data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-primary">
+                          <TabsTrigger key={cat.id} value={cat.id} className="flex-1 rounded-none data-[state=active]:bg-white">
                             {cat.icon}
                           </TabsTrigger>
                         ))}
@@ -222,15 +267,12 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
                       {EMOJI_CATEGORIES.map((cat) => (
                         <TabsContent key={cat.id} value={cat.id} className="m-0">
                           <ScrollArea className="h-64 p-2">
-                            <div className="p-1">
-                              <h4 className="text-[10px] font-bold uppercase text-muted-foreground mb-2 px-1">{cat.label}</h4>
-                              <div className="grid grid-cols-8 gap-1">
-                                {(cat.id === 'recent' ? recentEmojis : cat.emojis).map((emoji, idx) => (
-                                  <button key={`${cat.id}-${idx}`} type="button" onClick={() => addEmoji(emoji)} className="text-xl hover:bg-gray-100 rounded aspect-square flex items-center justify-center transition-colors">
-                                    {emoji}
-                                  </button>
-                                ))}
-                              </div>
+                            <div className="grid grid-cols-8 gap-1">
+                              {(cat.id === 'recent' ? recentEmojis : cat.emojis).map((emoji, idx) => (
+                                <button key={idx} type="button" onClick={() => addEmoji(emoji)} className="text-xl hover:bg-gray-100 rounded aspect-square flex items-center justify-center">
+                                  {emoji}
+                                </button>
+                              ))}
                             </div>
                           </ScrollArea>
                         </TabsContent>
@@ -241,15 +283,22 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
               </div>
             </div>
 
-            {text.trim() ? (
-              <Button type="submit" size="icon" className="rounded-xl h-10 w-10 shrink-0 bg-primary text-white shadow-md scale-100 animate-in zoom-in-95">
-                <SendHorizontal className="h-4 w-4" />
-              </Button>
-            ) : (
-              <Button type="button" size="icon" onClick={startRecording} className="rounded-xl h-10 w-10 shrink-0 bg-gray-100 text-muted-foreground hover:bg-primary hover:text-white transition-all scale-100">
-                <Mic className="h-4 w-4" />
-              </Button>
-            )}
+            <div className="flex items-center gap-1.5">
+              {text.trim() ? (
+                <Button type="submit" size="icon" className="rounded-xl h-10 w-10 shrink-0 bg-primary text-white shadow-md">
+                  <SendHorizontal className="h-4 w-4" />
+                </Button>
+              ) : (
+                <>
+                  <Button type="button" variant="ghost" size="icon" onClick={startVideoRecording} className="rounded-xl h-10 w-10 shrink-0 text-muted-foreground hover:bg-primary/10 hover:text-primary">
+                    <Video className="h-4 w-4" />
+                  </Button>
+                  <Button type="button" size="icon" onClick={startRecording} className="rounded-xl h-10 w-10 shrink-0 bg-gray-100 text-muted-foreground hover:bg-primary hover:text-white transition-all">
+                    <Mic className="h-4 w-4" />
+                  </Button>
+                </>
+              )}
+            </div>
           </form>
         )}
       </div>

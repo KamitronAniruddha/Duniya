@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useDoc, useFirestore, useMemoFirebase, useUser } from "@/firebase";
 import { doc, arrayUnion } from "firebase/firestore";
 import { UserProfilePopover } from "@/components/profile/user-profile-popover";
-import { Reply, CornerDownRight, Play, Pause, Volume2, MoreHorizontal, Trash2, Ban, Copy } from "lucide-react";
+import { Reply, CornerDownRight, Play, Pause, Volume2, MoreHorizontal, Trash2, Ban, Copy, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useRef, useEffect } from "react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -20,6 +20,7 @@ interface MessageBubbleProps {
     text: string;
     type?: string;
     audioUrl?: string;
+    videoUrl?: string;
     createdAt: any;
     isDeleted?: boolean;
     deletedBy?: string[];
@@ -47,6 +48,8 @@ export function MessageBubble({ message, channelId, isMe, onReply, onQuoteClick 
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
 
   const timestamp = message.createdAt?.toDate
     ? message.createdAt.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -67,6 +70,16 @@ export function MessageBubble({ message, channelId, isMe, onReply, onQuoteClick 
       audioRef.current.play();
     }
     setIsPlaying(!isPlaying);
+  };
+
+  const toggleVideoPlay = () => {
+    if (!videoRef.current) return;
+    if (isVideoPlaying) {
+      videoRef.current.pause();
+    } else {
+      videoRef.current.play();
+    }
+    setIsVideoPlaying(!isVideoPlaying);
   };
 
   useEffect(() => {
@@ -100,7 +113,7 @@ export function MessageBubble({ message, channelId, isMe, onReply, onQuoteClick 
   }, []);
 
   const handleCopy = () => {
-    if (!message.text || message.type === 'voice') return;
+    if (!message.text || message.type === 'voice' || message.type === 'video') return;
     navigator.clipboard.writeText(message.text);
     toast({
       title: "Copied to clipboard",
@@ -115,6 +128,7 @@ export function MessageBubble({ message, channelId, isMe, onReply, onQuoteClick 
       isDeleted: true,
       text: "This message was deleted",
       audioUrl: null,
+      videoUrl: null,
       type: "text"
     });
   };
@@ -180,7 +194,8 @@ export function MessageBubble({ message, channelId, isMe, onReply, onQuoteClick 
         )}
         
         <div className={cn(
-          "px-3 py-2 rounded-2xl text-sm shadow-sm transition-shadow group-hover:shadow-md relative",
+          "px-3 py-2 rounded-2xl shadow-sm transition-shadow group-hover:shadow-md relative",
+          message.type === 'video' ? "p-1.5" : "px-3 py-2",
           isMe 
             ? "bg-primary text-white rounded-br-none" 
             : "bg-white text-foreground rounded-bl-none border border-border"
@@ -254,8 +269,30 @@ export function MessageBubble({ message, channelId, isMe, onReply, onQuoteClick 
                 </div>
               </div>
             </div>
+          ) : message.type === 'video' && message.videoUrl ? (
+            <div className="relative group/video overflow-hidden rounded-full aspect-square w-64 md:w-80 shadow-inner bg-black">
+              <video 
+                ref={videoRef}
+                src={message.videoUrl} 
+                className="w-full h-full object-cover"
+                loop
+                muted={!isVideoPlaying}
+                autoPlay
+                playsInline
+                onClick={toggleVideoPlay}
+              />
+              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/video:opacity-100 transition-opacity bg-black/20 pointer-events-none">
+                 {isVideoPlaying ? <Volume2 className="h-8 w-8 text-white drop-shadow-lg" /> : <Ban className="h-8 w-8 text-white drop-shadow-lg" />}
+              </div>
+              {!isVideoPlaying && (
+                 <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/40 backdrop-blur-sm px-3 py-1 rounded-full text-[10px] text-white font-bold flex items-center gap-2">
+                    <Volume2 className="h-3 w-3" />
+                    Tap for Sound
+                 </div>
+              )}
+            </div>
           ) : (
-            <p className="whitespace-pre-wrap break-words leading-relaxed">{message.text}</p>
+            <p className="whitespace-pre-wrap break-words leading-relaxed text-sm">{message.text}</p>
           )}
 
           <div className={cn(
@@ -285,7 +322,7 @@ export function MessageBubble({ message, channelId, isMe, onReply, onQuoteClick 
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align={isMe ? "end" : "start"}>
-            {message.type !== 'voice' && !message.isDeleted && (
+            {message.type === 'text' && !message.isDeleted && (
               <DropdownMenuItem onClick={handleCopy}>
                 <Copy className="h-4 w-4 mr-2" />
                 Copy text

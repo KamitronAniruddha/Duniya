@@ -46,7 +46,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
     return rawMessages.filter(msg => !msg.deletedBy?.includes(user.uid));
   }, [rawMessages, user?.uid]);
 
-  const handleSendMessage = async (text: string, audioUrl?: string) => {
+  const handleSendMessage = async (text: string, audioUrl?: string, videoUrl?: string) => {
     if (!db || !channelId || !user) return;
     
     const messageRef = doc(collection(db, "messages", channelId, "chatMessages"));
@@ -60,16 +60,17 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
       replyData = {
         messageId: replyingTo.id,
         senderName: senderName,
-        text: replyingTo.text ? (replyingTo.text.length > 100 ? replyingTo.text.substring(0, 100) + "..." : replyingTo.text) : "Voice Message"
+        text: replyingTo.text ? (replyingTo.text.length > 100 ? replyingTo.text.substring(0, 100) + "..." : replyingTo.text) : (audioUrl ? "Voice Message" : (videoUrl ? "Video Message" : "Message"))
       };
     }
 
     setDocumentNonBlocking(messageRef, {
       id: messageRef.id,
       senderId: user.uid,
-      text: audioUrl ? "" : text,
-      type: audioUrl ? "voice" : "text",
+      text: (audioUrl || videoUrl) ? "" : text,
+      type: videoUrl ? "video" : (audioUrl ? "voice" : "text"),
       audioUrl: audioUrl || null,
+      videoUrl: videoUrl || null,
       createdAt: serverTimestamp(),
       edited: false,
       seenBy: [user.uid],
