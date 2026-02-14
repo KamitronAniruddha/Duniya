@@ -178,9 +178,11 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 min-w-0">
             <div className="relative">
-              <Avatar className="h-8 w-8 ring-1 ring-border shadow-sm">
+              <Avatar className="h-8 w-8 ring-1 ring-border shadow-sm border border-border">
                 <AvatarImage src={userData?.photoURL || ""} />
-                <AvatarFallback className="bg-primary text-white text-[10px] font-bold">{userData?.username?.[0]?.toUpperCase() || "?"}</AvatarFallback>
+                <AvatarFallback className="bg-primary text-white text-[10px] font-bold">
+                  {userData?.username?.[0]?.toUpperCase() || "?"}
+                </AvatarFallback>
               </Avatar>
               <div className={cn(
                 "absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white",

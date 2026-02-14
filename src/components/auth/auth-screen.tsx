@@ -68,7 +68,7 @@ export function AuthScreen() {
           id: user.uid,
           username: cleanUsername,
           email: cleanEmail,
-          photoURL: `https://picsum.photos/seed/${user.uid}/200`,
+          photoURL: "", // Start empty to trigger initial fallback
           bio: "",
           createdAt: serverTimestamp(),
           onlineStatus: "online",

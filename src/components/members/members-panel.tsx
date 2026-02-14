@@ -252,8 +252,8 @@ function MemberItem({
         <button className="relative transition-transform hover:scale-110">
           <Avatar className="h-8 w-8 border border-white shadow-sm">
             <AvatarImage src={member.photoURL} />
-            <AvatarFallback className="bg-primary/10 text-primary text-[10px] font-bold">
-              {member.username?.[0]?.toUpperCase() || <UserIcon className="h-3 w-3" />}
+            <AvatarFallback className="bg-primary text-white text-[10px] font-bold">
+              {member.username?.[0]?.toUpperCase() || "?"}
             </AvatarFallback>
           </Avatar>
           <div className={cn(

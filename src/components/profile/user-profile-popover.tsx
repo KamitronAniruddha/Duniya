@@ -42,8 +42,8 @@ export function UserProfilePopover({ userId, children }: UserProfilePopoverProps
               >
                 <Avatar className="h-full w-full rounded-none">
                   <AvatarImage src={userData?.photoURL} className="object-cover" />
-                  <AvatarFallback className="bg-muted text-2xl">
-                    {userData?.username?.[0]?.toUpperCase() || <UserIcon className="h-8 w-8 text-muted-foreground" />}
+                  <AvatarFallback className="bg-primary text-white text-2xl font-bold">
+                    {userData?.username?.[0]?.toUpperCase() || "?"}
                   </AvatarFallback>
                 </Avatar>
                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
@@ -98,8 +98,8 @@ export function UserProfilePopover({ userId, children }: UserProfilePopoverProps
                 className="max-w-full max-h-[85vh] rounded-lg shadow-2xl object-contain animate-in zoom-in-95 duration-200"
               />
             ) : (
-              <div className="w-64 h-64 bg-muted rounded-full flex items-center justify-center">
-                <UserIcon className="h-32 w-32 text-muted-foreground" />
+              <div className="w-64 h-64 bg-primary rounded-full flex items-center justify-center text-white text-8xl font-bold shadow-2xl">
+                {userData?.username?.[0]?.toUpperCase() || "?"}
               </div>
             )}
             <button 

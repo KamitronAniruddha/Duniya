@@ -127,7 +127,9 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
               <div className="flex flex-col items-center justify-center gap-4 mb-4">
                 <Avatar className="h-20 w-20 ring-2 ring-primary ring-offset-2">
                   <AvatarImage src={photoURL} />
-                  <AvatarFallback className="text-2xl bg-muted text-muted-foreground">{username?.[0]?.toUpperCase() || "?"}</AvatarFallback>
+                  <AvatarFallback className="text-2xl bg-primary text-white font-bold">
+                    {username?.[0]?.toUpperCase() || "?"}
+                  </AvatarFallback>
                 </Avatar>
                 <div className="text-center">
                   <h4 className="font-bold">@{username}</h4>
