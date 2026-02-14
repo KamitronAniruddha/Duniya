@@ -32,7 +32,12 @@
         "members": { "type": "array", "items": { "type": "string" } },
         "createdAt": { "type": "string", "format": "date-time" },
         "isBroadcasted": { "type": "boolean", "description": "Whether the server is visible in Duniya." },
-        "broadcastExpiry": { "type": "string", "format": "date-time", "description": "When the Duniya broadcast expires." }
+        "broadcastExpiry": { "type": "string", "format": "date-time", "description": "When the Duniya broadcast expires." },
+        "disappearingMessagesDuration": { 
+          "type": "string", 
+          "enum": ["off", "24h", "7d", "90d"], 
+          "description": "Duration after which messages disappear." 
+        }
       },
       "required": ["id", "name", "ownerId", "members", "joinCode"]
     },
@@ -59,6 +64,7 @@
         "audioUrl": { "type": "string", "description": "Data URI for voice messages." },
         "videoUrl": { "type": "string", "description": "Data URI for circular video messages." },
         "createdAt": { "type": "string", "format": "date-time" },
+        "expiresAt": { "type": "string", "format": "date-time", "description": "When the message should disappear." },
         "edited": { "type": "boolean" },
         "isDeleted": { "type": "boolean", "description": "Whether the message was deleted for everyone." },
         "deletedBy": { "type": "array", "items": { "type": "string" }, "description": "List of user IDs who deleted the message for themselves." },
@@ -85,7 +91,7 @@
       "description": "User profile data."
     },
     "/servers/{serverId}": {
-      "schema": { "$ref": "#/backend/entities/User" },
+      "schema": { "$ref": "#/backend/entities/Server" },
       "description": "Server metadata."
     },
     "/channels/{channelId}": {

@@ -3,13 +3,14 @@
 
 import { useRef, useEffect, useState, useMemo } from "react";
 import { useCollection, useFirestore, useUser, useDoc, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy, limit, doc, serverTimestamp, getDoc } from "firebase/firestore";
+import { collection, query, orderBy, limit, doc, serverTimestamp, getDoc, Timestamp } from "firebase/firestore";
 import { MessageBubble } from "./message-bubble";
 import { MessageInput } from "./message-input";
-import { Hash, Phone, Video, Users, Loader2, MessageCircle } from "lucide-react";
+import { Hash, Phone, Video, Users, Loader2, MessageCircle, Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface ChatWindowProps {
   channelId: string | null;
@@ -17,6 +18,12 @@ interface ChatWindowProps {
   showMembers?: boolean;
   onToggleMembers?: () => void;
 }
+
+const DURATION_MS = {
+  "24h": 24 * 60 * 60 * 1000,
+  "7d": 7 * 24 * 60 * 60 * 1000,
+  "90d": 90 * 24 * 60 * 60 * 1000,
+};
 
 export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }: ChatWindowProps) {
   const db = useFirestore();
@@ -29,6 +36,9 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
   const channelRef = useMemoFirebase(() => (channelId && user ? doc(db, "channels", channelId) : null), [db, channelId, user?.uid]);
   const { data: channel } = useDoc(channelRef);
 
+  const serverRef = useMemoFirebase(() => (serverId && user ? doc(db, "servers", serverId) : null), [db, serverId, user?.uid]);
+  const { data: server } = useDoc(serverRef);
+
   const messagesQuery = useMemoFirebase(() => {
     if (!db || !channelId || !user) return null;
     return query(
@@ -40,10 +50,24 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
 
   const { data: rawMessages, isLoading: messagesLoading } = useCollection(messagesQuery);
 
-  // Filter messages that the user has "Deleted for me"
+  // Filter messages that the user has "Deleted for me" AND messages that have expired
   const messages = useMemo(() => {
     if (!rawMessages || !user) return [];
-    return rawMessages.filter(msg => !msg.deletedBy?.includes(user.uid));
+    
+    const now = Date.now();
+    
+    return rawMessages.filter(msg => {
+      // Filter out manually deleted messages
+      if (msg.deletedBy?.includes(user.uid)) return false;
+      
+      // Filter out expired disappearing messages
+      if (msg.expiresAt) {
+        const expiryDate = msg.expiresAt.toDate ? msg.expiresAt.toDate() : new Date(msg.expiresAt);
+        if (expiryDate.getTime() < now) return false;
+      }
+      
+      return true;
+    });
   }, [rawMessages, user?.uid]);
 
   const handleSendMessage = async (text: string, audioUrl?: string, videoUrl?: string) => {
@@ -64,6 +88,16 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
       };
     }
 
+    // Handle Disappearing Messages logic
+    let expiresAt = null;
+    const duration = server?.disappearingMessagesDuration;
+    if (duration && duration !== "off") {
+      const ms = DURATION_MS[duration as keyof typeof DURATION_MS];
+      if (ms) {
+        expiresAt = Timestamp.fromDate(new Date(Date.now() + ms));
+      }
+    }
+
     setDocumentNonBlocking(messageRef, {
       id: messageRef.id,
       senderId: user.uid,
@@ -72,6 +106,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
       audioUrl: audioUrl || null,
       videoUrl: videoUrl || null,
       createdAt: serverTimestamp(),
+      expiresAt: expiresAt,
       edited: false,
       seenBy: [user.uid],
       isDeleted: false,
@@ -126,6 +161,20 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
         <div className="flex items-center gap-2 min-w-0">
           <Hash className="h-5 w-5 text-muted-foreground shrink-0" />
           <h2 className="font-bold text-sm truncate">{channel?.name || "..."}</h2>
+          {server?.disappearingMessagesDuration && server.disappearingMessagesDuration !== "off" && (
+            <TooltipProvider>
+              <Tooltip delayDuration={0}>
+                <TooltipTrigger asChild>
+                  <div className="p-1 bg-primary/10 rounded-full cursor-help">
+                    <Timer className="h-3 w-3 text-primary" />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs">Disappearing messages are ON ({server.disappearingMessagesDuration})</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
         </div>
         <div className="flex items-center gap-1">
           <Button variant="ghost" size="icon" className="h-8 w-8 hidden sm:inline-flex">

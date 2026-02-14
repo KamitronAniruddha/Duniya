@@ -9,11 +9,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Camera, Hash, Copy, Check, Globe, Clock } from "lucide-react";
+import { Loader2, Camera, Hash, Copy, Check, Globe, Clock, TimerOff, Timer } from "lucide-react";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 
 interface ServerSettingsDialogProps {
   open: boolean;
@@ -30,6 +31,13 @@ const BROADCAST_DURATIONS = [
   { label: "30 Days", value: "30d", ms: 30 * 24 * 60 * 60 * 1000 },
 ];
 
+const DISAPPEARING_OPTIONS = [
+  { label: "Off", value: "off" },
+  { label: "24 Hours", value: "24h" },
+  { label: "7 Days", value: "7d" },
+  { label: "90 Days", value: "90d" },
+];
+
 export function ServerSettingsDialog({ open, onOpenChange, serverId }: ServerSettingsDialogProps) {
   const db = useFirestore();
   const { toast } = useToast();
@@ -42,6 +50,7 @@ export function ServerSettingsDialog({ open, onOpenChange, serverId }: ServerSet
   const [description, setDescription] = useState("");
   const [isBroadcasted, setIsBroadcasted] = useState(false);
   const [broadcastDuration, setBroadcastDuration] = useState("1d");
+  const [disappearingDuration, setDisappearingDuration] = useState("off");
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -50,6 +59,7 @@ export function ServerSettingsDialog({ open, onOpenChange, serverId }: ServerSet
       setIcon(server.icon || "");
       setDescription(server.description || "");
       setIsBroadcasted(server.isBroadcasted || false);
+      setDisappearingDuration(server.disappearingMessagesDuration || "off");
     }
   }, [server]);
 
@@ -75,11 +85,12 @@ export function ServerSettingsDialog({ open, onOpenChange, serverId }: ServerSet
         description: description.trim(),
         isBroadcasted: isBroadcasted,
         broadcastExpiry: broadcastExpiry,
+        disappearingMessagesDuration: disappearingDuration,
       });
       
       toast({ 
         title: "Server updated", 
-        description: isBroadcasted ? `Broadcasting for ${BROADCAST_DURATIONS.find(d => d.value === broadcastDuration)?.label}` : "Settings saved." 
+        description: "Settings have been saved successfully."
       });
       onOpenChange(false);
     } catch (error: any) {
@@ -100,34 +111,64 @@ export function ServerSettingsDialog({ open, onOpenChange, serverId }: ServerSet
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] flex flex-col h-[90vh] max-h-[600px] p-0 overflow-hidden">
+      <DialogContent className="sm:max-w-[425px] flex flex-col h-[90vh] max-h-[700px] p-0 overflow-hidden">
         <DialogHeader className="p-6 pb-2 shrink-0">
           <DialogTitle>Server Settings</DialogTitle>
-          <DialogDescription>Manage your community details and discovery.</DialogDescription>
+          <DialogDescription>Manage your community details, privacy, and discovery.</DialogDescription>
         </DialogHeader>
         
         <form onSubmit={handleUpdate} className="flex flex-col flex-1 overflow-hidden">
           <ScrollArea className="flex-1">
-            <div className="space-y-4 px-6 py-2 pb-6">
-              <div className="space-y-2">
-                <Label htmlFor="sname">Server Name</Label>
-                <div className="relative">
-                  <Hash className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input id="sname" className="pl-9" value={name} onChange={(e) => setName(e.target.value)} required />
+            <div className="space-y-6 px-6 py-2 pb-6">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="sname">Server Name</Label>
+                  <div className="relative">
+                    <Hash className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input id="sname" className="pl-9" value={name} onChange={(e) => setName(e.target.value)} required />
+                  </div>
                 </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="sdesc">Description</Label>
-                <Input id="sdesc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What is this server about?" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="sicon">Icon URL</Label>
-                <div className="relative">
-                  <Camera className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input id="sicon" className="pl-9" value={icon} onChange={(e) => setIcon(e.target.value)} placeholder="https://..." />
+                <div className="space-y-2">
+                  <Label htmlFor="sdesc">Description</Label>
+                  <Input id="sdesc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What is this server about?" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="sicon">Icon URL</Label>
+                  <div className="relative">
+                    <Camera className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input id="sicon" className="pl-9" value={icon} onChange={(e) => setIcon(e.target.value)} placeholder="https://..." />
+                  </div>
                 </div>
               </div>
 
+              <Separator />
+
+              {/* Privacy: Disappearing Messages */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Timer className="h-4 w-4 text-primary" />
+                  <h4 className="text-sm font-bold">Privacy: Disappearing Messages</h4>
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-snug">
+                  When enabled, new messages sent in this server will disappear for everyone after the specified duration.
+                </p>
+                <Select value={disappearingDuration} onValueChange={setDisappearingDuration}>
+                  <SelectTrigger className="w-full bg-gray-50/50">
+                    <SelectValue placeholder="Select duration" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DISAPPEARING_OPTIONS.map(opt => (
+                      <SelectItem key={opt.value} value={opt.value} className="text-sm">
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Separator />
+
+              {/* Discovery: Duniya */}
               <div className="space-y-3 p-3 bg-accent/5 rounded-xl border border-accent/10">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
