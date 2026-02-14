@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -5,15 +6,18 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function isServerOwner(serverId) {
+      return isSignedIn() && get(/databases/$(database)/documents/servers/$(serverId)).data.ownerId == request.auth.uid;
+    }
+
+    function isServerAdmin(serverId) {
+      let serverData = get(/databases/$(database)/documents/servers/$(serverId)).data;
+      return isSignedIn() && (serverData.ownerId == request.auth.uid || request.auth.uid in serverData.admins);
+    }
+
     match /users/{userId} {
-      // Allow read for everyone to check username uniqueness and show members
       allow read: if true;
-      // Allow owner to create their own doc
       allow create: if isSignedIn() && request.auth.uid == userId;
-      // Allow updates:
-      // 1. If the user is the owner (full access)
-      // 2. If another user is inviting them (only serverIds allowed)
-      // 3. For presence updates (status, lastSeen)
       allow update: if isSignedIn() && (
         (request.auth.uid == userId) || 
         (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['serverIds', 'onlineStatus', 'lastSeen']))
@@ -23,17 +27,16 @@ service cloud.firestore {
     match /servers/{serverId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn();
-      // Allow update if owner OR if only the members list is being updated (for joining/inviting)
       allow update: if isSignedIn() && (
         request.auth.uid == resource.data.ownerId || 
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'name', 'icon'])
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'name', 'icon', 'admins'])
       );
       allow delete: if isSignedIn() && request.auth.uid == resource.data.ownerId;
     }
 
     match /channels/{channelId} {
       allow read: if isSignedIn();
-      allow create, update, delete: if isSignedIn();
+      allow create, update, delete: if isSignedIn() && isServerAdmin(request.resource.data.serverId || resource.data.serverId);
     }
 
     match /messages/{channelId}/chatMessages/{messageId} {

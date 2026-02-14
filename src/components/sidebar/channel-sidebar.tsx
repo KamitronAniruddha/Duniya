@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -50,6 +51,7 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
   const { data: channels, isLoading } = useCollection(channelsQuery);
 
   const isOwner = server?.ownerId === user?.uid;
+  const isAdmin = isOwner || server?.admins?.includes(user?.uid);
 
   const handleLogout = () => {
     if (user && db && auth.currentUser) {
@@ -143,7 +145,7 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
                 <div>
                   <div className="px-2 mb-1 flex items-center justify-between group">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">Text Channels</span>
-                    {isOwner && (
+                    {isAdmin && (
                       <button onClick={() => setCreateChannelOpen(true)}>
                         <Plus className="h-3 w-3 text-muted-foreground opacity-100 sm:opacity-0 group-hover:opacity-100 cursor-pointer hover:text-primary transition-all" />
                       </button>
@@ -164,7 +166,7 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
                           <Hash className="h-4 w-4 mr-2" />
                           <span className="truncate">{c.name}</span>
                         </button>
-                        {isOwner && (
+                        {isAdmin && (
                           <Button 
                             variant="ghost" 
                             size="icon" 

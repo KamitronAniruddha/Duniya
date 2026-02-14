@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -54,6 +55,7 @@ export function ServerSidebar({ activeServerId, onSelectServer }: ServerSidebarP
         name: name.trim(),
         icon: `https://picsum.photos/seed/${Math.random()}/200`,
         ownerId: user.uid,
+        admins: [],
         joinCode: joinCode,
         members: [user.uid],
         createdAt: serverTimestamp()

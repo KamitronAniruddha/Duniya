@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -5,7 +6,7 @@ import { useCollection, useFirestore, useDoc, useMemoFirebase, useUser } from "@
 import { collection, query, where, doc, getDocs, arrayUnion, arrayRemove } from "firebase/firestore";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ShieldCheck, User as UserIcon, Loader2, UserPlus, Check, AlertCircle, UserMinus } from "lucide-react";
+import { ShieldCheck, User as UserIcon, Loader2, UserPlus, Check, AlertCircle, UserMinus, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -15,6 +16,7 @@ import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { cn } from "@/lib/utils";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { UserProfilePopover } from "@/components/profile/user-profile-popover";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 interface MembersPanelProps {
   serverId: string;
@@ -42,6 +44,8 @@ export function MembersPanel({ serverId }: MembersPanelProps) {
   if (!server) return null;
 
   const isOwner = server.ownerId === currentUser?.uid;
+  const serverAdmins = server.admins || [];
+  
   const onlineMembers = members?.filter(m => m.onlineStatus === "online") || [];
   const offlineMembers = members?.filter(m => m.onlineStatus !== "online") || [];
 
@@ -100,7 +104,8 @@ export function MembersPanel({ serverId }: MembersPanelProps) {
 
     try {
       updateDocumentNonBlocking(serverRef, {
-        members: arrayRemove(targetUserId)
+        members: arrayRemove(targetUserId),
+        admins: arrayRemove(targetUserId)
       });
 
       const targetUserRef = doc(db, "users", targetUserId);
@@ -121,6 +126,27 @@ export function MembersPanel({ serverId }: MembersPanelProps) {
     }
   };
 
+  const handleToggleAdmin = (targetUserId: string, isAdmin: boolean) => {
+    if (!db || !server || !isOwner) return;
+
+    try {
+      updateDocumentNonBlocking(serverRef, {
+        admins: isAdmin ? arrayRemove(targetUserId) : arrayUnion(targetUserId)
+      });
+
+      toast({ 
+        title: isAdmin ? "Admin Removed" : "Admin Added", 
+        description: `User role has been updated.` 
+      });
+    } catch (error: any) {
+      toast({ 
+        variant: "destructive", 
+        title: "Role Update Failed", 
+        description: error.message 
+      });
+    }
+  };
+
   return (
     <aside className="w-64 bg-gray-50 border-l border-border flex flex-col h-full overflow-hidden shrink-0">
       <header className="h-14 px-4 border-b flex items-center justify-between bg-white shrink-0">
@@ -132,7 +158,7 @@ export function MembersPanel({ serverId }: MembersPanelProps) {
             </span>
           )}
         </div>
-        {isOwner && (
+        {(isOwner || serverAdmins.includes(currentUser?.uid)) && (
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setIsInviteOpen(true)}>
             <UserPlus className="h-4 w-4" />
           </Button>
@@ -164,8 +190,10 @@ export function MembersPanel({ serverId }: MembersPanelProps) {
                         key={member.id} 
                         member={member} 
                         isOwner={member.id === server.ownerId}
-                        canRemove={isOwner && member.id !== currentUser?.uid}
+                        isAdmin={serverAdmins.includes(member.id)}
+                        canManage={isOwner && member.id !== currentUser?.uid}
                         onRemove={() => handleRemoveMember(member.id, member.username)}
+                        onToggleAdmin={() => handleToggleAdmin(member.id, serverAdmins.includes(member.id))}
                       />
                     ))}
                   </div>
@@ -183,8 +211,10 @@ export function MembersPanel({ serverId }: MembersPanelProps) {
                         key={member.id} 
                         member={member} 
                         isOwner={member.id === server.ownerId}
-                        canRemove={isOwner && member.id !== currentUser?.uid}
+                        isAdmin={serverAdmins.includes(member.id)}
+                        canManage={isOwner && member.id !== currentUser?.uid}
                         onRemove={() => handleRemoveMember(member.id, member.username)}
+                        onToggleAdmin={() => handleToggleAdmin(member.id, serverAdmins.includes(member.id))}
                       />
                     ))}
                   </div>
@@ -238,13 +268,17 @@ export function MembersPanel({ serverId }: MembersPanelProps) {
 function MemberItem({ 
   member, 
   isOwner, 
-  canRemove, 
-  onRemove 
+  isAdmin,
+  canManage, 
+  onRemove,
+  onToggleAdmin
 }: { 
   member: any; 
   isOwner: boolean; 
-  canRemove: boolean;
+  isAdmin: boolean;
+  canManage: boolean;
   onRemove: () => void;
+  onToggleAdmin: () => void;
 }) {
   return (
     <div className="flex items-center gap-2 p-2 rounded-md hover:bg-gray-100 transition-colors group cursor-default relative">
@@ -272,9 +306,11 @@ function MemberItem({
             )}>
               {member.username}
             </span>
-            {isOwner && (
+            {isOwner ? (
               <ShieldCheck className="h-3 w-3 text-orange-500 shrink-0" title="Server Owner" />
-            )}
+            ) : isAdmin ? (
+              <Shield className="h-3 w-3 text-blue-500 shrink-0" title="Server Admin" />
+            ) : null}
           </button>
         </UserProfilePopover>
         {member.bio && (
@@ -284,32 +320,45 @@ function MemberItem({
         )}
       </div>
 
-      {canRemove && (
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:bg-destructive/10"
-            >
-              <UserMinus className="h-3.5 w-3.5" />
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Remove Member</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to remove <strong>{member.username}</strong> from this server? They will lose access to all channels.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={onRemove} className="bg-destructive hover:bg-destructive/90">
-                Remove Member
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+      {canManage && (
+        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary">
+                <Shield className="h-3.5 w-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={onToggleAdmin}>
+                {isAdmin ? "Demote to User" : "Promote to Admin"}
+              </DropdownMenuItem>
+              <DropdownMenuItem className="text-destructive font-medium" onClick={() => {}}>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <span className="w-full flex items-center gap-2">
+                      <UserMinus className="h-4 w-4" />
+                      Remove from Server
+                    </span>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Remove Member</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to remove <strong>{member.username}</strong> from this server?
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={onRemove} className="bg-destructive hover:bg-destructive/90">
+                        Remove Member
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       )}
     </div>
   );
