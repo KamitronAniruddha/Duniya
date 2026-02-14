@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -59,17 +60,23 @@ export function AuthScreen() {
         const userCredential = await createUserWithEmailAndPassword(auth, cleanEmail, password);
         const user = userCredential.user;
 
-        // 3. Update Auth profile
-        await updateProfile(user, { displayName: username.trim() });
+        // 3. Define Demo Profile Picture (Safe & Unique)
+        const demoPhotoURL = `https://picsum.photos/seed/${user.uid}/200`;
 
-        // 4. Create Firestore user document
+        // 4. Update Auth profile
+        await updateProfile(user, { 
+          displayName: username.trim(),
+          photoURL: demoPhotoURL 
+        });
+
+        // 5. Create Firestore user document
         const userRef = doc(db, "users", user.uid);
         const userData = {
           id: user.uid,
           username: cleanUsername,
           email: cleanEmail,
-          photoURL: "", // Start empty to trigger initial fallback
-          bio: "",
+          photoURL: demoPhotoURL,
+          bio: "Welcome to my Verse!",
           createdAt: serverTimestamp(),
           onlineStatus: "online",
           lastSeen: serverTimestamp(),
