@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -10,7 +11,7 @@ import { useUser, useFirestore, useCollection, useMemoFirebase, useAuth } from "
 import { doc, serverTimestamp, collection, query, where } from "firebase/firestore";
 import { Loader2, Menu } from "lucide-react";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 
 export default function ConnectVerseApp() {
@@ -114,6 +115,10 @@ export default function ConnectVerseApp() {
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="p-0 flex w-[300px] border-none">
+              <SheetHeader className="sr-only">
+                <SheetTitle>Navigation Menu</SheetTitle>
+                <SheetDescription>Select servers and channels to chat.</SheetDescription>
+              </SheetHeader>
               <div className="flex h-full w-full overflow-hidden">
                 <ServerSidebar 
                   activeServerId={activeServerId} 
