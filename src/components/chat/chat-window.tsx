@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useRef, useEffect, useState, useMemo } from "react";
@@ -146,7 +145,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
           <div className="w-24 h-24 bg-primary/10 rounded-full mb-6 flex items-center justify-center shadow-inner">
             <MessageCircle className="h-12 w-12 text-primary" />
           </div>
-          <h2 className="text-3xl font-black mb-2 flex items-center justify-center gap-2 tracking-tighter">
+          <h2 className="text-3xl font-black mb-2 flex items-center justify-center gap-2 tracking-tighter text-foreground">
             Karo Chutiyapaa <Heart className="h-8 w-8 text-red-500 fill-red-500 animate-pulse" />
           </h2>
           <p className="text-muted-foreground text-sm mb-12 font-medium">
@@ -169,7 +168,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
           <div className="p-1.5 bg-muted rounded-lg">
             <Hash className="h-5 w-5 text-muted-foreground shrink-0" />
           </div>
-          <h2 className="font-bold text-sm truncate">{channel?.name || "..."}</h2>
+          <h2 className="font-bold text-sm truncate text-foreground">{channel?.name || "..."}</h2>
           
           <TooltipProvider>
             <Tooltip delayDuration={0}>
@@ -225,7 +224,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
 
       <div 
         ref={scrollRef} 
-        className="flex-1 overflow-y-auto scroll-smooth custom-scrollbar bg-muted/20 min-h-0"
+        className="flex-1 overflow-y-auto scroll-smooth custom-scrollbar bg-muted/10 min-h-0"
       >
         <div className="p-4 flex flex-col gap-1 min-h-full">
           <div className="flex-1" />
@@ -240,8 +239,8 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
                 <Hash className="h-10 w-10 text-primary" />
               </div>
               <div>
-                <h3 className="font-bold text-lg">Welcome to #{channel?.name}</h3>
-                <p className="text-xs max-w-[200px] mx-auto">This is the very beginning of your community story. Send a message to get started!</p>
+                <h3 className="font-bold text-lg text-foreground">Welcome to #{channel?.name}</h3>
+                <p className="text-xs max-w-[200px] mx-auto text-muted-foreground">This is the very beginning of your community story. Send a message to get started!</p>
               </div>
             </div>
           ) : (

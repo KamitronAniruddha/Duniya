@@ -238,8 +238,8 @@ export default function ConnectVerseApp() {
         />
       </div>
 
-      <main className="flex-1 flex flex-col min-w-0 h-full relative overflow-hidden bg-white">
-        <div className="md:hidden p-2 border-b flex items-center gap-2 bg-white shrink-0">
+      <main className="flex-1 flex flex-col min-w-0 h-full relative overflow-hidden">
+        <div className="md:hidden p-2 border-b flex items-center gap-2 bg-background shrink-0">
           <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon">
@@ -251,7 +251,7 @@ export default function ConnectVerseApp() {
                 <SheetTitle>Navigation Menu</SheetTitle>
                 <SheetDescription>Select servers and channels to chat.</SheetDescription>
               </SheetHeader>
-              <div className="flex h-full w-full overflow-hidden">
+              <div className="flex h-full w-full overflow-hidden bg-background">
                 <ServerSidebar 
                   activeServerId={activeServerId} 
                   isDuniyaActive={isDuniyaActive}
@@ -281,7 +281,7 @@ export default function ConnectVerseApp() {
           <span className="font-bold text-sm truncate">Duniya</span>
         </div>
         
-        <div className="flex-1 min-h-0 flex relative overflow-hidden">
+        <div className="flex-1 min-h-0 flex relative overflow-hidden bg-background">
           {isDuniyaActive ? (
             <DuniyaPanel onJoinSuccess={(id) => {
               setIsDuniyaActive(false);
@@ -297,7 +297,7 @@ export default function ConnectVerseApp() {
               />
               
               {showMembers && activeServerId && (
-                <div className="hidden lg:block h-full border-l shadow-2xl">
+                <div className="hidden lg:block h-full border-l shadow-2xl bg-background">
                   <MembersPanel serverId={activeServerId} />
                 </div>
               )}

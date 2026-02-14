@@ -1,4 +1,3 @@
-
 "use client";
 
 import { cn } from "@/lib/utils";
@@ -196,7 +195,7 @@ export function MessageBubble({ message, channelId, isMe, onReply, onQuoteClick 
         <div className={cn("flex flex-col max-w-[75%] relative", isMe ? "items-end" : "items-start")}>
           <div className={cn(
             "px-3 py-2 rounded-2xl text-xs italic opacity-60 flex items-center gap-2 border shadow-none",
-            isMe ? "bg-gray-100 rounded-br-none" : "bg-white rounded-bl-none"
+            isMe ? "bg-muted/50 rounded-br-none" : "bg-card rounded-bl-none"
           )}>
             <Ban className="h-3 w-3" />
             {isMe ? "You deleted this message" : "This message was deleted"}
@@ -265,7 +264,7 @@ export function MessageBubble({ message, channelId, isMe, onReply, onQuoteClick 
           message.type === 'video' ? "p-1.5" : "px-3 py-2",
           isMe 
             ? "bg-primary text-white rounded-br-none" 
-            : "bg-white text-foreground rounded-bl-none border border-border"
+            : "bg-card text-foreground rounded-bl-none border border-border"
         )}>
           {message.replyTo && (
             <button 
@@ -308,7 +307,7 @@ export function MessageBubble({ message, channelId, isMe, onReply, onQuoteClick 
               <div className="flex-1 space-y-1.5">
                 <div className={cn(
                   "h-1.5 w-full rounded-full overflow-hidden relative",
-                  isMe ? "bg-white/30" : "bg-gray-100"
+                  isMe ? "bg-white/30" : "bg-muted"
                 )}>
                   <div 
                     className={cn(
@@ -376,14 +375,14 @@ export function MessageBubble({ message, channelId, isMe, onReply, onQuoteClick 
       )}>
         <button 
           onClick={onReply}
-          className="h-7 w-7 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors"
+          className="h-7 w-7 rounded-full hover:bg-muted flex items-center justify-center transition-colors"
           title="Reply"
         >
           <Reply className="h-3.5 w-3.5 text-muted-foreground" />
         </button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="h-7 w-7 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors">
+            <button className="h-7 w-7 rounded-full hover:bg-muted flex items-center justify-center transition-colors">
               <MoreHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
             </button>
           </DropdownMenuTrigger>

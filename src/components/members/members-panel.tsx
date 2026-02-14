@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -187,8 +186,8 @@ export function MembersPanel({ serverId }: MembersPanelProps) {
   };
 
   return (
-    <aside className="w-64 bg-gray-50 border-l border-border flex flex-col h-full overflow-hidden shrink-0">
-      <header className="h-14 px-4 border-b flex items-center justify-between bg-white shrink-0">
+    <aside className="w-64 bg-background border-l border-border flex flex-col h-full overflow-hidden shrink-0">
+      <header className="h-14 px-4 border-b flex items-center justify-between bg-background shrink-0">
         <div className="flex items-center gap-2">
           <h3 className="font-bold text-sm text-foreground">Members</h3>
           {members && (
@@ -199,7 +198,7 @@ export function MembersPanel({ serverId }: MembersPanelProps) {
         </div>
         {(isOwner || serverAdmins.includes(currentUser?.uid)) && (
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setIsInviteOpen(true)}>
-            <UserPlus className="h-4 w-4" />
+            <UserPlus className="h-4 w-4 text-muted-foreground" />
           </Button>
         )}
       </header>
@@ -209,12 +208,12 @@ export function MembersPanel({ serverId }: MembersPanelProps) {
           {isMembersLoading ? (
             <div className="flex flex-col items-center justify-center py-10 opacity-50">
               <Loader2 className="h-5 w-5 animate-spin mb-2" />
-              <p className="text-[10px] font-medium uppercase">Loading Members</p>
+              <p className="text-[10px] font-medium uppercase text-foreground">Loading Members</p>
             </div>
           ) : members?.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-10 text-center space-y-2 opacity-50">
-              <AlertCircle className="h-8 w-8" />
-              <p className="text-xs">No members found</p>
+              <AlertCircle className="h-8 w-8 text-muted-foreground" />
+              <p className="text-xs text-muted-foreground">No members found</p>
             </div>
           ) : (
             <>
@@ -315,11 +314,11 @@ export function MembersPanel({ serverId }: MembersPanelProps) {
                 </div>
               ) : searchQuery.trim().length < 2 ? (
                 <div className="flex items-center justify-center py-8 opacity-30">
-                  <p className="text-xs">Type at least 2 characters...</p>
+                  <p className="text-xs text-foreground">Type at least 2 characters...</p>
                 </div>
               ) : searchResults.length === 0 ? (
                 <div className="flex items-center justify-center py-8 opacity-30">
-                  <p className="text-xs">No users found.</p>
+                  <p className="text-xs text-foreground">No users found.</p>
                 </div>
               ) : (
                 <div className="space-y-1">
@@ -332,14 +331,14 @@ export function MembersPanel({ serverId }: MembersPanelProps) {
                         onClick={() => toggleUserSelection(u)}
                         className={cn(
                           "w-full flex items-center gap-2 p-2 rounded-lg transition-colors text-left",
-                          isSelected ? "bg-primary/10 border border-primary/20" : "hover:bg-gray-100 border border-transparent"
+                          isSelected ? "bg-primary/10 border border-primary/20" : "hover:bg-muted border border-transparent"
                         )}
                       >
                         <Avatar className="h-6 w-6">
                           <AvatarImage src={u.photoURL} />
-                          <AvatarFallback className="text-[8px] bg-primary text-white">{u.username?.[0]?.toUpperCase()}</AvatarFallback>
+                          <AvatarFallback className="text-[8px] bg-primary text-primary-foreground">{u.username?.[0]?.toUpperCase()}</AvatarFallback>
                         </Avatar>
-                        <span className="text-xs font-bold flex-1">{u.username}</span>
+                        <span className="text-xs font-bold flex-1 text-foreground">{u.username}</span>
                         {isSelected && <Check className="h-3 w-3 text-primary" />}
                       </button>
                     );
@@ -383,18 +382,18 @@ function MemberItem({
   onToggleAdmin: () => void;
 }) {
   return (
-    <div className="flex items-center gap-2 p-2 rounded-md hover:bg-gray-100 transition-colors group cursor-default relative">
+    <div className="flex items-center gap-2 p-2 rounded-md hover:bg-muted transition-colors group cursor-default relative">
       <UserProfilePopover userId={member.id}>
         <button className="relative transition-transform hover:scale-110">
-          <Avatar className="h-8 w-8 border border-white shadow-sm">
+          <Avatar className="h-8 w-8 border border-border shadow-sm">
             <AvatarImage src={member.photoURL || undefined} />
-            <AvatarFallback className="bg-primary text-white text-[10px] font-bold">
+            <AvatarFallback className="bg-primary text-primary-foreground text-[10px] font-bold">
               {member.username?.[0]?.toUpperCase() || "?"}
             </AvatarFallback>
           </Avatar>
           <div className={cn(
-            "absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-gray-50",
-            member.onlineStatus === "online" ? "bg-green-500" : "bg-gray-300"
+            "absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-background",
+            member.onlineStatus === "online" ? "bg-green-500" : "bg-muted-foreground/40"
           )} />
         </button>
       </UserProfilePopover>
@@ -451,7 +450,7 @@ function MemberItem({
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={onRemove} className="bg-destructive hover:bg-destructive/90">
+                      <AlertDialogAction onClick={onRemove} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
                         Remove Member
                       </AlertDialogAction>
                     </AlertDialogFooter>

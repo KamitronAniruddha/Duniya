@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -187,9 +186,9 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
   };
 
   return (
-    <div className="bg-white shrink-0 w-full flex flex-col">
+    <div className="bg-background shrink-0 w-full flex flex-col">
       {replyingTo && (
-        <div className="px-4 py-2 bg-gray-50 border-t flex items-center gap-3 animate-in slide-in-from-bottom-2 duration-200">
+        <div className="px-4 py-2 bg-muted/30 border-t flex items-center gap-3 animate-in slide-in-from-bottom-2 duration-200">
           <div className="p-1.5 bg-primary/10 rounded-lg shrink-0">
             <CornerDownRight className="h-4 w-4 text-primary" />
           </div>
@@ -197,15 +196,15 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
             <span className="text-[10px] font-bold text-primary uppercase tracking-wider">Replying to {replyUser?.username || "..."}</span>
             <p className="text-xs text-muted-foreground truncate italic">{replyingTo.text || (replyingTo.audioUrl ? "Voice Message" : "Video Message")}</p>
           </div>
-          <button onClick={onCancelReply} className="h-6 w-6 rounded-full hover:bg-gray-200 flex items-center justify-center">
+          <button onClick={onCancelReply} className="h-6 w-6 rounded-full hover:bg-muted flex items-center justify-center">
             <X className="h-3 w-3" />
           </button>
         </div>
       )}
 
-      <div className="p-4 bg-white border-t relative">
+      <div className="p-4 bg-background border-t relative">
         {(isRecording || isRecordingVideo) ? (
-          <div className="flex items-center gap-4 max-w-5xl mx-auto bg-gray-50 p-2 rounded-xl animate-in fade-in zoom-in-95">
+          <div className="flex items-center gap-4 max-w-5xl mx-auto bg-muted/20 p-2 rounded-xl animate-in fade-in zoom-in-95">
             {isRecordingVideo && (
               <div className="h-24 w-24 rounded-full overflow-hidden border-4 border-primary bg-black shrink-0 relative shadow-lg">
                 <video 
@@ -221,7 +220,7 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
             )}
             <div className="flex-1 flex flex-col gap-1">
               <div className="flex items-center gap-2">
-                <div className="flex items-center gap-2 px-3 py-1 bg-red-50 text-red-500 rounded-full w-fit">
+                <div className="flex items-center gap-2 px-3 py-1 bg-red-500/10 text-red-500 rounded-full w-fit">
                   <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
                   <span className="text-xs font-mono font-bold">{formatTime(recordingTime)}</span>
                 </div>
@@ -263,7 +262,7 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
                 placeholder={replyingTo ? "Write a reply..." : "Write a message..."}
                 value={text}
                 onChange={(e) => setText(e.target.value)}
-                className="w-full bg-gray-50 border-none rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary/20 transition-all"
+                className="w-full bg-muted/40 border-none rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary/20 transition-all text-foreground"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
@@ -278,11 +277,11 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
                       <Smile className="h-4 w-4" />
                     </button>
                   </PopoverTrigger>
-                  <PopoverContent side="top" align="end" className="w-80 p-0 overflow-hidden">
+                  <PopoverContent side="top" align="end" className="w-80 p-0 overflow-hidden bg-popover">
                     <Tabs defaultValue="smileys" className="w-full">
-                      <TabsList className="w-full justify-start rounded-none border-b bg-gray-50/50 p-0 h-10">
+                      <TabsList className="w-full justify-start rounded-none border-b bg-muted/50 p-0 h-10">
                         {EMOJI_CATEGORIES.map((cat) => (
-                          <TabsTrigger key={cat.id} value={cat.id} className="flex-1 rounded-none data-[state=active]:bg-white">
+                          <TabsTrigger key={cat.id} value={cat.id} className="flex-1 rounded-none data-[state=active]:bg-background">
                             {cat.icon}
                           </TabsTrigger>
                         ))}
@@ -292,7 +291,7 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
                           <ScrollArea className="h-64 p-2">
                             <div className="grid grid-cols-8 gap-1">
                               {(cat.id === 'recent' ? recentEmojis : cat.emojis).map((emoji, idx) => (
-                                <button key={idx} type="button" onClick={() => addEmoji(emoji)} className="text-xl hover:bg-gray-100 rounded aspect-square flex items-center justify-center">
+                                <button key={idx} type="button" onClick={() => addEmoji(emoji)} className="text-xl hover:bg-muted rounded aspect-square flex items-center justify-center">
                                   {emoji}
                                 </button>
                               ))}
@@ -308,7 +307,7 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
 
             <div className="flex items-center gap-1.5">
               {text.trim() ? (
-                <Button type="submit" size="icon" className="rounded-xl h-10 w-10 shrink-0 bg-primary text-white shadow-md">
+                <Button type="submit" size="icon" className="rounded-xl h-10 w-10 shrink-0 bg-primary text-primary-foreground shadow-md hover:bg-primary/90">
                   <SendHorizontal className="h-4 w-4" />
                 </Button>
               ) : (
@@ -316,7 +315,7 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
                   <Button type="button" variant="ghost" size="icon" onClick={startVideoRecording} className="rounded-xl h-10 w-10 shrink-0 text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors">
                     <Video className="h-5 w-5" />
                   </Button>
-                  <Button type="button" size="icon" onClick={startRecording} className="rounded-xl h-10 w-10 shrink-0 bg-gray-100 text-muted-foreground hover:bg-primary hover:text-white transition-all shadow-sm">
+                  <Button type="button" size="icon" onClick={startRecording} className="rounded-xl h-10 w-10 shrink-0 bg-muted text-muted-foreground hover:bg-primary hover:text-primary-foreground transition-all shadow-sm">
                     <Mic className="h-5 w-5" />
                   </Button>
                 </>

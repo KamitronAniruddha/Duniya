@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -105,7 +104,7 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
             <DropdownMenuTrigger asChild>
               <header className="h-14 px-4 border-b flex items-center justify-between hover:bg-muted/50 transition-colors cursor-pointer shrink-0">
                 <div className="flex flex-col min-w-0">
-                  <h2 className="font-bold truncate text-sm">{server?.name || "..."}</h2>
+                  <h2 className="font-bold truncate text-sm text-foreground">{server?.name || "..."}</h2>
                   {server?.joinCode && <span className="text-[9px] text-primary font-mono font-bold tracking-widest uppercase">Code: {server.joinCode}</span>}
                 </div>
                 <ChevronDown className="h-4 w-4 text-muted-foreground" />
@@ -166,7 +165,7 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
                         <button 
                           onClick={() => onSelectChannel(c.id)}
                           className={cn(
-                            "flex-1 flex items-center px-2 py-1.5 rounded-md text-sm transition-all",
+                            "flex-1 flex items-center px-2 py-1.5 rounded-md text-sm transition-all text-left",
                             c.id === activeChannelId 
                               ? "bg-primary/10 text-primary font-bold" 
                               : "text-muted-foreground hover:bg-muted/50"
@@ -196,7 +195,7 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
       ) : (
         <div className="flex-1 flex flex-col items-center justify-center p-6 text-center opacity-50">
           <Settings className="h-8 w-8 mb-4 text-muted-foreground" />
-          <p className="text-xs">Select a community to view channels</p>
+          <p className="text-xs text-muted-foreground">Select a community to view channels</p>
         </div>
       )}
 
@@ -216,13 +215,13 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
               )} />
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="text-xs font-bold truncate leading-none mb-0.5">{userData?.username || "Loading..."}</span>
+              <span className="text-xs font-bold truncate leading-none mb-0.5 text-foreground">{userData?.username || "Loading..."}</span>
               <span className="text-[10px] text-muted-foreground truncate leading-none capitalize">{userData?.onlineStatus || "offline"}</span>
             </div>
           </div>
           <div className="flex gap-0.5">
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setProfileOpen(true)}>
-              <Settings className="h-3.5 w-3.5" />
+              <Settings className="h-3.5 w-3.5 text-muted-foreground" />
             </Button>
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleLogout}>
               <LogOut className="h-3.5 w-3.5 text-destructive" />
@@ -231,7 +230,7 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
         </div>
         
         <div className="flex flex-col items-center gap-1 opacity-40 hover:opacity-100 transition-all duration-300">
-          <div className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.3em]">
+          <div className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.3em] text-muted-foreground">
             <span>Made by Aniruddha with love</span>
             <Heart className="h-2 w-2 text-red-500 fill-red-500 animate-pulse" />
           </div>
