@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useAuth, useFirestore, errorEmitter, FirestorePermissionError } from "@/firebase";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from "firebase/auth";
-import { doc, getDocs, collection, query, where, serverTimestamp } from "firebase/firestore";
+import { doc, getDocs, collection, query, where, serverTimestamp, limit } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,20 +40,15 @@ export function AuthScreen() {
         if (cleanUsername.length < 3) throw new Error("Username must be at least 3 characters");
 
         // 1. Check uniqueness of username
-        const q = query(collection(db, "users"), where("username", "==", cleanUsername));
-        try {
-          const querySnapshot = await getDocs(q);
-          if (!querySnapshot.empty) {
-            throw new Error("Username already taken. Please try another one.");
-          }
-        } catch (err: any) {
-          if (err.code === 'permission-denied') {
-            errorEmitter.emit('permission-error', new FirestorePermissionError({
-              path: 'users',
-              operation: 'list',
-            }));
-          }
-          throw err;
+        const q = query(
+          collection(db, "users"), 
+          where("username", "==", cleanUsername),
+          limit(1)
+        );
+        
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+          throw new Error("Username already taken. Please try another one.");
         }
 
         // 2. Create Auth User
@@ -74,9 +69,9 @@ export function AuthScreen() {
           email: cleanEmail,
           photoURL: "",
           bio: "Welcome to Duniya!",
-          createdAt: serverTimestamp(),
+          createdAt: new Date().toISOString(),
           onlineStatus: "online",
-          lastSeen: serverTimestamp(),
+          lastSeen: new Date().toISOString(),
           friends: [],
           serverIds: []
         };

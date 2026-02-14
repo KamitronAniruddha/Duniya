@@ -1,176 +1,100 @@
 rules_version = '2';
 
-/**
- * FIRESTORE SECURITY RULES
- * 
- * CORE PHILOSOPHY:
- * This ruleset implements a strict user-ownership and administrative-access model designed for a secure 
- * social and community-driven application. It prioritizes Authorization Independence through 
- * denormalization, ensuring that security decisions are fast and performant.
- * 
- * DATA STRUCTURE:
- * - User-centric data (Profiles, Stories, Notifications, Devices) is nested under `/users/{userId}`.
- * - Collaborative data is organized under `/communities/{communityId}`, with access governed by 
- *   a membership subcollection.
- * - Administrative control is centralized via the `/roles_admin` collection (DBAC) and specific 
- *   metadata in the `User` entity.
- * 
- * KEY SECURITY DECISIONS:
- * - ADMIN ACCESS: Users with a document in `/roles_admin/{uid}` have global read/write access 
- *   to administrative collections and global read access to user profiles.
- * - OWNERSHIP: Users have full CRUD access to their own data trees under `/users/{userId}`.
- * - COMMUNITY ACCESS: Membership in a community (verified via subcollection lookups) is a 
- *   pre-requisite for accessing channels, messages, and related metadata.
- * - CONTACT FORM: Any authenticated or anonymous user can submit a contact form, but only 
- *   administrators can view, manage, or resolve them.
- * 
- * DENORMALIZATION FOR AUTHORIZATION:
- * - To avoid nested `get()` calls in high-traffic areas (like messages), critical fields like 
- *   `communityId` and `senderId` are expected to be denormalized on the documents.
- */
-
 service cloud.firestore {
   match /databases/{database}/documents {
 
     // --- GLOBAL HELPER FUNCTIONS ---
 
-    /** @description Checks if the request is from an authenticated user. */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /** @description Checks if the authenticated user matches the provided userId. */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    /** @description Checks if the user is a registered administrator via the DBAC collection. */
     function isAdmin() {
-      return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid)) ||
+        request.auth.token.email == "aniruddha@duniya.app"
+      );
     }
 
-    /** @description Ensures the document exists and the requester is the owner. Used for updates/deletes. */
     function isExistingOwner(userId) {
       return resource != null && isOwner(userId);
     }
 
-    /** @description Checks if a user is a member of a specific community. */
     function isCommunityMember(communityId) {
-      return isSignedIn() && exists(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid));
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid)) ||
+        isAdmin()
+      );
     }
 
     // --- COLLECTION RULES ---
 
-    /**
-     * @description Rules for User profiles. Owners can manage their data; Admins can view all for moderation.
-     * @path /users/{userId}
-     * @allow (get) Any signed-in user viewing a profile. (update) User matching {userId}.
-     * @deny (list) Anonymous users. (delete) Anyone (profiles are generally deactivated, not deleted).
-     * @principle Ownership-based writes and Admin-based global read access.
-     */
     match /users/{userId} {
       allow get: if isSignedIn();
-      allow list: if isAdmin();
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isExistingOwner(userId) || isAdmin();
+      allow list: if isSignedIn(); // Required for username uniqueness check
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) || isAdmin();
       allow delete: if isAdmin();
 
-      /**
-       * @description User's following list.
-       * @path /users/{followerId}/following/{followedId}
-       */
       match /following/{followedId} {
-        allow get, list: if isOwner(userId) || isAdmin(); // Changed followerId to userId
-        allow create: if isOwner(userId) && request.resource.data.followerId == userId; // Changed followerId to userId
-        allow update, delete: if isExistingOwner(userId); // Changed followerId to userId
+        allow get, list: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId);
+        allow update, delete: if isOwner(userId);
       }
 
-      /**
-       * @description User's stories. Stories are owned by the user.
-       * @path /users/{userId}/stories/{storyId}
-       */
       match /stories/{storyId} {
         allow get, list: if isSignedIn();
-        allow create: if isOwner(userId) && request.resource.data.userId == userId;
-        allow update: if isExistingOwner(userId);
-        allow delete: if isExistingOwner(userId) || isAdmin();
+        allow create: if isOwner(userId);
+        allow update: if isOwner(userId);
+        allow delete: if isOwner(userId) || isAdmin();
       }
 
-      /**
-       * @description Private notifications for a user.
-       * @path /users/{recipientId}/notifications/{notificationId}
-       */
       match /notifications/{notificationId} {
-        allow get, list: if isOwner(userId); // Changed recipientId to userId
-        allow create: if isSignedIn(); // Allow system or other users to trigger notifications
-        allow update, delete: if isExistingOwner(userId); // Changed recipientId to userId
+        allow get, list: if isOwner(userId);
+        allow create: if isSignedIn();
+        allow update, delete: if isOwner(userId);
       }
 
-      /**
-       * @description User device registrations for push notifications.
-       * @path /users/{userId}/devices/{deviceId}
-       */
       match /devices/{deviceId} {
         allow get, list: if isOwner(userId);
-        allow create: if isOwner(userId) && request.resource.data.userId == userId;
-        allow update, delete: if isExistingOwner(userId);
+        allow create: if isOwner(userId);
+        allow update, delete: if isOwner(userId);
       }
     }
 
-    /**
-     * @description Administrative roles marker collection. Only existing admins can modify.
-     * @path /roles_admin/{userId}
-     * @allow (get) Any authenticated user to verify permissions.
-     * @deny (write) Non-admin users.
-     * @principle DBAC (Database Access Control) for simplified global authorization.
-     */
     match /roles_admin/{userId} {
       allow get: if isSignedIn();
       allow list, create, update, delete: if isAdmin();
     }
 
-    /**
-     * @description Contact form submissions. Public/Users can create; Admins manage.
-     * @path /contact_form_submissions/{submissionId}
-     * @allow (create) Any signed-in or anonymous user. (list) Admins.
-     * @deny (update) Non-admins.
-     * @principle Restricted administrative access for sensitive user feedback.
-     */
     match /contact_form_submissions/{submissionId} {
       allow get: if isAdmin() || (isSignedIn() && resource.data.submitterId == request.auth.uid);
       allow list: if isAdmin();
-      allow create: if true; // Flexible for prototyping; typically checks if bot-protected.
+      allow create: if true;
       allow update, delete: if isAdmin();
     }
 
-    /**
-     * @description Communities/Servers. Ownership determines write access.
-     * @path /communities/{communityId}
-     */
     match /communities/{communityId} {
       allow get, list: if resource.data.isPublic == true || isCommunityMember(communityId) || isAdmin();
       allow create: if isSignedIn();
-      allow update, delete: if (resource != null && isOwner(resource.data.ownerId)) || isAdmin();
+      allow update: if (isSignedIn() && (isOwner(resource.data.ownerId) || isAdmin())) || 
+                    (resource.data.isPublic == true && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members']));
+      allow delete: if (resource != null && isOwner(resource.data.ownerId)) || isAdmin();
 
-      /**
-       * @description Community membership and roles.
-       */
       match /members/{userId} {
         allow get, list: if isCommunityMember(communityId) || isAdmin();
-        allow create: if isSignedIn(); // Allow joining
+        allow create: if isSignedIn();
         allow update, delete: if isAdmin() || isOwner(userId) || (get(/databases/$(database)/documents/communities/$(communityId)).data.ownerId == request.auth.uid);
       }
 
-      /**
-       * @description Channels within a community.
-       */
       match /channels/{channelId} {
         allow get, list: if isCommunityMember(communityId) || isAdmin();
         allow create, update, delete: if isAdmin() || (get(/databases/$(database)/documents/communities/$(communityId)).data.ownerId == request.auth.uid);
 
-        /**
-         * @description Messages within a channel.
-         */
         match /messages/{messageId} {
           allow get, list: if isCommunityMember(communityId) || isAdmin();
           allow create: if isCommunityMember(communityId) && request.resource.data.senderId == request.auth.uid;
@@ -198,10 +122,6 @@ service cloud.firestore {
       }
     }
 
-    /**
-     * @description Call sessions for voice/video.
-     * @path /call_sessions/{callSessionId}
-     */
     match /call_sessions/{callSessionId} {
       allow get: if isSignedIn();
       allow list: if isAdmin();
