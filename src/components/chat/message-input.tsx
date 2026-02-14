@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, SendHorizontal, Smile, History, Ghost, Zap, Pizza, Heart, X, CornerDownRight, Mic, Square, Trash2 } from "lucide-react";
+import { Plus, SendHorizontal, Smile, History, Ghost, X, CornerDownRight, Mic, Square, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -83,8 +83,20 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
   // Voice Recording Logic
   const startRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
+      // Clearer audio constraints
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        } 
+      });
+
+      // Set high bitrate for clearer voice
+      const recorder = new MediaRecorder(stream, {
+        audioBitsPerSecond: 128000
+      });
+      
       mediaRecorderRef.current = recorder;
       chunksRef.current = [];
 
@@ -148,25 +160,25 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
             <span className="text-[10px] font-bold text-primary uppercase tracking-wider">Replying to {replyUser?.username || "..."}</span>
             <p className="text-xs text-muted-foreground truncate italic">{replyingTo.text || "Voice Message"}</p>
           </div>
-          <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full" onClick={onCancelReply}>
+          <button onClick={onCancelReply} className="h-6 w-6 rounded-full hover:bg-gray-200 flex items-center justify-center">
             <X className="h-3 w-3" />
-          </Button>
+          </button>
         </div>
       )}
 
       <div className="p-4 bg-white border-t">
         {isRecording ? (
           <div className="flex items-center gap-4 max-w-5xl mx-auto bg-gray-50 p-2 rounded-xl animate-in fade-in zoom-in-95">
-            <div className="flex items-center gap-2 px-3 py-1 bg-red-50 text-red-500 rounded-full animate-pulse">
-              <div className="h-2 w-2 rounded-full bg-red-500" />
+            <div className="flex items-center gap-2 px-3 py-1 bg-red-50 text-red-500 rounded-full">
+              <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
               <span className="text-xs font-mono font-bold">{formatTime(recordingTime)}</span>
             </div>
-            <div className="flex-1 text-sm text-muted-foreground italic">Recording voice message...</div>
+            <div className="flex-1 text-sm text-muted-foreground font-medium italic">Capturing high-quality audio...</div>
             <div className="flex items-center gap-2">
               <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-destructive" onClick={cancelRecording}>
                 <Trash2 className="h-4 w-4" />
               </Button>
-              <Button size="icon" className="h-10 w-10 rounded-xl bg-red-500 hover:bg-red-600 shadow-md" onClick={stopRecording}>
+              <Button size="icon" className="h-10 w-10 rounded-xl bg-red-500 hover:bg-red-600 shadow-md text-white" onClick={stopRecording}>
                 <Square className="h-4 w-4 fill-current" />
               </Button>
             </div>
@@ -230,7 +242,7 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
             </div>
 
             {text.trim() ? (
-              <Button type="submit" size="icon" className="rounded-xl h-10 w-10 shrink-0 bg-primary shadow-md scale-100 animate-in zoom-in-95">
+              <Button type="submit" size="icon" className="rounded-xl h-10 w-10 shrink-0 bg-primary text-white shadow-md scale-100 animate-in zoom-in-95">
                 <SendHorizontal className="h-4 w-4" />
               </Button>
             ) : (

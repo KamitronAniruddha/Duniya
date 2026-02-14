@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useDoc, useFirestore, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
 import { UserProfilePopover } from "@/components/profile/user-profile-popover";
-import { Reply, CornerDownRight, Play, Pause } from "lucide-react";
+import { Reply, CornerDownRight, Play, Pause, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useRef, useEffect } from "react";
 
@@ -36,11 +36,20 @@ export function MessageBubble({ message, isMe, onReply, onQuoteClick }: MessageB
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const timestamp = message.createdAt?.toDate
     ? message.createdAt.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     : "";
+
+  const formatAudioTime = (time: number) => {
+    if (isNaN(time)) return "0:00";
+    const mins = Math.floor(time / 60);
+    const secs = Math.floor(time % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
 
   const togglePlay = () => {
     if (!audioRef.current) return;
@@ -57,19 +66,27 @@ export function MessageBubble({ message, isMe, onReply, onQuoteClick }: MessageB
     if (!audio) return;
 
     const handleTimeUpdate = () => {
+      setCurrentTime(audio.currentTime);
       setProgress((audio.currentTime / audio.duration) * 100);
+    };
+
+    const handleLoadedMetadata = () => {
+      setDuration(audio.duration);
     };
 
     const handleEnded = () => {
       setIsPlaying(false);
       setProgress(0);
+      setCurrentTime(0);
     };
 
     audio.addEventListener('timeupdate', handleTimeUpdate);
+    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
     audio.addEventListener('ended', handleEnded);
 
     return () => {
       audio.removeEventListener('timeupdate', handleTimeUpdate);
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
       audio.removeEventListener('ended', handleEnded);
     };
   }, []);
@@ -95,7 +112,7 @@ export function MessageBubble({ message, isMe, onReply, onQuoteClick }: MessageB
         </UserProfilePopover>
       )}
       
-      <div className={cn("flex flex-col max-w-[70%] relative", isMe ? "items-end" : "items-start")}>
+      <div className={cn("flex flex-col max-w-[75%] relative", isMe ? "items-end" : "items-start")}>
         {!isMe && (
           <UserProfilePopover userId={message.senderId}>
             <button className="text-[10px] font-bold text-muted-foreground ml-1 mb-0.5 hover:text-primary transition-colors">
@@ -107,7 +124,7 @@ export function MessageBubble({ message, isMe, onReply, onQuoteClick }: MessageB
         <div className={cn(
           "px-3 py-2 rounded-2xl text-sm shadow-sm transition-shadow group-hover:shadow-md relative",
           isMe 
-            ? "bg-primary text-primary-foreground rounded-br-none" 
+            ? "bg-primary text-white rounded-br-none" 
             : "bg-white text-foreground rounded-bl-none border border-border"
         )}>
           {/* Reply Reference */}
@@ -136,23 +153,23 @@ export function MessageBubble({ message, isMe, onReply, onQuoteClick }: MessageB
           )}
 
           {message.type === 'voice' && message.audioUrl ? (
-            <div className="flex items-center gap-3 py-1 min-w-[180px]">
-              <audio ref={audioRef} src={message.audioUrl} />
+            <div className="flex items-center gap-3 py-1 min-w-[220px]">
+              <audio ref={audioRef} src={message.audioUrl} preload="metadata" />
               <Button 
                 variant="ghost" 
                 size="icon" 
                 className={cn(
-                  "h-8 w-8 rounded-full shrink-0",
+                  "h-10 w-10 rounded-full shrink-0 flex items-center justify-center",
                   isMe ? "text-white hover:bg-white/20" : "text-primary hover:bg-primary/10"
                 )}
                 onClick={togglePlay}
               >
-                {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 fill-current" />}
+                {isPlaying ? <Pause className="h-5 w-5 fill-current" /> : <Play className="h-5 w-5 fill-current ml-0.5" />}
               </Button>
-              <div className="flex-1 space-y-1">
+              <div className="flex-1 space-y-1.5">
                 <div className={cn(
-                  "h-1.5 w-full rounded-full overflow-hidden",
-                  isMe ? "bg-white/20" : "bg-gray-100"
+                  "h-1.5 w-full rounded-full overflow-hidden relative",
+                  isMe ? "bg-white/30" : "bg-gray-100"
                 )}>
                   <div 
                     className={cn(
@@ -162,11 +179,20 @@ export function MessageBubble({ message, isMe, onReply, onQuoteClick }: MessageB
                     style={{ width: `${progress}%` }}
                   />
                 </div>
-                <div className={cn(
-                  "text-[9px] font-mono",
-                  isMe ? "text-white/70" : "text-muted-foreground"
-                )}>
-                  Voice Message
+                <div className="flex items-center justify-between gap-2">
+                  <div className={cn(
+                    "text-[10px] font-mono font-bold flex items-center gap-1",
+                    isMe ? "text-white/80" : "text-primary"
+                  )}>
+                    <Volume2 className="h-3 w-3" />
+                    {formatAudioTime(isPlaying ? currentTime : duration)}
+                  </div>
+                  <div className={cn(
+                    "text-[9px] font-medium tracking-tight",
+                    isMe ? "text-white/60" : "text-muted-foreground"
+                  )}>
+                    Voice Message
+                  </div>
                 </div>
               </div>
             </div>
@@ -175,8 +201,8 @@ export function MessageBubble({ message, isMe, onReply, onQuoteClick }: MessageB
           )}
 
           <div className={cn(
-            "text-[9px] mt-1 text-right leading-none opacity-70",
-            isMe ? "text-primary-foreground" : "text-muted-foreground"
+            "text-[9px] mt-1 text-right leading-none opacity-70 font-medium",
+            isMe ? "text-white/80" : "text-muted-foreground"
           )}>
             {timestamp}
           </div>
@@ -184,17 +210,15 @@ export function MessageBubble({ message, isMe, onReply, onQuoteClick }: MessageB
       </div>
 
       <div className={cn(
-        "mb-2 mx-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center",
+        "mb-2 mx-1 opacity-0 group-hover:opacity-100 transition-opacity flex items-center",
         isMe ? "mr-1" : "ml-1"
       )}>
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="h-6 w-6 rounded-full hover:bg-gray-100"
+        <button 
           onClick={onReply}
+          className="h-7 w-7 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors"
         >
-          <Reply className="h-3 w-3 text-muted-foreground" />
-        </Button>
+          <Reply className="h-4 w-4 text-muted-foreground" />
+        </button>
       </div>
     </div>
   );
