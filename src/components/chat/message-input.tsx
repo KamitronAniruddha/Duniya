@@ -2,12 +2,12 @@
 
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, SendHorizontal, Smile, History, Ghost, X, CornerDownRight, Mic, Square, Trash2, Video, Timer, Clock, Image as ImageIcon, Loader2, Paperclip, FileText, Bold, Italic, Type, TypeOutline, Eraser, Command } from "lucide-react";
+import { Plus, SendHorizontal, Smile, History, Ghost, X, CornerDownRight, Mic, Square, Trash2, Video, Timer, Clock, Image as ImageIcon, Loader2, Paperclip, FileText, Bold, Italic, Type, TypeOutline, Eraser, Command, User as UserIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useDoc, useFirestore, useMemoFirebase } from "@/firebase";
+import { useDoc, useFirestore, useMemoFirebase, useCollection } from "@/firebase";
 import { doc, collection, query, where, getDocs, limit } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { motion, AnimatePresence } from "framer-motion";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Card } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface MessageInputProps {
   onSendMessage: (
@@ -35,6 +36,7 @@ interface MessageInputProps {
   whisperingTo?: { id: string; username: string } | null;
   onCancelWhisper?: () => void;
   onTriggerWhisper?: (userId: string, username: string) => void;
+  serverId?: string | null;
 }
 
 interface DisappearingConfig {
@@ -64,7 +66,7 @@ const CHEAT_CODES = [
   { icon: <Ghost className="h-4 w-4 text-indigo-500" />, label: "whisper", description: "Private message someone", usage: "@whisper @user text" }
 ];
 
-export function MessageInput({ onSendMessage, onExecuteCommand, inputRef: externalInputRef, replyingTo, onCancelReply, whisperingTo, onCancelWhisper, onTriggerWhisper }: MessageInputProps) {
+export function MessageInput({ onSendMessage, onExecuteCommand, inputRef: externalInputRef, replyingTo, onCancelReply, whisperingTo, onCancelWhisper, onTriggerWhisper, serverId }: MessageInputProps) {
   const db = useFirestore();
   const { toast } = useToast();
   const [text, setText] = useState("");
@@ -83,7 +85,9 @@ export function MessageInput({ onSendMessage, onExecuteCommand, inputRef: extern
   const [showFormatting, setShowFormatting] = useState(false);
   
   const [commandSearch, setCommandSearch] = useState("");
+  const [whisperSearch, setWhisperSearch] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [showWhisperSuggestions, setShowWhisperSuggestions] = useState(false);
 
   const internalInputRef = useRef<HTMLInputElement>(null);
   const inputRef = externalInputRef || internalInputRef;
@@ -98,6 +102,13 @@ export function MessageInput({ onSendMessage, onExecuteCommand, inputRef: extern
   const replyUserRef = useMemoFirebase(() => (replyingTo ? doc(db, "users", replyingTo.senderId) : null), [db, replyingTo?.senderId]);
   const { data: replyUser } = useDoc(replyUserRef);
 
+  // Fetch community members for suggestions
+  const membersQuery = useMemoFirebase(() => {
+    if (!db || !serverId) return null;
+    return query(collection(db, "users"), where("serverIds", "array-contains", serverId));
+  }, [db, serverId]);
+  const { data: communityMembers } = useCollection(membersQuery);
+
   useEffect(() => {
     const saved = localStorage.getItem("recent-emojis");
     if (saved) {
@@ -110,11 +121,22 @@ export function MessageInput({ onSendMessage, onExecuteCommand, inputRef: extern
   }, []);
 
   useEffect(() => {
+    // Handle general cheat code suggestions (@clr, @del, etc)
     if (text.startsWith("@") && !text.includes(" ")) {
       setShowSuggestions(true);
+      setShowWhisperSuggestions(false);
       setCommandSearch(text.slice(1).toLowerCase());
-    } else {
+    } 
+    // Handle whisper member suggestions (@whisper @username)
+    else if (text.match(/^@whisper\s+@?([a-zA-Z0-9._-]*)$/i)) {
+      const match = text.match(/^@whisper\s+@?([a-zA-Z0-9._-]*)$/i);
+      setShowWhisperSuggestions(true);
       setShowSuggestions(false);
+      setWhisperSearch(match?.[1]?.toLowerCase() || "");
+    }
+    else {
+      setShowSuggestions(false);
+      setShowWhisperSuggestions(false);
     }
   }, [text]);
 
@@ -139,6 +161,12 @@ export function MessageInput({ onSendMessage, onExecuteCommand, inputRef: extern
   const handleApplyCommand = (usage: string) => {
     setText(usage);
     setShowSuggestions(false);
+    inputRef.current?.focus();
+  };
+
+  const handleApplyWhisperTarget = (username: string) => {
+    setText(`@whisper @${username} `);
+    setShowWhisperSuggestions(false);
     inputRef.current?.focus();
   };
 
@@ -331,6 +359,7 @@ export function MessageInput({ onSendMessage, onExecuteCommand, inputRef: extern
   };
 
   const filteredCommands = CHEAT_CODES.filter(c => c.label.includes(commandSearch));
+  const filteredMembers = communityMembers?.filter(m => m.username?.toLowerCase().includes(whisperSearch)) || [];
 
   return (
     <div className="bg-background shrink-0 w-full flex flex-col font-body relative">
@@ -364,6 +393,46 @@ export function MessageInput({ onSendMessage, onExecuteCommand, inputRef: extern
                   </button>
                 ))}
               </div>
+            </Card>
+          </motion.div>
+        )}
+
+        {showWhisperSuggestions && (
+          <motion.div 
+            initial={{ opacity: 0, y: 10, scale: 0.95 }} 
+            animate={{ opacity: 1, y: 0, scale: 1 }} 
+            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+            className="absolute bottom-full left-4 mb-2 z-50 w-72"
+          >
+            <Card className="rounded-[1.5rem] border-none shadow-[0_20px_50px_rgba(0,0,0,0.2)] bg-popover/95 backdrop-blur-xl overflow-hidden p-1">
+              <div className="p-3 bg-indigo-500/10 border-b flex items-center gap-2 mb-1">
+                <Ghost className="h-3.5 w-3.5 text-indigo-500" />
+                <span className="text-[10px] font-black uppercase tracking-widest text-indigo-500">Whisper Target</span>
+              </div>
+              <ScrollArea className="max-h-64">
+                <div className="space-y-0.5">
+                  {filteredMembers.length === 0 ? (
+                    <div className="p-8 text-center opacity-30 text-[10px] font-black uppercase tracking-widest">No Members Found</div>
+                  ) : (
+                    filteredMembers.map((m) => (
+                      <button 
+                        key={m.id} 
+                        onClick={() => handleApplyWhisperTarget(m.username)}
+                        className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-muted transition-all text-left group"
+                      >
+                        <Avatar className="h-8 w-8 border border-border shadow-sm">
+                          <AvatarImage src={m.photoURL} />
+                          <AvatarFallback className="bg-primary text-white font-black text-[10px]">{m.username?.[0]?.toUpperCase()}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-xs font-black uppercase tracking-tight text-foreground">@{m.username}</span>
+                          <span className="text-[9px] text-muted-foreground truncate font-medium italic">{m.bio || "Member of the Verse"}</span>
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </ScrollArea>
             </Card>
           </motion.div>
         )}
