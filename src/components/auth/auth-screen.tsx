@@ -109,60 +109,60 @@ export function AuthScreen() {
   };
 
   const renderLoggedOut = () => (
-    <motion.div 
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className="w-full max-w-md my-auto flex flex-col items-center justify-center h-full"
-    >
-      <Card className="border-none shadow-2xl bg-card overflow-hidden rounded-[2.5rem] w-full">
-        <CardHeader className="text-center pt-10 pb-6 bg-gradient-to-b from-primary/5 to-transparent">
-          <div className="flex justify-center mb-6">
-            <motion.div 
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ type: "spring", damping: 15 }}
-              className="h-20 w-20 bg-primary/10 rounded-[2rem] flex items-center justify-center text-primary"
+    <div className="w-full flex items-center justify-center h-full">
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="w-full max-w-md my-auto flex flex-col items-center justify-center"
+      >
+        <Card className="border-none shadow-2xl bg-card overflow-hidden rounded-[2.5rem] w-full">
+          <CardHeader className="text-center pt-10 pb-6 bg-gradient-to-b from-primary/5 to-transparent">
+            <div className="flex justify-center mb-6">
+              <motion.div 
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", damping: 15 }}
+                className="h-20 w-20 bg-primary/10 rounded-[2rem] flex items-center justify-center text-primary"
+              >
+                <CheckCircle2 className="h-10 w-10" />
+              </motion.div>
+            </div>
+            <CardTitle className="text-3xl font-black uppercase tracking-tighter text-foreground">Logged Out</CardTitle>
+            <CardDescription className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mt-2 px-8">
+              You have successfully disconnected from the Verse. Come back soon!
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="px-10 pb-10 space-y-4">
+            <Button 
+              className="w-full h-14 rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-primary/20"
+              onClick={() => setView("login")}
             >
-              <CheckCircle2 className="h-10 w-10" />
-            </motion.div>
+              Sign In Again
+            </Button>
+            <Button 
+              variant="outline" 
+              className="w-full h-14 rounded-2xl font-black uppercase tracking-widest border-2"
+              onClick={() => setView("signup")}
+            >
+              Create New Account
+            </Button>
+          </CardContent>
+          <div className="p-4 bg-muted/20 border-t flex items-center justify-center">
+            <div className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.3em] text-muted-foreground/40">
+              <span>Duniya Messenger Verified</span>
+              <div className="h-1 w-1 rounded-full bg-primary/40" />
+              <span>Aniruddha ❤️</span>
+            </div>
           </div>
-          <CardTitle className="text-3xl font-black uppercase tracking-tighter text-foreground">Logged Out</CardTitle>
-          <CardDescription className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mt-2 px-8">
-            You have successfully disconnected from the Verse. Come back soon!
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="px-10 pb-10 space-y-4">
-          <Button 
-            className="w-full h-14 rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-primary/20"
-            onClick={() => setView("login")}
-          >
-            Sign In Again
-          </Button>
-          <Button 
-            variant="outline" 
-            className="w-full h-14 rounded-2xl font-black uppercase tracking-widest border-2"
-            onClick={() => setView("signup")}
-          >
-            Create New Account
-          </Button>
-        </CardContent>
-        <div className="p-4 bg-muted/20 border-t flex items-center justify-center">
-          <div className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.3em] text-muted-foreground/40">
-            <span>Duniya Messenger Verified</span>
-            <div className="h-1 w-1 rounded-full bg-primary/40" />
-            <span>Aniruddha ❤️</span>
-          </div>
-        </div>
-      </Card>
-    </motion.div>
+        </Card>
+      </motion.div>
+    </div>
   );
 
   if (view === "loggedOut") {
     return (
       <div className="fixed inset-0 w-full flex flex-col items-center justify-center bg-background overflow-hidden p-4 selection:bg-primary/30">
-        <div className="w-full flex items-center justify-center h-full">
-          {renderLoggedOut()}
-        </div>
+        {renderLoggedOut()}
       </div>
     );
   }
@@ -177,7 +177,7 @@ export function AuthScreen() {
                 <Logo size={32} />
               </div>
               
-              {/* Animated Interactive Handwriting Signature */}
+              {/* Refined Upright Handwriting Signature */}
               <button 
                 type="button"
                 onClick={() => setSignatureType(prev => prev === "ani" ? "sanu" : "ani")}
@@ -198,7 +198,7 @@ export function AuthScreen() {
                       exit={{ opacity: 0, scale: 0.9 }}
                     >
                       <motion.path
-                        d="M15,25 C15,10 25,10 30,25 M15,18 H25 M40,25 V15 C40,10 50,10 50,15 V25 M60,15 V25 M60,8 V10"
+                        d="M15,25 L22,10 L32,25 M18,18 H28 M40,25 V15 C40,10 50,10 50,15 V25 M60,15 V25 M60,8 V10"
                         stroke="currentColor"
                         strokeWidth="2.5"
                         strokeLinecap="round"
@@ -214,9 +214,9 @@ export function AuthScreen() {
                   ) : (
                     <motion.svg
                       key="sanu-sig"
-                      width="80"
+                      width="100"
                       height="36"
-                      viewBox="0 0 80 36"
+                      viewBox="0 0 100 36"
                       fill="none"
                       xmlns="http://www.w3.org/2000/svg"
                       className="text-primary transition-transform group-hover:scale-110"
@@ -225,7 +225,7 @@ export function AuthScreen() {
                       exit={{ opacity: 0, scale: 0.9 }}
                     >
                       <motion.path
-                        d="M15,10 C25,10 25,20 15,25 C15,25 35,30 25,10 M35,25 V15 C35,10 45,10 45,15 V25 M55,15 V25 M55,8 V10 M65,15 V25 C65,30 75,30 75,25 V15"
+                        d="M15,25 C10,20 15,10 25,10 C35,10 15,25 25,25 M40,25 C35,25 35,15 40,15 C45,15 45,25 40,25 M45,15 V25 M55,25 V15 C55,10 65,10 65,15 V25 M75,15 V25 C75,30 85,30 85,25 V15"
                         stroke="currentColor"
                         strokeWidth="2.5"
                         strokeLinecap="round"
