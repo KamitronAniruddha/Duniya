@@ -50,7 +50,7 @@ service cloud.firestore {
     match /communities/{communityId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn();
-      allow update: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin() || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members'])));
+      allow update: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin() || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'admins'])));
       allow delete: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
 
       match /channels/{channelId} {
@@ -59,12 +59,11 @@ service cloud.firestore {
         match /messages/{messageId} {
           allow read: if isSignedIn();
           allow create: if isSignedIn();
-          // Specific rule for disappearing messages: only allow updating seenBy and viewerExpireAt
-          // unless user is admin or sender (sender might delete)
+          // Allow updating seenBy, viewerExpireAt, and deletedFor for all participants
           allow update: if isSignedIn() && (
             isAdmin() || 
             resource.data.senderId == request.auth.uid ||
-            (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['seenBy', 'viewerExpireAt']))
+            (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['seenBy', 'viewerExpireAt', 'deletedFor', 'isDeleted', 'content', 'type', 'audioUrl', 'videoUrl']))
           );
           allow delete: if isSignedIn() && (resource.data.senderId == request.auth.uid || isAdmin());
         }

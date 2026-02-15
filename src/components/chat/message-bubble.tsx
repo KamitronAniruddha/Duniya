@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useFirestore, useUser } from "@/firebase";
 import { doc, arrayUnion, deleteField } from "firebase/firestore";
 import { UserProfilePopover } from "@/components/profile/user-profile-popover";
-import { Reply, CornerDownRight, Play, Pause, Volume2, MoreHorizontal, Trash2, Ban, Copy, Timer, Check, CheckCheck, CheckSquare, Square } from "lucide-react";
+import { Reply, CornerDownRight, Play, Pause, Volume2, MoreHorizontal, Trash2, Ban, Copy, Timer, Check, CheckCheck, CheckSquare, Square, Forward } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useRef, useEffect } from "react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -35,6 +35,7 @@ interface MessageBubbleProps {
     viewerExpireAt?: Record<string, string>;
     seenBy?: string[];
     fullyDeleted?: boolean;
+    isForwarded?: boolean;
   };
   channelId: string;
   serverId: string;
@@ -45,6 +46,7 @@ interface MessageBubbleProps {
   onSelect?: () => void;
   onLongPress?: () => void;
   onReply?: () => void;
+  onForward?: () => void;
   onQuoteClick?: () => void;
 }
 
@@ -59,6 +61,7 @@ export function MessageBubble({
   onSelect,
   onLongPress,
   onReply, 
+  onForward,
   onQuoteClick 
 }: MessageBubbleProps) {
   const db = useFirestore();
@@ -154,7 +157,6 @@ export function MessageBubble({
     const diffX = clientX - startX.current;
     const diffY = clientY - startY.current;
 
-    // Detect if this is a horizontal or vertical move
     if (isHorizontalSwipe.current === null) {
       if (Math.abs(diffX) > Math.abs(diffY)) {
         isHorizontalSwipe.current = true;
@@ -169,7 +171,6 @@ export function MessageBubble({
       }
     }
 
-    // If it's a horizontal move, handle swipe-to-reply
     if (isHorizontalSwipe.current && !selectionMode && diffX > 0 && !message.isDeleted && !isDisappeared) {
       if (longPressTimer.current) {
         clearTimeout(longPressTimer.current);
@@ -269,7 +270,6 @@ export function MessageBubble({
       onTouchEnd={handleEnd}
       onClick={handleBubbleClick}
     >
-      {/* Selection UI container (fixed width prevents layout shifting) */}
       <div className={cn(
         "shrink-0 flex items-center justify-center transition-all duration-300 overflow-hidden",
         selectionMode ? "w-10 opacity-100" : "w-0 opacity-0",
@@ -283,7 +283,6 @@ export function MessageBubble({
         </div>
       </div>
 
-      {/* Swipe Indicator */}
       <div className="absolute left-4 top-1/2 -translate-y-1/2 transition-all duration-75 flex items-center justify-center bg-primary/10 rounded-full h-8 w-8 pointer-events-none" style={{ opacity: Math.min(dragX / swipeThreshold, 1), transform: `scale(${Math.min(dragX / swipeThreshold, 1)})`, left: `${Math.min(dragX / 2, 20)}px` }}>
         <Reply className={cn("h-4 w-4", dragX >= swipeThreshold ? "text-primary" : "text-muted-foreground")} />
       </div>
@@ -323,6 +322,11 @@ export function MessageBubble({
               isSelected && "ring-2 ring-primary ring-offset-1 bg-primary/10",
               isMe ? "bg-primary text-white rounded-br-none" : "bg-card text-foreground rounded-bl-none border border-border"
             )}>
+              {message.isForwarded && (
+                <div className={cn("flex items-center gap-1 mb-1 italic opacity-60 text-[10px] font-black uppercase tracking-widest", isMe ? "text-white/90" : "text-muted-foreground")}>
+                  <Forward className="h-2.5 w-2.5" /> Forwarded
+                </div>
+              )}
               {message.replyTo && (
                 <button onClick={onQuoteClick} className={cn("w-full text-left mb-2 p-2 rounded-lg border-l-4 text-xs bg-black/5 flex flex-col gap-0.5 backdrop-blur-sm", isMe ? "border-white/40" : "border-primary/50")}>
                   <span className={cn("font-bold text-[10px] flex items-center gap-1 uppercase tracking-tighter", isMe ? "text-white/90" : "text-primary")}><CornerDownRight className="h-3 w-3" />{message.replyTo.senderName}</span>
@@ -399,6 +403,7 @@ export function MessageBubble({
             <DropdownMenuTrigger asChild><button className="h-7 w-7 rounded-full hover:bg-muted/50 flex items-center justify-center text-muted-foreground hover:text-primary transition-colors"><MoreHorizontal className="h-3.5 w-3.5" /></button></DropdownMenuTrigger>
             <DropdownMenuContent align={isMe ? "end" : "start"} className="rounded-xl font-bold uppercase text-[10px] tracking-widest">
               <DropdownMenuItem onClick={handleCopy} className="gap-2"><Copy className="h-4 w-4" />Copy</DropdownMenuItem>
+              <DropdownMenuItem onClick={onForward} className="gap-2"><Forward className="h-4 w-4" />Forward</DropdownMenuItem>
               {isMe && <DropdownMenuItem onClick={handleDeleteForEveryone} className="text-destructive gap-2"><Trash2 className="h-4 w-4" />Delete for all</DropdownMenuItem>}
             </DropdownMenuContent>
           </DropdownMenu>

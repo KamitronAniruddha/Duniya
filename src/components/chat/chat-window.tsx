@@ -3,10 +3,10 @@
 
 import { useRef, useEffect, useState, useMemo, useCallback } from "react";
 import { useCollection, useFirestore, useUser, useDoc, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy, limit, doc, where, writeBatch, arrayUnion, deleteField } from "firebase/firestore";
+import { collection, query, orderBy, limit, doc, where, writeBatch, arrayUnion, deleteField, getDocs } from "firebase/firestore";
 import { MessageBubble } from "./message-bubble";
 import { MessageInput } from "./message-input";
-import { Hash, Users, Loader2, MessageCircle, X, Trash2, CheckSquare, CornerUpLeft, Info } from "lucide-react";
+import { Hash, Users, Loader2, MessageCircle, X, Trash2, CheckSquare, CornerUpLeft, Info, Forward, MoreVertical, Eraser } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { setDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { cn } from "@/lib/utils";
@@ -14,6 +14,8 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { MembersPanel } from "@/components/members/members-panel";
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { ForwardDialog } from "./forward-dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 interface ChatWindowProps {
   channelId: string | null;
@@ -35,6 +37,8 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isClearChatDialogOpen, setIsClearChatDialogOpen] = useState(false);
+  const [isForwardDialogOpen, setIsForwardDialogOpen] = useState(false);
 
   const channelRef = useMemoFirebase(() => (channelId && serverId && user ? doc(db, "communities", serverId, "channels", channelId) : null), [db, serverId, channelId, user?.uid]);
   const { data: channel } = useDoc(channelRef);
@@ -132,7 +136,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
           type: "text"
         });
       } else {
-        // "Delete for me" logic: just adds the user ID to the deletedFor array
+        // "Delete for me" logic: adds the user ID to the deletedFor array
         batch.update(msgRef, {
           deletedFor: arrayUnion(user.uid)
         });
@@ -147,6 +151,26 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
       setIsDeleteDialogOpen(false);
     } catch (e: any) {
       toast({ variant: "destructive", title: "Action Failed", description: e.message });
+    }
+  };
+
+  const handleClearChat = async () => {
+    if (!db || !serverId || !channelId || !user || !messages.length) return;
+    
+    const batch = writeBatch(db);
+    messages.forEach(msg => {
+      const msgRef = doc(db, "communities", serverId, "channels", channelId, "messages", msg.id);
+      batch.update(msgRef, {
+        deletedFor: arrayUnion(user.uid)
+      });
+    });
+
+    try {
+      await batch.commit();
+      toast({ title: "Chat Cleared", description: "All recent messages have been removed from your view." });
+      setIsClearChatDialogOpen(false);
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Clear Failed", description: e.message });
     }
   };
 
@@ -186,6 +210,10 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
     }
   };
 
+  const messagesToForward = useMemo(() => {
+    return rawMessages?.filter(m => selectedIds.has(m.id)) || [];
+  }, [selectedIds, rawMessages]);
+
   useEffect(() => {
     if (scrollRef.current && !selectionMode) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -222,9 +250,14 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
               <X className="h-5 w-5" />
             </Button>
             <span className="font-black text-lg flex-1 tracking-tight">{selectedIds.size} SELECTED</span>
-            <Button variant="ghost" size="icon" className="text-white hover:bg-white/10" onClick={() => setIsDeleteDialogOpen(true)}>
-              <Trash2 className="h-5 w-5" />
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="icon" className="text-white hover:bg-white/10" onClick={() => setIsForwardDialogOpen(true)}>
+                <Forward className="h-5 w-5" />
+              </Button>
+              <Button variant="ghost" size="icon" className="text-white hover:bg-white/10" onClick={() => setIsDeleteDialogOpen(true)}>
+                <Trash2 className="h-5 w-5" />
+              </Button>
+            </div>
           </div>
         ) : (
           <>
@@ -248,6 +281,18 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
               >
                 <Users className="h-5 w-5" />
               </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-muted-foreground">
+                    <MoreVertical className="h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48 font-bold uppercase text-[10px] tracking-widest">
+                  <DropdownMenuItem onClick={() => setIsClearChatDialogOpen(true)} className="gap-2 text-destructive">
+                    <Eraser className="h-4 w-4" /> Clear Chat
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </>
         )}
@@ -289,6 +334,10 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
                       onSelect={() => toggleMessageSelection(msg.id)}
                       onReply={() => setReplyingTo(msg)}
                       onQuoteClick={() => handleJumpToMessage(msg.replyTo?.messageId)}
+                      onForward={() => {
+                        setSelectedIds(new Set([msg.id]));
+                        setIsForwardDialogOpen(true);
+                      }}
                     />
                   </div>
                 ))}
@@ -312,7 +361,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
         )}
       </div>
       
-      {/* Interesting Delete Popup */}
+      {/* Delete Popup */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent className="rounded-[2.5rem] border-none shadow-[0_32px_64px_-12px_rgba(0,0,0,0.4)] p-0 overflow-hidden max-w-[400px]">
           <div className="bg-gradient-to-b from-primary/10 to-background p-8">
@@ -327,7 +376,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
                 <AlertDialogDescription className="text-sm font-medium text-muted-foreground px-4 leading-relaxed">
                   {canDeleteForEveryone 
                     ? "Cleanup your tracks! Choose whether to remove these messages for yourself or for everyone." 
-                    : "Some selected messages are already deleted or sent by others. These will be removed from your view only."}
+                    : "These messages will be removed from your view only."}
                 </AlertDialogDescription>
               </div>
             </AlertDialogHeader>
@@ -358,13 +407,50 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
               Wait, Cancel
             </AlertDialogCancel>
           </div>
-          
-          <div className="bg-muted/30 py-3 flex justify-center items-center gap-2">
-            <Info className="h-3 w-3 text-muted-foreground/40" />
-            <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40">Duniya Privacy Guard</span>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Clear Chat Popup */}
+      <AlertDialog open={isClearChatDialogOpen} onOpenChange={setIsClearChatDialogOpen}>
+        <AlertDialogContent className="rounded-[2.5rem] border-none shadow-2xl p-0 overflow-hidden max-w-[400px]">
+          <div className="bg-gradient-to-b from-orange-500/10 to-background p-8">
+            <AlertDialogHeader className="items-center text-center space-y-4">
+              <div className="h-16 w-16 bg-orange-500/10 rounded-3xl flex items-center justify-center">
+                <Eraser className="h-8 w-8 text-orange-500" />
+              </div>
+              <div className="space-y-1">
+                <AlertDialogTitle className="text-3xl font-black tracking-tighter text-foreground">
+                  Clear Chat?
+                </AlertDialogTitle>
+                <AlertDialogDescription className="text-sm font-medium text-muted-foreground px-4 leading-relaxed">
+                  Are you sure you want to clear all messages from your view? This action cannot be undone.
+                </AlertDialogDescription>
+              </div>
+            </AlertDialogHeader>
+          </div>
+          <div className="p-6 bg-background space-y-3">
+            <AlertDialogAction 
+              onClick={handleClearChat}
+              className="w-full h-14 rounded-2xl font-black uppercase tracking-widest text-[11px] bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Yes, Clear Everything
+            </AlertDialogAction>
+            <AlertDialogCancel className="w-full h-12 border-none font-bold">Cancel</AlertDialogCancel>
           </div>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ForwardDialog 
+        open={isForwardDialogOpen} 
+        onOpenChange={(open) => {
+          setIsForwardDialogOpen(open);
+          if (!open) {
+            setSelectionMode(false);
+            setSelectedIds(new Set());
+          }
+        }} 
+        messagesToForward={messagesToForward} 
+      />
 
       <div className="hidden md:flex justify-center py-1 bg-background border-t">
         <div className="flex items-center gap-1 text-[8px] font-black uppercase tracking-[0.3em] text-muted-foreground/40">
