@@ -7,11 +7,20 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useFirestore, useUser } from "@/firebase";
 import { doc, arrayUnion, deleteField } from "firebase/firestore";
 import { UserProfilePopover } from "@/components/profile/user-profile-popover";
-import { Reply, CornerDownRight, Play, Pause, Volume2, MoreHorizontal, Trash2, Ban, Copy, Timer, Check, CheckCheck, Forward, Landmark } from "lucide-react";
+import { Reply, CornerDownRight, Play, Pause, Volume2, MoreHorizontal, Trash2, Ban, Copy, Timer, Check, CheckCheck, Forward, Landmark, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { useToast } from "@/hooks/use-toast";
+import { MessageTraceDialog } from "./message-trace-dialog";
+
+interface ForwardHop {
+  communityName: string;
+  viaCommunity?: string;
+  senderName: string;
+  timestamp: string;
+  isInitial?: boolean;
+}
 
 interface MessageBubbleProps {
   message: {
@@ -39,6 +48,7 @@ interface MessageBubbleProps {
       communityName: string;
       senderName: string;
     };
+    forwardingChain?: ForwardHop[];
   };
   channelId: string;
   serverId: string;
@@ -78,6 +88,7 @@ export const MessageBubble = memo(function MessageBubble({
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const [isTraceOpen, setIsTraceOpen] = useState(false);
 
   // Swipe logic
   const [dragX, setDragX] = useState(0);
@@ -315,15 +326,31 @@ export const MessageBubble = memo(function MessageBubble({
               message.disappearingEnabled && "ring-1 ring-primary/30",
               isMe ? "bg-primary text-white rounded-br-none" : "bg-card text-foreground rounded-bl-none border border-border"
             )}>
-              {(message.isForwarded || message.forwardedFrom) && (
+              {(message.isForwarded || message.forwardingChain) && (
                 <div className={cn("flex flex-col mb-1.5 opacity-70", isMe ? "items-end" : "items-start")}>
-                  <div className={cn("flex items-center gap-1 italic text-[9px] font-black uppercase tracking-widest", isMe ? "text-white/90" : "text-muted-foreground")}>
-                    <Forward className="h-2.5 w-2.5" /> Forwarded
-                  </div>
-                  {message.forwardedFrom && (
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsTraceOpen(true);
+                    }}
+                    className={cn(
+                      "flex items-center gap-1 italic text-[9px] font-black uppercase tracking-widest hover:text-primary transition-colors group/forward", 
+                      isMe ? "text-white/90" : "text-muted-foreground"
+                    )}
+                  >
+                    <Forward className="h-2.5 w-2.5 group-hover/forward:scale-110 transition-transform" /> 
+                    Forwarded
+                    <History className="h-2 w-2 ml-1 opacity-0 group-hover/forward:opacity-100 transition-opacity" />
+                  </button>
+                  {(message.forwardingChain && message.forwardingChain.length > 0) ? (
                     <div className={cn("flex items-center gap-1 text-[8px] font-bold tracking-tight mt-0.5", isMe ? "text-white/60" : "text-primary/70")}>
                       <Landmark className="h-2 w-2" />
-                      <span>from {message.forwardedFrom.communityName} by {message.forwardedFrom.senderName}</span>
+                      <span>from {message.forwardingChain[0].communityName}</span>
+                    </div>
+                  ) : message.forwardedFrom && (
+                    <div className={cn("flex items-center gap-1 text-[8px] font-bold tracking-tight mt-0.5", isMe ? "text-white/60" : "text-primary/70")}>
+                      <Landmark className="h-2 w-2" />
+                      <span>from {message.forwardedFrom.communityName}</span>
                     </div>
                   )}
                 </div>
@@ -407,6 +434,14 @@ export const MessageBubble = memo(function MessageBubble({
           </DropdownMenu>
         </div>
       )}
+
+      {message.forwardingChain && (
+        <MessageTraceDialog 
+          open={isTraceOpen} 
+          onOpenChange={setIsTraceOpen} 
+          chain={message.forwardingChain} 
+        />
+      )}
     </div>
   );
 }, (prev, next) => {
@@ -421,6 +456,6 @@ export const MessageBubble = memo(function MessageBubble({
     prev.sender?.id === next.sender?.id &&
     prev.sender?.photoURL === next.sender?.photoURL &&
     prev.sender?.username === next.sender?.username &&
-    JSON.stringify(prev.message.forwardedFrom) === JSON.stringify(next.message.forwardedFrom)
+    JSON.stringify(prev.message.forwardingChain) === JSON.stringify(next.message.forwardingChain)
   );
 });

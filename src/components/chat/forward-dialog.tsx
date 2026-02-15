@@ -64,7 +64,31 @@ export function ForwardDialog({ open, onOpenChange, messagesToForward, currentCo
       for (const channel of selectedChannels) {
         for (const msg of messagesToForward) {
           const newMsgRef = doc(collection(db, "communities", channel.communityId, "channels", channel.channelId, "messages"));
-          const originalSenderName = memberMap?.[msg.senderId]?.username || "Unknown";
+          const currentSenderName = user.displayName || memberMap?.[user.uid]?.username || "Unknown User";
+
+          // Build or extend the forwarding chain
+          const existingChain = msg.forwardingChain || [];
+          const newChain = [...existingChain];
+
+          if (includeRoot) {
+             // If the message is being forwarded for the first time, record its initial creation if not present
+             if (newChain.length === 0) {
+               newChain.push({
+                 communityName: currentCommunityName || "Original Source",
+                 senderName: memberMap?.[msg.senderId]?.username || "Original Sender",
+                 timestamp: msg.sentAt || new Date().toISOString(),
+                 isInitial: true
+               });
+             }
+             
+             // Append the current hop
+             newChain.push({
+               communityName: channel.name, // The destination it's arriving at
+               viaCommunity: currentCommunityName, // Where it came from
+               senderName: currentSenderName,
+               timestamp: new Date().toISOString()
+             });
+          }
 
           const data = {
             id: newMsgRef.id,
@@ -81,9 +105,11 @@ export function ForwardDialog({ open, onOpenChange, messagesToForward, currentCo
             viewerExpireAt: {},
             fullyDeleted: false,
             ...(includeRoot && {
+              forwardingChain: newChain,
+              // Keep legacy support for simple forward labels
               forwardedFrom: {
                 communityName: currentCommunityName || "Original Source",
-                senderName: originalSenderName
+                senderName: memberMap?.[msg.senderId]?.username || "Original Sender"
               }
             })
           };
@@ -126,8 +152,8 @@ export function ForwardDialog({ open, onOpenChange, messagesToForward, currentCo
             <div className="flex items-center gap-3">
               <Info className="h-4 w-4 text-primary" />
               <div className="flex flex-col">
-                <Label className="text-xs font-bold">Show original source</Label>
-                <p className="text-[10px] text-muted-foreground">Recipients can see the root of the message.</p>
+                <Label className="text-xs font-bold">Trace Genealogy</Label>
+                <p className="text-[10px] text-muted-foreground">Recipients can trace the message path.</p>
               </div>
             </div>
             <Switch checked={includeRoot} onCheckedChange={setIncludeRoot} />
