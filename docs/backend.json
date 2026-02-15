@@ -20,7 +20,11 @@
         "updatedAt": { "type": "string", "format": "date-time" },
         "serverIds": { "type": "array", "items": { "type": "string" } },
         "allowGroupInvites": { "type": "boolean" },
-        "showOnlineStatus": { "type": "boolean" }
+        "showOnlineStatus": { "type": "boolean" },
+        "mutedInviteCommunities": { 
+          "type": "object",
+          "description": "Map of communityId to ISO expiry date for muted invitations."
+        }
       },
       "required": ["id", "displayName", "email", "createdAt"]
     },

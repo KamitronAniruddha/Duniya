@@ -2,12 +2,12 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useCollection, useFirestore, useUser, useMemoFirebase } from "@/firebase";
+import { useCollection, useFirestore, useUser, useMemoFirebase, useDoc } from "@/firebase";
 import { collection, query, where, doc, writeBatch, arrayUnion } from "firebase/firestore";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Loader2, Check, X, Bell, Landmark, User, Heart } from "lucide-react";
+import { Loader2, Check, X, Bell, Clock, User, Heart } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -16,6 +16,9 @@ export function InvitationManager() {
   const { user } = useUser();
   const { toast } = useToast();
   const [processingId, setProcessingId] = useState<string | null>(null);
+
+  const userDocRef = useMemoFirebase(() => (user ? doc(db, "users", user.uid) : null), [db, user?.uid]);
+  const { data: userData } = useDoc(userDocRef);
 
   const invitesQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
@@ -28,13 +31,22 @@ export function InvitationManager() {
 
   const { data: invites } = useCollection(invitesQuery);
 
-  // Show the most recent invitation
+  // Show the most recent invitation that isn't from a muted community
   const activeInvite = useMemo(() => {
-    if (!invites || invites.length === 0) return null;
-    return invites[invites.length - 1];
-  }, [invites]);
+    if (!invites || invites.length === 0 || !userData) return null;
+    
+    const now = new Date().toISOString();
+    const filteredInvites = invites.filter(invite => {
+      const mutes = (userData as any).mutedInviteCommunities || {};
+      const expiry = mutes[invite.communityId];
+      return !expiry || expiry < now;
+    });
 
-  const handleAction = async (status: "accepted" | "declined") => {
+    if (filteredInvites.length === 0) return null;
+    return filteredInvites[filteredInvites.length - 1];
+  }, [invites, userData]);
+
+  const handleAction = async (status: "accepted" | "declined" | "muted") => {
     if (!activeInvite || !user || !db) return;
     setProcessingId(activeInvite.id);
 
@@ -58,9 +70,23 @@ export function InvitationManager() {
         });
 
         toast({ title: "Welcome!", description: `You have joined ${activeInvite.communityName}.` });
+        batch.update(inviteRef, { status: "accepted" });
+      } else if (status === "muted") {
+        const userRef = doc(db, "users", user.uid);
+        const expiry = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+        
+        batch.update(userRef, {
+          [`mutedInviteCommunities.${activeInvite.communityId}`]: expiry
+        });
+        batch.update(inviteRef, { status: "declined" });
+        toast({ 
+          title: "Community Muted", 
+          description: `Invitations for ${activeInvite.communityName} blocked for 24h.` 
+        });
+      } else {
+        batch.update(inviteRef, { status: "declined" });
       }
 
-      batch.update(inviteRef, { status });
       await batch.commit();
     } catch (e: any) {
       toast({ variant: "destructive", title: "Error", description: e.message });
@@ -114,15 +140,26 @@ export function InvitationManager() {
               </div>
 
               <DialogFooter className="px-8 pb-8 pt-2 flex flex-col sm:flex-row gap-3">
-                <Button 
-                  variant="ghost" 
-                  className="flex-1 rounded-xl font-bold h-12 hover:bg-destructive/5 hover:text-destructive transition-colors"
-                  onClick={() => handleAction("declined")}
-                  disabled={!!processingId}
-                >
-                  <X className="h-4 w-4 mr-2" />
-                  Ignore
-                </Button>
+                <div className="flex gap-2 flex-1">
+                  <Button 
+                    variant="ghost" 
+                    className="flex-1 rounded-xl font-bold h-12 hover:bg-destructive/5 hover:text-destructive transition-colors"
+                    onClick={() => handleAction("declined")}
+                    disabled={!!processingId}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    className="flex-1 rounded-xl font-bold h-12 hover:bg-primary/5 hover:text-primary transition-colors gap-2"
+                    onClick={() => handleAction("muted")}
+                    disabled={!!processingId}
+                    title="Mute for 24h"
+                  >
+                    <Clock className="h-4 w-4" />
+                    <span className="text-[10px] font-black uppercase tracking-widest">24H</span>
+                  </Button>
+                </div>
                 <Button 
                   className="flex-1 rounded-xl font-black h-12 shadow-lg shadow-primary/20 gap-2"
                   onClick={() => handleAction("accepted")}
