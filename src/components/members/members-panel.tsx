@@ -6,7 +6,7 @@ import { useCollection, useFirestore, useDoc, useMemoFirebase, useUser } from "@
 import { collection, query, where, doc, getDocs, arrayUnion, arrayRemove, limit } from "firebase/firestore";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ShieldCheck, Loader2, UserPlus, Check, AlertCircle, UserMinus, Shield, Search, X, EyeOff, Ghost, Send } from "lucide-react";
+import { ShieldCheck, Loader2, UserPlus, Check, AlertCircle, UserMinus, Shield, Search, X, EyeOff, Ghost, Send, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -46,6 +46,21 @@ export function MembersPanel({ serverId, onWhisper }: MembersPanelProps) {
   }, [db, serverId, currentUser?.uid]);
 
   const { data: members, isLoading: isMembersLoading } = useCollection(membersQuery);
+
+  const isOwner = server?.ownerId === currentUser?.uid;
+  const serverAdmins = server?.admins || [];
+  const isAdmin = isOwner || serverAdmins.includes(currentUser?.uid || "");
+
+  const pendingInvitesQuery = useMemoFirebase(() => {
+    if (!db || !serverId || !isAdmin) return null;
+    return query(
+      collection(db, "invitations"),
+      where("communityId", "==", serverId),
+      where("status", "==", "pending")
+    );
+  }, [db, serverId, isAdmin]);
+
+  const { data: pendingInvites } = useCollection(pendingInvitesQuery);
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 30000);
@@ -113,22 +128,23 @@ export function MembersPanel({ serverId, onWhisper }: MembersPanelProps) {
 
   if (!server) return null;
 
-  const isOwner = server.ownerId === currentUser?.uid;
-  const serverAdmins = server.admins || [];
-
   const handleInvite = async () => {
     if (selectedUsers.length === 0 || !db || !server) return;
     setIsInviting(true);
 
     try {
-      // CONSENT-BASED INVITES: Instead of adding directly, create Invitation documents.
       for (const target of selectedUsers) {
-        const inviteRef = doc(collection(db, "invitations"));
+        // Use a unique ID based on community and user to prevent duplicates
+        const inviteId = `${serverId}_${target.id}`;
+        const inviteRef = doc(db, "invitations", inviteId);
+        
         setDocumentNonBlocking(inviteRef, {
-          id: inviteRef.id,
+          id: inviteId,
           targetUserId: target.id,
+          targetUsername: target.username || "User",
+          targetUserPhoto: target.photoURL || null,
           senderId: currentUser?.uid,
-          senderName: currentUser?.displayName || "Member",
+          senderName: currentUser?.displayName || "Admin",
           communityId: serverId,
           communityName: server.name,
           communityIcon: server.icon || null,
@@ -139,7 +155,7 @@ export function MembersPanel({ serverId, onWhisper }: MembersPanelProps) {
 
       toast({ 
         title: "Invitations Sent", 
-        description: `Requests sent to ${selectedUsers.length} user(s). They will join upon approval.` 
+        description: `Requests sent to ${selectedUsers.length} user(s).` 
       });
       
       setSelectedUsers([]);
@@ -150,6 +166,14 @@ export function MembersPanel({ serverId, onWhisper }: MembersPanelProps) {
     } finally {
       setIsInviting(false);
     }
+  };
+
+  const handleRemind = (invite: any) => {
+    const inviteRef = doc(db, "invitations", invite.id);
+    updateDocumentNonBlocking(inviteRef, {
+      createdAt: new Date().toISOString()
+    });
+    toast({ title: "Reminder Sent", description: `@${invite.targetUsername} notified.` });
   };
 
   const toggleUserSelection = (user: any) => {
@@ -189,7 +213,7 @@ export function MembersPanel({ serverId, onWhisper }: MembersPanelProps) {
           <h3 className="font-bold text-sm text-foreground">Members</h3>
           {members && <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded-full text-muted-foreground font-mono">{members.length}</span>}
         </div>
-        {(isOwner || serverAdmins.includes(currentUser?.uid)) && (
+        {(isOwner || serverAdmins.includes(currentUser?.uid || "")) && (
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setIsInviteOpen(true)}>
             <UserPlus className="h-4 w-4 text-muted-foreground" />
           </Button>
@@ -205,6 +229,44 @@ export function MembersPanel({ serverId, onWhisper }: MembersPanelProps) {
             </div>
           ) : (
             <>
+              {isAdmin && pendingInvites && pendingInvites.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-[10px] font-bold uppercase tracking-wider text-primary/80 px-2 flex items-center gap-2">
+                    <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse shadow-[0_0_4px_rgba(var(--primary),0.6)]" />
+                    Pending — {pendingInvites.length}
+                  </h4>
+                  <div className="space-y-0.5">
+                    {pendingInvites.map((invite: any) => (
+                      <div key={invite.id} className="flex items-center gap-2 p-2 rounded-md hover:bg-muted transition-colors group">
+                        <Avatar className="h-8 w-8 border border-border shadow-sm opacity-60">
+                          <AvatarImage src={invite.targetUserPhoto} />
+                          <AvatarFallback className="bg-muted text-muted-foreground text-[10px] font-bold">
+                            {invite.targetUsername?.[0]?.toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col min-w-0 flex-1">
+                          <span className="text-xs font-bold truncate leading-none text-muted-foreground">
+                            @{invite.targetUsername}
+                          </span>
+                          <span className="text-[8px] text-muted-foreground/60 uppercase font-black tracking-tighter mt-0.5">
+                            Waiting for User
+                          </span>
+                        </div>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-primary hover:text-primary hover:bg-primary/10"
+                          onClick={() => handleRemind(invite)}
+                          title="Remind User"
+                        >
+                          <Bell className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {segmentedMembers.online.length > 0 && (
                 <div className="space-y-2">
                   <h4 className="text-[10px] font-bold uppercase tracking-wider text-green-500/80 px-2 flex items-center gap-2">
@@ -218,7 +280,7 @@ export function MembersPanel({ serverId, onWhisper }: MembersPanelProps) {
                         member={member} 
                         isOwner={member.id === server.ownerId}
                         isAdmin={serverAdmins.includes(member.id)}
-                        canManage={(isOwner || serverAdmins.includes(currentUser?.uid)) && member.id !== currentUser?.uid}
+                        canManage={(isOwner || serverAdmins.includes(currentUser?.uid || "")) && member.id !== currentUser?.uid}
                         onRemove={() => handleRemoveMember(member.id, member.username)}
                         onToggleAdmin={() => handleToggleAdmin(member.id, serverAdmins.includes(member.id))}
                         onWhisper={onWhisper}
@@ -242,7 +304,7 @@ export function MembersPanel({ serverId, onWhisper }: MembersPanelProps) {
                         member={member} 
                         isOwner={member.id === server.ownerId}
                         isAdmin={serverAdmins.includes(member.id)}
-                        canManage={(isOwner || serverAdmins.includes(currentUser?.uid)) && member.id !== currentUser?.uid}
+                        canManage={(isOwner || serverAdmins.includes(currentUser?.uid || "")) && member.id !== currentUser?.uid}
                         onRemove={() => handleRemoveMember(member.id, member.username)}
                         onToggleAdmin={() => handleToggleAdmin(member.id, serverAdmins.includes(member.id))}
                         onWhisper={onWhisper}
@@ -263,7 +325,7 @@ export function MembersPanel({ serverId, onWhisper }: MembersPanelProps) {
                         member={member} 
                         isOwner={member.id === server.ownerId}
                         isAdmin={serverAdmins.includes(member.id)}
-                        canManage={(isOwner || serverAdmins.includes(currentUser?.uid)) && member.id !== currentUser?.uid}
+                        canManage={(isOwner || serverAdmins.includes(currentUser?.uid || "")) && member.id !== currentUser?.uid}
                         onRemove={() => handleRemoveMember(member.id, member.username)}
                         onToggleAdmin={() => handleToggleAdmin(member.id, serverAdmins.includes(member.id))}
                         onWhisper={onWhisper}
