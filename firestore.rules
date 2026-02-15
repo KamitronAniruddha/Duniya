@@ -9,16 +9,16 @@ service cloud.firestore {
     }
 
     // User Profiles: 
-    // - Allow public read (essential for username uniqueness checks and profile viewing)
-    // - Allow users to write/update only their own profile
+    // - Allow PUBLIC read (get/list): Essential for username uniqueness checks and profile viewing.
+    // - Allow OWNER only write: Only the user can create or update their own identity.
     match /users/{userId} {
-      allow read: if true;
+      allow get, list: if true;
       allow write: if isSignedIn() && request.auth.uid == userId;
     }
 
     // Communities and Nested Data:
-    // - Require authentication for all community interactions
-    // - Specific privacy (Whispers) is enforced by high-performance client queries
+    // - Require authentication for all community interactions.
+    // - Privacy (Whispers) is enforced by high-performance client-side query filters.
     match /communities/{communityId} {
       allow read, write: if isSignedIn();
       
@@ -27,13 +27,13 @@ service cloud.firestore {
       }
     }
 
-    // Contact Submissions: Public creation, authenticated management
+    // Contact Submissions: Public creation, authenticated management.
     match /contact_form_submissions/{submissionId} {
       allow create: if true;
       allow read, update, delete: if isSignedIn();
     }
 
-    // Broad authenticated access for any other collections
+    // Broad authenticated access for any other collections.
     match /{document=**} {
       allow read, write: if isSignedIn();
     }
