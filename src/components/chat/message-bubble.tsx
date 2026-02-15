@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useFirestore, useUser, useDoc, useMemoFirebase } from "@/firebase";
 import { doc, arrayUnion, deleteField } from "firebase/firestore";
 import { UserProfilePopover } from "@/components/profile/user-profile-popover";
-import { Reply, CornerDownRight, Play, Pause, MoreHorizontal, Trash2, Ban, Copy, Timer, Check, CheckCheck, Forward, Landmark, Mic, Maximize2, Heart, Download, FileText, File } from "lucide-react";
+import { Reply, CornerDownRight, Play, Pause, MoreHorizontal, Trash2, Ban, Copy, Timer, Check, CheckCheck, Forward, Landmark, Mic, Maximize2, Heart, Download, FileText, File, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
@@ -91,6 +91,7 @@ export const MessageBubble = memo(function MessageBubble({
   const [isForwardOpen, setIsForwardOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isImageZoomOpen, setIsImageZoomOpen] = useState(false);
+  const [isPDFViewOpen, setIsPDFViewOpen] = useState(false);
 
   const [dragX, setDragX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -348,9 +349,16 @@ export const MessageBubble = memo(function MessageBubble({
                     <span className={cn("text-xs font-bold truncate", isMe ? "text-primary-foreground" : "text-foreground")}>{message.fileName || "Document"}</span>
                     <span className={cn("text-[8px] font-black uppercase opacity-60", isMe ? "text-primary-foreground" : "text-muted-foreground")}>{message.fileType?.split('/')[1]?.toUpperCase() || "FILE"}</span>
                   </div>
-                  <Button variant="ghost" size="icon" className={cn("h-8 w-8 rounded-full hover:bg-black/10 transition-colors", isMe ? "text-primary-foreground" : "text-primary")} onClick={(e) => { e.stopPropagation(); handleDownload(message.fileUrl!, message.fileName!); }}>
-                    <Download className="h-4 w-4" />
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    {message.fileType?.includes('pdf') && (
+                      <Button variant="ghost" size="icon" className={cn("h-8 w-8 rounded-full hover:bg-black/10 transition-colors", isMe ? "text-primary-foreground" : "text-primary")} onClick={(e) => { e.stopPropagation(); setIsPDFViewOpen(true); }}>
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    )}
+                    <Button variant="ghost" size="icon" className={cn("h-8 w-8 rounded-full hover:bg-black/10 transition-colors", isMe ? "text-primary-foreground" : "text-primary")} onClick={(e) => { e.stopPropagation(); handleDownload(message.fileUrl!, message.fileName!); }}>
+                      <Download className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               ) : (
                 <p className="whitespace-pre-wrap break-words leading-snug text-sm font-medium tracking-tight selection:bg-white/30 px-2">{message.content}</p>
@@ -386,6 +394,7 @@ export const MessageBubble = memo(function MessageBubble({
             </DropdownMenuTrigger>
             <DropdownMenuContent align={isMe ? "end" : "start"} className="rounded-xl font-black uppercase text-[9px] tracking-widest p-1 border-none shadow-xl bg-popover/95 backdrop-blur-md">
               <DropdownMenuItem onClick={() => onReply?.()} className="gap-2 p-2 rounded-lg"><Reply className="h-3 w-3 text-primary" /> Reply</DropdownMenuItem>
+              {message.fileType?.includes('pdf') && <DropdownMenuItem onClick={() => setIsPDFViewOpen(true)} className="gap-2 p-2 rounded-lg"><Eye className="h-3 w-3 text-primary" /> View PDF</DropdownMenuItem>}
               {message.imageUrl && <DropdownMenuItem onClick={() => handleDownload(message.imageUrl!, message.fileName || "image.jpg")} className="gap-2 p-2 rounded-lg"><Download className="h-3 w-3 text-primary" /> Download</DropdownMenuItem>}
               {message.fileUrl && <DropdownMenuItem onClick={() => handleDownload(message.fileUrl!, message.fileName || "file")} className="gap-2 p-2 rounded-lg"><Download className="h-3 w-3 text-primary" /> Download</DropdownMenuItem>}
               <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(message.content); toast({ title: "Copied" }); }} className="gap-2 p-2 rounded-lg"><Copy className="h-3 w-3 text-primary" /> Copy</DropdownMenuItem>
@@ -420,6 +429,36 @@ export const MessageBubble = memo(function MessageBubble({
                 </button>
               </div>
             </motion.div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isPDFViewOpen} onOpenChange={setIsPDFViewOpen}>
+        <DialogContent className="max-w-[95vw] h-[90vh] p-0 border-none shadow-2xl bg-background overflow-hidden flex flex-col rounded-[2.5rem]">
+          <DialogHeader className="p-6 md:p-8 pb-4 bg-gradient-to-b from-primary/10 to-transparent shrink-0 flex flex-row items-center justify-between border-b">
+            <div className="flex flex-col gap-1">
+              <DialogTitle className="text-xl md:text-2xl font-black tracking-tight uppercase truncate max-w-[200px] md:max-w-md">
+                {message.fileName || "PDF Viewer"}
+              </DialogTitle>
+              <DialogDescription className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">
+                Verse Document Preview
+              </DialogDescription>
+            </div>
+            <div className="flex items-center gap-2 mr-8">
+              <Button size="sm" variant="outline" className="h-10 rounded-xl text-[10px] font-black uppercase tracking-widest bg-background/50 backdrop-blur-sm px-4" onClick={() => handleDownload(message.fileUrl!, message.fileName || "document.pdf")}>
+                <Download className="h-3 w-3 mr-2 text-primary" /> Save Copy
+              </Button>
+            </div>
+          </DialogHeader>
+          <div className="flex-1 w-full bg-muted/20 relative">
+            <iframe 
+              src={message.fileUrl} 
+              className="w-full h-full border-none" 
+              title={message.fileName} 
+            />
+            <div className="absolute top-4 right-4 p-2 bg-background/80 backdrop-blur-md rounded-lg border text-[8px] font-black uppercase tracking-widest text-primary opacity-40">
+              Verified by Duniya
+            </div>
           </div>
         </DialogContent>
       </Dialog>
