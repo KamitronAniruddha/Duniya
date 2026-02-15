@@ -114,8 +114,8 @@ export function ForwardDialog({ open, onOpenChange, messagesToForward, currentCo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] rounded-[2rem] p-0 overflow-hidden border-none shadow-2xl">
-        <DialogHeader className="p-6 pb-2 bg-gradient-to-b from-primary/5 to-transparent">
+      <DialogContent className="sm:max-w-[425px] w-[95vw] max-h-[90vh] rounded-[2rem] p-0 overflow-hidden border-none shadow-2xl flex flex-col">
+        <DialogHeader className="p-6 pb-2 shrink-0 bg-gradient-to-b from-primary/5 to-transparent">
           <DialogTitle className="text-2xl font-black tracking-tight flex items-center gap-2 text-foreground">
             <Forward className="h-6 w-6 text-primary" />
             Forward Message
@@ -125,7 +125,7 @@ export function ForwardDialog({ open, onOpenChange, messagesToForward, currentCo
           </DialogDescription>
         </DialogHeader>
 
-        <div className="p-6 pt-2 space-y-4">
+        <div className="px-6 space-y-4 shrink-0">
           <div className="flex items-center justify-between p-3 bg-primary/5 rounded-2xl border border-primary/10">
             <div className="flex items-center gap-3">
               <Info className="h-4 w-4 text-primary" />
@@ -148,7 +148,7 @@ export function ForwardDialog({ open, onOpenChange, messagesToForward, currentCo
           </div>
 
           {selectedChannels.length > 0 && (
-            <ScrollArea className="max-h-20 w-full mb-2">
+            <ScrollArea className="max-h-16 w-full">
               <div className="flex flex-wrap gap-1.5 p-1">
                 {selectedChannels.map(chan => (
                   <Badge key={chan.channelId} variant="secondary" className="flex items-center gap-1 py-1 px-2 rounded-lg bg-primary/10 text-primary border-primary/20 animate-in zoom-in-95">
@@ -162,36 +162,36 @@ export function ForwardDialog({ open, onOpenChange, messagesToForward, currentCo
               </div>
             </ScrollArea>
           )}
-
-          <ScrollArea className="h-[250px] pr-4">
-            <div className="space-y-6">
-              {filteredCommunities?.map((community) => (
-                <CommunitySection 
-                  key={community.id} 
-                  community={community} 
-                  onSelect={toggleChannelSelection}
-                  selectedIds={selectedChannels.map(c => c.channelId)}
-                />
-              ))}
-              {filteredCommunities?.length === 0 && (
-                <div className="text-center py-10 opacity-30 italic text-sm">
-                  No communities found.
-                </div>
-              )}
-            </div>
-          </ScrollArea>
         </div>
 
-        <DialogFooter className="p-6 bg-muted/30 border-t flex items-center justify-between gap-4">
-          <div className="flex-1 min-w-0">
+        <ScrollArea className="flex-1 px-6 mt-4">
+          <div className="space-y-6 pb-6">
+            {filteredCommunities?.map((community) => (
+              <CommunitySection 
+                key={community.id} 
+                community={community} 
+                onSelect={toggleChannelSelection}
+                selectedIds={selectedChannels.map(c => c.channelId)}
+              />
+            ))}
+            {filteredCommunities?.length === 0 && (
+              <div className="text-center py-10 opacity-30 italic text-sm">
+                No communities found.
+              </div>
+            )}
+          </div>
+        </ScrollArea>
+
+        <DialogFooter className="p-6 bg-muted/30 border-t flex flex-col sm:flex-row items-center justify-between gap-4 shrink-0">
+          <div className="w-full sm:flex-1 min-w-0">
              <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                {selectedChannels.length} Target(s) selected
              </span>
           </div>
-          <div className="flex gap-2">
-            <Button variant="ghost" className="rounded-xl font-bold" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <div className="flex w-full sm:w-auto gap-2">
+            <Button variant="ghost" className="flex-1 sm:flex-none rounded-xl font-bold" onClick={() => onOpenChange(false)}>Cancel</Button>
             <Button 
-              className="rounded-xl font-black px-6 shadow-lg shadow-primary/20" 
+              className="flex-1 sm:flex-none rounded-xl font-black px-6 shadow-lg shadow-primary/20" 
               disabled={selectedChannels.length === 0 || isForwarding}
               onClick={handleForward}
             >
@@ -226,7 +226,7 @@ function CommunitySection({ community, onSelect, selectedIds }: { community: any
               key={chan.id}
               onClick={() => onSelect({ communityId: community.id, channelId: chan.id, name: chan.name })}
               className={cn(
-                "w-full flex items-center justify-between p-3 rounded-xl transition-all border",
+                "w-full flex items-center justify-between p-3 rounded-xl transition-all border text-left",
                 isSelected 
                   ? "bg-primary/10 border-primary shadow-sm" 
                   : "bg-background border-transparent hover:border-muted hover:bg-muted/30"
