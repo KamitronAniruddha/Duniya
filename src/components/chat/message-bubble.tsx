@@ -77,6 +77,8 @@ export function MessageBubble({
   const [dragX, setDragX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const startX = useRef(0);
+  const startY = useRef(0);
+  const isHorizontalSwipe = useRef<boolean | null>(null);
   const swipeThreshold = 60;
 
   // Long press logic
@@ -130,7 +132,11 @@ export function MessageBubble({
   const handleStart = (e: React.TouchEvent | React.MouseEvent) => {
     if (message.isDeleted || isDisappeared) return;
     const clientX = 'touches' in e ? (e as React.TouchEvent).touches[0].clientX : (e as React.MouseEvent).clientX;
+    const clientY = 'touches' in e ? (e as React.TouchEvent).touches[0].clientY : (e as React.MouseEvent).clientY;
+    
     startX.current = clientX;
+    startY.current = clientY;
+    isHorizontalSwipe.current = null;
     setIsDragging(true);
 
     longPressTimer.current = setTimeout(() => {
@@ -144,16 +150,35 @@ export function MessageBubble({
   const handleMove = (e: React.TouchEvent | React.MouseEvent) => {
     if (!isDragging || message.isDeleted || isDisappeared) return;
     const clientX = 'touches' in e ? (e as React.TouchEvent).touches[0].clientX : (e as React.MouseEvent).clientX;
-    const diff = clientX - startX.current;
+    const clientY = 'touches' in e ? (e as React.TouchEvent).touches[0].clientY : (e as React.MouseEvent).clientY;
     
-    if (Math.abs(diff) > 10 && longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
+    const diffX = clientX - startX.current;
+    const diffY = clientY - startY.current;
+
+    // Detect if this is a horizontal or vertical move
+    if (isHorizontalSwipe.current === null) {
+      if (Math.abs(diffX) > Math.abs(diffY)) {
+        isHorizontalSwipe.current = true;
+      } else if (Math.abs(diffY) > 5) {
+        isHorizontalSwipe.current = false;
+        if (longPressTimer.current) {
+          clearTimeout(longPressTimer.current);
+          longPressTimer.current = null;
+        }
+        setIsDragging(false);
+        return;
+      }
     }
 
-    if (!selectionMode && diff > 0) {
-      const rubberBand = Math.pow(diff, 0.85);
+    // If it's a horizontal move, handle swipe-to-reply
+    if (isHorizontalSwipe.current && !selectionMode && diffX > 0) {
+      if (longPressTimer.current) {
+        clearTimeout(longPressTimer.current);
+        longPressTimer.current = null;
+      }
+      const rubberBand = Math.pow(diffX, 0.85);
       setDragX(Math.min(rubberBand * 2, 100));
+      if ('touches' in e) e.stopPropagation();
     }
   };
 
@@ -166,10 +191,13 @@ export function MessageBubble({
     if (!isDragging) return;
     if (dragX >= swipeThreshold && !selectionMode) {
       onReply?.();
-      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate(10);
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        navigator.vibrate(10);
+      }
     }
     setDragX(0);
     setIsDragging(false);
+    isHorizontalSwipe.current = null;
   };
 
   const handleBubbleClick = (e: React.MouseEvent) => {
@@ -245,33 +273,32 @@ export function MessageBubble({
   return (
     <div 
       className={cn(
-        "flex w-full py-1 group items-end relative transition-all duration-300 rounded-lg touch-none select-none", 
+        "flex w-full py-1 group items-end relative transition-all duration-300 rounded-lg select-none", 
         isMe ? "flex-row-reverse" : "flex-row",
         isSelected && "bg-primary/5 shadow-inner"
       )}
-      onTouchStart={handleStart}
-      onTouchMove={handleMove}
-      onTouchEnd={handleEnd}
       onMouseDown={handleStart}
       onMouseMove={handleMove}
       onMouseUp={handleEnd}
       onMouseLeave={handleEnd}
+      onTouchStart={handleStart}
+      onTouchMove={handleMove}
+      onTouchEnd={handleEnd}
       onClick={handleBubbleClick}
     >
-      {/* Fixed Selection Container */}
-      {selectionMode && (
+      {/* Fixed Selection Container - Prevents Bubble Jumping */}
+      <div className={cn(
+        "shrink-0 flex items-center justify-center transition-all duration-300 overflow-hidden",
+        selectionMode ? "w-10 opacity-100" : "w-0 opacity-0",
+        isMe ? "ml-2" : "mr-2"
+      )}>
         <div className={cn(
-          "shrink-0 flex items-center justify-center transition-all animate-in zoom-in-50 duration-200",
-          isMe ? "ml-4" : "mr-4"
+          "h-5 w-5 rounded-full border-2 flex items-center justify-center transition-all animate-in zoom-in-50 duration-200",
+          isSelected ? "bg-primary border-primary text-white scale-110" : "border-muted-foreground/40 scale-100"
         )}>
-          <div className={cn(
-            "h-5 w-5 rounded-full border-2 flex items-center justify-center transition-all",
-            isSelected ? "bg-primary border-primary text-white scale-110" : "border-muted-foreground/40 scale-100"
-          )}>
-            {isSelected && <CheckSquare className="h-3.5 w-3.5" />}
-          </div>
+          {isSelected && <CheckSquare className="h-3.5 w-3.5" />}
         </div>
-      )}
+      </div>
 
       {/* Swipe Indicator */}
       <div className="absolute left-4 top-1/2 -translate-y-1/2 transition-all duration-75 flex items-center justify-center bg-primary/10 rounded-full h-8 w-8 pointer-events-none" style={{ opacity: Math.min(dragX / swipeThreshold, 1), transform: `scale(${Math.min(dragX / swipeThreshold, 1)})`, left: `${Math.min(dragX / 2, 20)}px` }}>

@@ -6,7 +6,7 @@ import { useCollection, useFirestore, useUser, useDoc, useMemoFirebase } from "@
 import { collection, query, orderBy, limit, doc, where, writeBatch, arrayUnion, deleteField } from "firebase/firestore";
 import { MessageBubble } from "./message-bubble";
 import { MessageInput } from "./message-input";
-import { Hash, Users, Loader2, MessageCircle, X, Trash2, CheckSquare, CornerUpLeft } from "lucide-react";
+import { Hash, Users, Loader2, MessageCircle, X, Trash2, CheckSquare, CornerUpLeft, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { setDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { cn } from "@/lib/utils";
@@ -169,7 +169,9 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
   const enterSelectionMode = useCallback((id: string) => {
     setSelectionMode(true);
     setSelectedIds(new Set([id]));
-    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate(20);
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      navigator.vibrate(20);
+    }
   }, []);
 
   const handleJumpToMessage = (messageId: string) => {
@@ -307,34 +309,51 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
         )}
       </div>
       
-      {/* Selection Mode Actions */}
+      {/* Interesting Delete Popup */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent className="rounded-[2rem] border-none shadow-2xl p-8">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-2xl font-black tracking-tighter">Delete {selectedIds.size} Messages?</AlertDialogTitle>
-            <AlertDialogDescription className="font-medium text-muted-foreground">
-              {canDeleteForEveryone 
-                ? "Would you like to delete these for yourself or for everyone in the community?" 
-                : "You can only delete these messages for yourself as some were sent by others."}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="flex-col sm:flex-row gap-3 pt-4">
-            <AlertDialogCancel className="h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] m-0">Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={() => handleBatchDelete("me")}
-              className="h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] m-0 bg-muted text-foreground hover:bg-muted/80"
-            >
-              Delete for me
-            </AlertDialogAction>
+        <AlertDialogContent className="rounded-[2.5rem] border-none shadow-[0_32px_64px_-12px_rgba(0,0,0,0.4)] p-0 overflow-hidden max-w-[400px]">
+          <div className="bg-gradient-to-b from-primary/10 to-background p-8">
+            <AlertDialogHeader className="items-center text-center space-y-4">
+              <div className="h-16 w-16 bg-destructive/10 rounded-3xl flex items-center justify-center animate-bounce duration-[3000ms]">
+                <Trash2 className="h-8 w-8 text-destructive" />
+              </div>
+              <div className="space-y-1">
+                <AlertDialogTitle className="text-3xl font-black tracking-tighter text-foreground">
+                  Delete {selectedIds.size} Messages?
+                </AlertDialogTitle>
+                <AlertDialogDescription className="text-sm font-medium text-muted-foreground px-4 leading-relaxed">
+                  {canDeleteForEveryone 
+                    ? "Cleanup your tracks! Choose whether to remove these messages for yourself or for everyone." 
+                    : "Some selected messages were sent by others. You can only delete them from your own view."}
+                </AlertDialogDescription>
+              </div>
+            </AlertDialogHeader>
+          </div>
+          
+          <div className="p-6 bg-background space-y-3">
             {canDeleteForEveryone && (
               <AlertDialogAction 
                 onClick={() => handleBatchDelete("everyone")}
-                className="h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] m-0 bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                className="w-full h-14 rounded-2xl font-black uppercase tracking-widest text-[11px] bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-lg shadow-destructive/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
               >
-                Delete for all
+                Delete for Everyone
               </AlertDialogAction>
             )}
-          </AlertDialogFooter>
+            <AlertDialogAction 
+              onClick={() => handleBatchDelete("me")}
+              className="w-full h-14 rounded-2xl font-black uppercase tracking-widest text-[11px] bg-muted text-foreground hover:bg-muted/80 border-none transition-all hover:scale-[1.02] active:scale-[0.98]"
+            >
+              Delete for Me
+            </AlertDialogAction>
+            <AlertDialogCancel className="w-full h-12 border-none font-bold text-muted-foreground/60 hover:text-foreground transition-colors">
+              Wait, Cancel
+            </AlertDialogCancel>
+          </div>
+          
+          <div className="bg-muted/30 py-3 flex justify-center items-center gap-2">
+            <Info className="h-3 w-3 text-muted-foreground/40" />
+            <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40">Duniya Privacy Guard</span>
+          </div>
         </AlertDialogContent>
       </AlertDialog>
 
