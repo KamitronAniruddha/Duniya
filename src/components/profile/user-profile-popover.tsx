@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { CalendarDays, User as UserIcon, Maximize2, EyeOff } from "lucide-react";
-import { Dialog, DialogContent, DialogTitle, DialogHeader } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogDescription } from "@/components/ui/dialog";
 
 interface UserProfilePopoverProps {
   userId: string;
@@ -118,7 +118,8 @@ export function UserProfilePopover({ userId, children }: UserProfilePopoverProps
       <Dialog open={isZoomOpen} onOpenChange={setIsZoomOpen}>
         <DialogContent className="max-w-[90vw] max-h-[90vh] p-0 border-none bg-transparent shadow-none flex items-center justify-center">
           <DialogHeader className="sr-only">
-            <DialogTitle>Profile Picture</DialogTitle>
+            <DialogTitle>@{userData?.username || 'User'} Profile Picture</DialogTitle>
+            <DialogDescription>Full-sized profile picture view for the Verse user.</DialogDescription>
           </DialogHeader>
           <div className="relative w-full h-full flex items-center justify-center group">
             {userData?.photoURL ? (

@@ -33,6 +33,11 @@ export function CommunityProfileDialog({ open, onOpenChange, serverId }: Communi
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-[425px] rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl bg-background">
+          <DialogHeader className="sr-only">
+            <DialogTitle>{server.name} Profile</DialogTitle>
+            <DialogDescription>Detailed information about the {server.name} community in the Verse.</DialogDescription>
+          </DialogHeader>
+          
           <div className="h-24 bg-primary w-full relative">
             <div className="absolute -bottom-10 left-6">
               <button 
@@ -108,6 +113,10 @@ export function CommunityProfileDialog({ open, onOpenChange, serverId }: Communi
 
       <Dialog open={isZoomOpen} onOpenChange={setIsZoomOpen}>
         <DialogContent className="max-w-[90vw] max-h-[90vh] p-0 border-none bg-transparent shadow-none flex items-center justify-center overflow-hidden">
+          <DialogHeader className="sr-only">
+            <DialogTitle>{server.name} Icon Zoom</DialogTitle>
+            <DialogDescription>Full-sized community icon view.</DialogDescription>
+          </DialogHeader>
           <div className="relative w-full h-full flex items-center justify-center">
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }} 
