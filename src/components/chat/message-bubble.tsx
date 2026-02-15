@@ -261,7 +261,7 @@ export const MessageBubble = memo(function MessageBubble({
       </div>
 
       <AnimatePresence>
-        {dragX >= 60 && (
+        {dragX >= 60 && !isActuallyDeleted && (
           <motion.div 
             initial={{ opacity: 0, scale: 0, x: -20 }}
             animate={{ opacity: 1, scale: 1, x: 0 }}
