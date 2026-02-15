@@ -156,6 +156,32 @@ export const MessageBubble = memo(function MessageBubble({
     toast({ title: "Starting Download", description: name });
   };
 
+  const renderContentWithLinks = (text: string) => {
+    if (!text) return null;
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const parts = text.split(urlRegex);
+    return parts.map((part, i) => {
+      if (part.match(urlRegex)) {
+        return (
+          <a 
+            key={i} 
+            href={part} 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className={cn(
+              "underline font-bold decoration-2 underline-offset-2 hover:opacity-70 transition-all break-all", 
+              isMe ? "text-white" : "text-primary"
+            )}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {part}
+          </a>
+        );
+      }
+      return part;
+    });
+  };
+
   const handleStart = (e: React.TouchEvent | React.MouseEvent) => {
     if (selectionMode || isActuallyDeleted) return;
     const clientX = 'touches' in e ? (e as React.TouchEvent).touches[0].clientX : (e as React.MouseEvent).clientX;
@@ -361,11 +387,15 @@ export const MessageBubble = memo(function MessageBubble({
                   </div>
                 </div>
               ) : (
-                <p className="whitespace-pre-wrap break-words leading-snug text-sm font-medium tracking-tight selection:bg-white/30 px-2">{message.content}</p>
+                <p className="whitespace-pre-wrap break-words leading-snug text-sm font-medium tracking-tight selection:bg-white/30 px-2">
+                  {renderContentWithLinks(message.content)}
+                </p>
               )}
 
               {(message.imageUrl || message.type === 'file' || message.fileUrl) && message.content && (
-                <p className="mt-2 px-2 whitespace-pre-wrap break-words leading-snug text-sm font-medium tracking-tight selection:bg-white/30">{message.content}</p>
+                <p className="mt-2 px-2 whitespace-pre-wrap break-words leading-snug text-sm font-medium tracking-tight selection:bg-white/30">
+                  {renderContentWithLinks(message.content)}
+                </p>
               )}
 
               <div className="flex items-center justify-between gap-3 mt-1.5 px-2">
