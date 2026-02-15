@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { memo, useState, useRef, useEffect, useMemo } from "react";
@@ -6,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useFirestore, useUser, useDoc, useMemoFirebase } from "@/firebase";
 import { doc, arrayUnion, deleteField } from "firebase/firestore";
 import { UserProfilePopover } from "@/components/profile/user-profile-popover";
-import { Reply, CornerDownRight, Play, Pause, MoreHorizontal, Trash2, Ban, Copy, Timer, Check, CheckCheck, Forward, Landmark, History } from "lucide-react";
+import { Reply, CornerDownRight, Play, Pause, MoreHorizontal, Trash2, Ban, Copy, Timer, Check, CheckCheck, Forward, Landmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
@@ -225,7 +226,7 @@ export const MessageBubble = memo(function MessageBubble({
       }}
     >
       <div className={cn(
-        "shrink-0 flex items-center justify-center transition-all duration-200 overflow-hidden",
+        "shrink-0 flex items-center justify-center transition-all duration-150 overflow-hidden",
         selectionMode ? "w-10 opacity-100" : "w-0 opacity-0",
         isMe ? "ml-1" : "mr-1"
       )}>
@@ -245,7 +246,7 @@ export const MessageBubble = memo(function MessageBubble({
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
-            transition={{ duration: 0.1, ease: "easeOut" }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
             className="absolute left-6 top-1/2 -translate-y-1/2 bg-primary/20 rounded-full h-8 w-8 flex items-center justify-center pointer-events-none z-10 backdrop-blur-sm shadow-lg"
           >
             <Reply className="h-4 w-4 text-primary" />
@@ -266,9 +267,9 @@ export const MessageBubble = memo(function MessageBubble({
       
       <motion.div 
         layout
-        className={cn("flex flex-col max-w-[75%] relative transition-all duration-200 ease-out", isMe ? "items-end" : "items-start")} 
+        className={cn("flex flex-col max-w-[75%] relative transition-all duration-150 ease-out", isMe ? "items-end" : "items-start")} 
         style={{ x: dragX }}
-        transition={{ duration: 0.2, ease: "easeOut" }}
+        transition={{ duration: 0.15, ease: "easeOut" }}
       >
         {isActuallyDeleted ? (
           <div className={cn(
@@ -366,7 +367,7 @@ export const MessageBubble = memo(function MessageBubble({
       </motion.div>
 
       {!selectionMode && !isActuallyDeleted && (
-        <div className={cn("mb-1 mx-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center gap-1", isMe ? "mr-1 flex-row-reverse" : "ml-1 flex-row")}>
+        <div className={cn("mb-1 mx-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-center gap-1", isMe ? "mr-1 flex-row-reverse" : "ml-1 flex-row")}>
           <button 
             onClick={(e) => { e.stopPropagation(); setIsForwardOpen(true); }} 
             className="h-7 w-7 rounded-full bg-muted/30 hover:bg-primary hover:text-white flex items-center justify-center text-muted-foreground transition-colors active:scale-90"

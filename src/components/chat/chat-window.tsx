@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useRef, useEffect, useState, useMemo, useCallback } from "react";
@@ -362,7 +363,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
           }
         }} 
         messagesToForward={selectedMessages}
-        currentCommunityName={serverData?.name}
+        currentCommunityName={server?.name}
         currentChannelName={contextData?.name}
       />
 
