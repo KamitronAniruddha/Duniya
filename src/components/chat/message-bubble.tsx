@@ -83,7 +83,7 @@ export const MessageBubble = memo(function MessageBubble({
   const [isTraceOpen, setIsTraceOpen] = useState(false);
   const [isForwardOpen, setIsForwardOpen] = useState(false);
 
-  // Swipe & Long Press
+  // Swipe & Long Press logic for mobile and desktop interactivity
   const [dragX, setDragX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const startX = useRef(0);
@@ -309,9 +309,9 @@ export const MessageBubble = memo(function MessageBubble({
               {message.replyTo && (
                 <button className={cn("w-full text-left mb-2 p-2 rounded-lg border-l-4 text-xs bg-black/5 flex flex-col gap-0.5", isMe ? "border-white/40" : "border-primary/50")}>
                   <span className={cn("font-bold text-[10px] flex items-center gap-1 uppercase", isMe ? "text-white/90" : "text-primary")}>
-                    <CornerDownRight className="h-3 w-3" />{message.replyTo.senderName}
+                    <CornerDownRight className="h-3 w-3" />{(message.replyTo as any).senderName}
                   </span>
-                  <p className={cn("line-clamp-2 italic", isMe ? "text-white/70" : "text-muted-foreground")}>{message.replyTo.text}</p>
+                  <p className={cn("line-clamp-2 italic", isMe ? "text-white/70" : "text-muted-foreground")}>{(message.replyTo as any).text}</p>
                 </button>
               )}
 

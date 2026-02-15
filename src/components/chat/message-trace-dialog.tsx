@@ -34,10 +34,8 @@ export function MessageTraceDialog({ open, onOpenChange, chain }: MessageTraceDi
           </DialogDescription>
         </DialogHeader>
 
-        {/* Using a standard overflow-y-auto div for maximum reliability in scrolling */}
         <div className="flex-1 overflow-y-auto px-4 md:px-8 custom-scrollbar">
           <div className="relative space-y-8 py-6 pr-4">
-            {/* Vertical line connector */}
             <div className="absolute left-[15px] top-8 bottom-8 w-[2px] bg-gradient-to-b from-primary/40 via-muted to-muted/20" />
 
             {chain.map((hop, idx) => {
@@ -47,13 +45,12 @@ export function MessageTraceDialog({ open, onOpenChange, chain }: MessageTraceDi
 
               return (
                 <div key={idx} className="relative pl-10 group animate-in slide-in-from-bottom-2 duration-300" style={{ animationDelay: `${idx * 50}ms` }}>
-                  {/* Hop marker */}
                   <div className={cn(
                     "absolute left-0 top-1 h-8 w-8 rounded-full border-4 border-background flex items-center justify-center transition-all shadow-md z-10",
                     isFirst ? "bg-primary text-white scale-110" : "bg-muted text-muted-foreground",
                     isLast && "bg-green-500 text-white"
                   )}>
-                    {isFirst ? <Landmark className="h-3 w-3" /> : isLast ? <CheckCircle2 className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+                    {isFirst ? <Landmark className="h-3.5 w-3.5" /> : isLast ? <CheckCircle2 className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />}
                   </div>
 
                   <div className={cn(

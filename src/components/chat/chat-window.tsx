@@ -35,7 +35,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isClearChatDialogOpen, setIsClearChatDialogOpen] = useState(false);
 
-  // Path resolution logic
+  // Path resolution logic - Community only as requested
   const basePath = useMemo(() => {
     if (serverId && channelId) {
       return `communities/${serverId}/channels/${channelId}`;
@@ -299,7 +299,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-col gap-2">
             <AlertDialogAction onClick={() => handleBatchDelete("me")} className="w-full">Delete for Me</AlertDialogAction>
-            <AlertDialogAction onClick={() => handleBatchDelete("everyone")} className="w-full variant-destructive">Delete for Everyone</AlertDialogAction>
+            <AlertDialogAction onClick={() => handleBatchDelete("everyone")} className="w-full bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete for Everyone</AlertDialogAction>
             <AlertDialogCancel className="w-full">Cancel</AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>

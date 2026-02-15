@@ -9,8 +9,10 @@
       "properties": {
         "id": { "type": "string" },
         "displayName": { "type": "string" },
+        "username": { "type": "string" },
         "email": { "type": "string", "format": "email" },
         "avatarUrl": { "type": "string", "format": "uri" },
+        "photoURL": { "type": "string" },
         "bio": { "type": "string" },
         "onlineStatus": { "type": "string" },
         "lastOnlineAt": { "type": "string", "format": "date-time" },
@@ -32,6 +34,7 @@
         "name": { "type": "string" },
         "description": { "type": "string" },
         "ownerId": { "type": "string" },
+        "admins": { "type": "array", "items": { "type": "string" } },
         "icon": { "type": "string", "format": "uri" },
         "joinCode": { "type": "string" },
         "members": { "type": "array", "items": { "type": "string" } },
@@ -71,9 +74,13 @@
         "disappearingEnabled": { "type": "boolean" },
         "disappearDuration": { "type": "number" },
         "seenBy": { "type": "array", "items": { "type": "string" } },
-        "forwardingChain": { "type": "array" }
+        "isForwarded": { "type": "boolean" },
+        "forwardingChain": { "type": "array" },
+        "replyTo": { "type": "object" },
+        "deletedFor": { "type": "array", "items": { "type": "string" } },
+        "fullyDeleted": { "type": "boolean" }
       },
-      "required": ["id", "senderId", "content", "sentAt"]
+      "required": ["id", "senderId", "sentAt"]
     }
   },
   "auth": {
