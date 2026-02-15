@@ -302,7 +302,7 @@ export const MessageBubble = memo(function MessageBubble({
                   {latestHop && (
                     <div className={cn("flex items-center gap-1 text-[8px] font-black tracking-tight mt-0.5 opacity-60", isMe ? "text-white" : "text-primary")}>
                       <Landmark className="h-2.5 w-2.5" />
-                      <span>{latestHop.communityName.toUpperCase()} {' > '} #{latestHop.channelName.toUpperCase()}</span>
+                      <span>{(latestHop.communityName || "Verse").toUpperCase()} {' > '} #{(latestHop.channelName || "General").toUpperCase()}</span>
                     </div>
                   )}
                 </div>
