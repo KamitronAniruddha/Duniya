@@ -39,7 +39,6 @@ export function ForwardDialog({ open, onOpenChange, messagesToForward, currentCo
   const [isForwarding, setIsForwarding] = useState(false);
   const [includeRoot, setIncludeRoot] = useState(true);
 
-  // Get user's communities
   const communitiesQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
     return query(collection(db, "communities"), where("members", "array-contains", user.uid));
@@ -62,12 +61,9 @@ export function ForwardDialog({ open, onOpenChange, messagesToForward, currentCo
     setIsForwarding(true);
 
     try {
-      // Forward to each selected channel
       for (const channel of selectedChannels) {
         for (const msg of messagesToForward) {
           const newMsgRef = doc(collection(db, "communities", channel.communityId, "channels", channel.channelId, "messages"));
-          
-          // Determine original sender name from map if available
           const originalSenderName = memberMap?.[msg.senderId]?.username || "Unknown";
 
           const data = {
@@ -114,7 +110,7 @@ export function ForwardDialog({ open, onOpenChange, messagesToForward, currentCo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] w-[95vw] max-h-[90vh] rounded-[2rem] p-0 overflow-hidden border-none shadow-2xl flex flex-col">
+      <DialogContent className="sm:max-w-[425px] w-[95vw] h-[90vh] max-h-[90vh] rounded-[2rem] p-0 overflow-hidden border-none shadow-2xl flex flex-col">
         <DialogHeader className="p-6 pb-2 shrink-0 bg-gradient-to-b from-primary/5 to-transparent">
           <DialogTitle className="text-2xl font-black tracking-tight flex items-center gap-2 text-foreground">
             <Forward className="h-6 w-6 text-primary" />
@@ -125,7 +121,7 @@ export function ForwardDialog({ open, onOpenChange, messagesToForward, currentCo
           </DialogDescription>
         </DialogHeader>
 
-        <div className="px-6 space-y-4 shrink-0">
+        <div className="px-6 space-y-4 shrink-0 mb-2">
           <div className="flex items-center justify-between p-3 bg-primary/5 rounded-2xl border border-primary/10">
             <div className="flex items-center gap-3">
               <Info className="h-4 w-4 text-primary" />
@@ -164,23 +160,25 @@ export function ForwardDialog({ open, onOpenChange, messagesToForward, currentCo
           )}
         </div>
 
-        <ScrollArea className="flex-1 px-6 mt-4">
-          <div className="space-y-6 pb-6">
-            {filteredCommunities?.map((community) => (
-              <CommunitySection 
-                key={community.id} 
-                community={community} 
-                onSelect={toggleChannelSelection}
-                selectedIds={selectedChannels.map(c => c.channelId)}
-              />
-            ))}
-            {filteredCommunities?.length === 0 && (
-              <div className="text-center py-10 opacity-30 italic text-sm">
-                No communities found.
-              </div>
-            )}
-          </div>
-        </ScrollArea>
+        <div className="flex-1 min-h-0 overflow-hidden px-6">
+          <ScrollArea className="h-full w-full">
+            <div className="space-y-6 pb-6">
+              {filteredCommunities?.map((community) => (
+                <CommunitySection 
+                  key={community.id} 
+                  community={community} 
+                  onSelect={toggleChannelSelection}
+                  selectedIds={selectedChannels.map(c => c.channelId)}
+                />
+              ))}
+              {filteredCommunities?.length === 0 && (
+                <div className="text-center py-10 opacity-30 italic text-sm">
+                  No communities found.
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+        </div>
 
         <DialogFooter className="p-6 bg-muted/30 border-t flex flex-col sm:flex-row items-center justify-between gap-4 shrink-0">
           <div className="w-full sm:flex-1 min-w-0">
