@@ -229,9 +229,15 @@ export const MessageBubble = memo(function MessageBubble({
     isHorizontalSwipe.current = null;
     setIsDragging(true);
     longPressTimer.current = setTimeout(() => {
-      if (!selectionMode && onLongPress && !isActuallyDeleted) {
-        onLongPress(message.id);
+      if (!selectionMode && !isActuallyDeleted) {
+        // WhatsApp style: Long press to react
+        setIsReactionPickerOpen(true);
         setIsDragging(false);
+        
+        // Haptic feedback
+        if (window.navigator && window.navigator.vibrate) {
+          window.navigator.vibrate(50);
+        }
       }
     }, LONG_PRESS_DURATION);
   };
@@ -242,6 +248,12 @@ export const MessageBubble = memo(function MessageBubble({
     const clientY = 'touches' in e ? (e as React.TouchEvent).touches[0].clientY : (e as React.MouseEvent).clientY;
     const diffX = clientX - startX.current;
     const diffY = clientY - startY.current;
+    
+    // If user moves finger significantly, cancel long press
+    if (Math.abs(diffX) > 10 || Math.abs(diffY) > 10) {
+      if (longPressTimer.current) clearTimeout(longPressTimer.current);
+    }
+
     if (isHorizontalSwipe.current === null) {
       if (Math.abs(diffX) > Math.abs(diffY)) isHorizontalSwipe.current = true;
       else if (Math.abs(diffY) > 5) {
