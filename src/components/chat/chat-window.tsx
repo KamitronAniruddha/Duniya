@@ -6,7 +6,7 @@ import { useCollection, useFirestore, useUser, useDoc, useMemoFirebase } from "@
 import { collection, query, orderBy, limit, doc, where, writeBatch, arrayUnion, deleteField } from "firebase/firestore";
 import { MessageBubble } from "./message-bubble";
 import { MessageInput } from "./message-input";
-import { Hash, Users, Loader2, MessageCircle, X, Trash2, MoreVertical, Eraser } from "lucide-react";
+import { Hash, Users, Loader2, MessageCircle, X, Trash2, MoreVertical, Eraser, Forward } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { cn } from "@/lib/utils";
@@ -250,7 +250,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
             <span className="font-black text-lg flex-1 tracking-tight">{selectedIds.size} SELECTED</span>
             <div className="flex items-center gap-1">
               <Button variant="ghost" size="icon" className="text-white hover:bg-white/10" onClick={() => setIsForwardDialogOpen(true)}>
-                <Trash2 className="h-5 w-5 rotate-180" /> {/* Placeholder for Forward Icon if needed or use lucide */}
+                <Forward className="h-5 w-5" />
               </Button>
               <Button variant="ghost" size="icon" className="text-white hover:bg-white/10" onClick={() => setIsDeleteDialogOpen(true)}>
                 <Trash2 className="h-5 w-5" />

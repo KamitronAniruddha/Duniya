@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Hash, Search, ArrowRight, Loader2, CheckCircle2 } from "lucide-react";
+import { Hash, Search, Forward, Loader2, CheckCircle2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -80,7 +80,7 @@ export function ForwardDialog({ open, onOpenChange, messagesToForward }: Forward
       <DialogContent className="sm:max-w-[425px] rounded-[2rem] p-0 overflow-hidden border-none shadow-2xl">
         <DialogHeader className="p-6 pb-2 bg-gradient-to-b from-primary/5 to-transparent">
           <DialogTitle className="text-2xl font-black tracking-tight flex items-center gap-2">
-            <ArrowRight className="h-6 w-6 text-primary" />
+            <Forward className="h-6 w-6 text-primary" />
             Forward Message
           </DialogTitle>
           <DialogDescription className="font-medium">
