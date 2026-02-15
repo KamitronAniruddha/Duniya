@@ -260,7 +260,7 @@ export const MessageBubble = memo(function MessageBubble({
 
   const isActuallyDeleted = message.isDeleted || isDisappeared || message.fullyDeleted;
 
-  // Latest hop for the bubble label
+  // Latest hop for the bubble label as requested
   const latestHop = message.forwardingChain && message.forwardingChain.length > 0 
     ? message.forwardingChain[message.forwardingChain.length - 1] 
     : null;

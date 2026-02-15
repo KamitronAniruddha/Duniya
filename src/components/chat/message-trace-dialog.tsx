@@ -2,8 +2,7 @@
 "use client";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { History, Landmark, ArrowDown, User, Clock, X } from "lucide-react";
+import { History, Landmark, ArrowDown, User, Clock, CheckCircle2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -35,66 +34,65 @@ export function MessageTraceDialog({ open, onOpenChange, chain }: MessageTraceDi
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 min-h-0 overflow-hidden px-4 md:px-8">
-          <ScrollArea className="h-full w-full">
-            <div className="relative space-y-8 py-6 pr-4">
-              {/* Vertical line connector */}
-              <div className="absolute left-[15px] top-8 bottom-8 w-[2px] bg-gradient-to-b from-primary/40 via-muted to-muted/20" />
+        {/* Using a standard overflow-y-auto div for maximum reliability in scrolling */}
+        <div className="flex-1 overflow-y-auto px-4 md:px-8 custom-scrollbar">
+          <div className="relative space-y-8 py-6 pr-4">
+            {/* Vertical line connector */}
+            <div className="absolute left-[15px] top-8 bottom-8 w-[2px] bg-gradient-to-b from-primary/40 via-muted to-muted/20" />
 
-              {chain.map((hop, idx) => {
-                const isFirst = idx === 0;
-                const isLast = idx === chain.length - 1;
-                const timeStr = hop.timestamp ? formatDistanceToNow(new Date(hop.timestamp), { addSuffix: true }) : "Unknown time";
+            {chain.map((hop, idx) => {
+              const isFirst = idx === 0;
+              const isLast = idx === chain.length - 1;
+              const timeStr = hop.timestamp ? formatDistanceToNow(new Date(hop.timestamp), { addSuffix: true }) : "Unknown time";
 
-                return (
-                  <div key={idx} className="relative pl-10 group">
-                    {/* Hop marker */}
-                    <div className={cn(
-                      "absolute left-0 top-1 h-8 w-8 rounded-full border-4 border-background flex items-center justify-center transition-all shadow-md z-10",
-                      isFirst ? "bg-primary text-white scale-110" : "bg-muted text-muted-foreground",
-                      isLast && "bg-green-500 text-white"
-                    )}>
-                      {isFirst ? <Landmark className="h-3 w-3" /> : isLast ? <History className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
-                    </div>
+              return (
+                <div key={idx} className="relative pl-10 group animate-in slide-in-from-bottom-2 duration-300" style={{ animationDelay: `${idx * 50}ms` }}>
+                  {/* Hop marker */}
+                  <div className={cn(
+                    "absolute left-0 top-1 h-8 w-8 rounded-full border-4 border-background flex items-center justify-center transition-all shadow-md z-10",
+                    isFirst ? "bg-primary text-white scale-110" : "bg-muted text-muted-foreground",
+                    isLast && "bg-green-500 text-white"
+                  )}>
+                    {isFirst ? <Landmark className="h-3 w-3" /> : isLast ? <CheckCircle2 className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+                  </div>
 
-                    <div className={cn(
-                      "p-4 rounded-2xl border transition-all duration-300",
-                      isFirst ? "bg-primary/5 border-primary/20 shadow-sm" : "bg-muted/10 border-transparent hover:border-muted",
-                      isLast && "bg-green-500/5 border-green-500/20"
-                    )}>
-                      <div className="flex flex-col gap-1.5">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-[9px] font-black uppercase tracking-widest text-primary">
-                            {isFirst ? "ROOT CREATION" : isLast ? "LATEST HOP" : `RELAY #${idx}`}
-                          </span>
-                          <div className="flex items-center gap-1 text-[8px] font-bold text-muted-foreground">
-                            <Clock className="h-2 w-2" />
-                            {timeStr}
-                          </div>
+                  <div className={cn(
+                    "p-4 rounded-2xl border transition-all duration-300",
+                    isFirst ? "bg-primary/5 border-primary/20 shadow-sm" : "bg-muted/10 border-transparent hover:border-muted",
+                    isLast && "bg-green-500/5 border-green-500/20"
+                  )}>
+                    <div className="flex flex-col gap-1.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[9px] font-black uppercase tracking-widest text-primary">
+                          {isFirst ? "ROOT CREATION" : isLast ? "LATEST HOP" : `RELAY #${idx}`}
+                        </span>
+                        <div className="flex items-center gap-1 text-[8px] font-bold text-muted-foreground">
+                          <Clock className="h-2 w-2" />
+                          {timeStr}
                         </div>
-
-                        <h4 className="text-sm font-black text-foreground flex items-center gap-2">
-                          <Landmark className="h-3.5 w-3.5 opacity-50" />
-                          {hop.communityName}
-                        </h4>
-
-                        <div className="flex items-center gap-2 text-[11px] font-medium text-muted-foreground">
-                          <User className="h-3 w-3" />
-                          <span>Sent by <span className="text-foreground font-bold">{hop.senderName}</span></span>
-                        </div>
-
-                        {hop.viaCommunity && (
-                          <div className="mt-1 pt-1 border-t border-muted-foreground/10 text-[9px] italic text-muted-foreground">
-                            Relayed from {hop.viaCommunity}
-                          </div>
-                        )}
                       </div>
+
+                      <h4 className="text-sm font-black text-foreground flex items-center gap-2">
+                        <Landmark className="h-3.5 w-3.5 opacity-50" />
+                        {hop.communityName}
+                      </h4>
+
+                      <div className="flex items-center gap-2 text-[11px] font-medium text-muted-foreground">
+                        <User className="h-3 w-3" />
+                        <span>Sent by <span className="text-foreground font-bold">{hop.senderName}</span></span>
+                      </div>
+
+                      {hop.viaCommunity && (
+                        <div className="mt-1 pt-1 border-t border-muted-foreground/10 text-[9px] italic text-muted-foreground">
+                          Relayed from {hop.viaCommunity}
+                        </div>
+                      )}
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          </ScrollArea>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         <div className="p-4 bg-muted/20 border-t flex items-center justify-center shrink-0">
