@@ -269,7 +269,7 @@ export function MessageBubble({
       onTouchEnd={handleEnd}
       onClick={handleBubbleClick}
     >
-      {/* Selection UI for ALL states */}
+      {/* Selection UI container (fixed width prevents layout shifting) */}
       <div className={cn(
         "shrink-0 flex items-center justify-center transition-all duration-300 overflow-hidden",
         selectionMode ? "w-10 opacity-100" : "w-0 opacity-0",
@@ -302,9 +302,9 @@ export function MessageBubble({
       <div className={cn("flex flex-col max-w-[75%] relative transition-transform ease-out", isMe ? "items-end" : "items-start")} style={{ transform: `translateX(${dragX}px)` }}>
         {isActuallyDeleted ? (
           <div className={cn(
-            "px-3.5 py-2.5 rounded-2xl text-[11px] italic opacity-60 flex items-center gap-2 border shadow-none relative",
-            isSelected && "ring-2 ring-primary ring-offset-1 bg-primary/10",
-            isMe ? "bg-muted/50 rounded-br-none" : "bg-card rounded-bl-none"
+            "px-3.5 py-2.5 rounded-2xl text-[11px] italic opacity-60 flex items-center gap-2 border shadow-none relative transition-all",
+            isSelected ? "ring-2 ring-primary ring-offset-1 bg-primary/20 scale-[0.98]" : "bg-card",
+            isMe ? "rounded-br-none" : "rounded-bl-none"
           )}>
             <Ban className="h-3 w-3" />
             {isDisappeared ? "This message disappeared" : (isMe ? "You deleted this message" : "This message was deleted")}

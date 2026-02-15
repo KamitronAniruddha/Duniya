@@ -70,6 +70,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
 
   const messages = useMemo(() => {
     if (!rawMessages || !user) return [];
+    // Only show messages that aren't fully deleted and haven't been deleted by the current user
     return rawMessages.filter(msg => !msg.fullyDeleted && !msg.deletedFor?.includes(user.uid));
   }, [rawMessages, user?.uid]);
 
@@ -122,7 +123,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
     selectedMessages.forEach(msg => {
       const msgRef = doc(db, "communities", serverId, "channels", channelId, "messages", msg.id);
       
-      if (type === "everyone" && msg.senderId === user.uid) {
+      if (type === "everyone" && msg.senderId === user.uid && !msg.isDeleted) {
         batch.update(msgRef, {
           isDeleted: true,
           content: "This message was deleted",
@@ -131,6 +132,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
           type: "text"
         });
       } else {
+        // "Delete for me" logic: just adds the user ID to the deletedFor array
         batch.update(msgRef, {
           deletedFor: arrayUnion(user.uid)
         });
@@ -139,18 +141,19 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
 
     try {
       await batch.commit();
-      toast({ title: `Deleted ${selectedIds.size} message(s)` });
+      toast({ title: `Removed ${selectedIds.size} message(s)` });
       setSelectionMode(false);
       setSelectedIds(new Set());
       setIsDeleteDialogOpen(false);
     } catch (e: any) {
-      toast({ variant: "destructive", title: "Delete Failed", description: e.message });
+      toast({ variant: "destructive", title: "Action Failed", description: e.message });
     }
   };
 
   const canDeleteForEveryone = useMemo(() => {
     const selectedMessages = rawMessages?.filter(m => selectedIds.has(m.id)) || [];
-    return selectedMessages.every(m => m.senderId === user?.uid);
+    // Only allow "Delete for Everyone" if all selected messages were sent by user AND none are already deleted
+    return selectedMessages.length > 0 && selectedMessages.every(m => m.senderId === user?.uid && !m.isDeleted);
   }, [selectedIds, rawMessages, user?.uid]);
 
   const toggleMessageSelection = useCallback((id: string) => {
@@ -324,7 +327,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
                 <AlertDialogDescription className="text-sm font-medium text-muted-foreground px-4 leading-relaxed">
                   {canDeleteForEveryone 
                     ? "Cleanup your tracks! Choose whether to remove these messages for yourself or for everyone." 
-                    : "Some selected messages were sent by others. You can only delete them from your own view."}
+                    : "Some selected messages are already deleted or sent by others. These will be removed from your view only."}
                 </AlertDialogDescription>
               </div>
             </AlertDialogHeader>
