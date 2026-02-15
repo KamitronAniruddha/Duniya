@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, memo } from "react";
@@ -115,9 +114,11 @@ export const ServerSettingsDialog = memo(function ServerSettingsDialog({ open, o
       const batch = writeBatch(db);
       
       // 1. Delete main community doc
+      // This will instantly remove the community from all users' sidebars 
+      // because the sidebars query for communities that exist AND contain the user ID.
       batch.delete(serverRef);
       
-      // 2. Remove from owner's serverIds
+      // 2. Remove from owner's serverIds explicitly
       const userRef = doc(db, "users", user.uid);
       batch.update(userRef, {
         serverIds: arrayRemove(serverId)
@@ -131,7 +132,7 @@ export const ServerSettingsDialog = memo(function ServerSettingsDialog({ open, o
       });
       
       onOpenChange(false);
-      window.location.href = "/"; // Force redirect to clear state
+      window.location.href = "/"; // Force redirect to Verse Home
     } catch (error: any) {
       toast({ variant: "destructive", title: "Deletion Failed", description: error.message });
       setIsDeleting(false);

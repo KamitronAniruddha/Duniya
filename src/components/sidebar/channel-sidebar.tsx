@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useCollection, useFirestore, useUser, useDoc, useMemoFirebase, useAuth } from "@/firebase";
-import { collection, query, doc } from "firebase/firestore";
-import { Hash, Settings, ChevronDown, LogOut, Loader2, Plus, Timer, Globe, Mail, Info, Share2, Copy, Check } from "lucide-react";
+import { collection, query, doc, writeBatch, arrayRemove } from "firebase/firestore";
+import { Hash, Settings, ChevronDown, LogOut, Loader2, Plus, Timer, Globe, Mail, Info, Share2, Copy, Check, LogOut as LeaveIcon, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,8 @@ import { DisappearingMessagesDialog } from "@/components/servers/disappearing-me
 import { ContactFormDialog } from "@/components/contact/contact-form-dialog";
 import { CommunityProfileDialog } from "@/components/communities/community-profile-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
@@ -36,8 +37,10 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
   const [disappearingOpen, setDisappearingOpen] = useState(false);
   const [communityProfileOpen, setCommunityProfileOpen] = useState(false);
   const [createChannelOpen, setCreateChannelOpen] = useState(false);
+  const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
   const [newChannelName, setNewChannelName] = useState("");
   const [isCreating, setIsCreating] = useState(false);
+  const [isLeaving, setIsLeaving] = useState(false);
   const [now, setNow] = useState(Date.now());
   const [hasCopied, setHasCopied] = useState(false);
 
@@ -69,7 +72,6 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
         lastOnlineAt: new Date().toISOString()
       });
     }
-    // Await sign out to ensure unmounting happens after presence update is queued
     await auth.signOut();
   };
 
@@ -103,6 +105,43 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
       toast({ variant: "destructive", title: "Error", description: e.message });
     } finally {
       setIsCreating(false);
+    }
+  };
+
+  const handleLeaveCommunity = async () => {
+    if (!serverId || !user || !db || !community) return;
+    
+    if (isOwner) {
+      toast({ 
+        variant: "destructive", 
+        title: "Owner cannot leave", 
+        description: "As the owner, you must dissolve the community or transfer ownership before leaving." 
+      });
+      return;
+    }
+
+    setIsLeaving(true);
+    try {
+      const batch = writeBatch(db);
+      const communityDocRef = doc(db, "communities", serverId);
+      const userDocRef = doc(db, "users", user.uid);
+      const memberDocRef = doc(db, "communities", serverId, "members", user.uid);
+
+      batch.update(communityDocRef, {
+        members: arrayRemove(user.uid),
+        admins: arrayRemove(user.uid)
+      });
+      batch.update(userDocRef, {
+        serverIds: arrayRemove(serverId)
+      });
+      batch.delete(memberDocRef);
+
+      await batch.commit();
+      toast({ title: "Left Community", description: `You are no longer a member of ${community.name}.` });
+      window.location.href = "/";
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Error", description: e.message });
+      setIsLeaving(false);
     }
   };
 
@@ -159,7 +198,11 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
                   <DropdownMenuSeparator className="bg-border/50" />
                 </>
               )}
-              <DropdownMenuItem className="text-destructive font-black p-3 rounded-xl hover:bg-destructive/10">Leave Community</DropdownMenuItem>
+              {!isOwner && (
+                <DropdownMenuItem onClick={() => setLeaveConfirmOpen(true)} className="text-destructive font-black p-3 rounded-xl hover:bg-destructive/10 gap-2">
+                  <LeaveIcon className="h-4 w-4" /> Leave Community
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
 
@@ -260,6 +303,30 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={leaveConfirmOpen} onOpenChange={setLeaveConfirmOpen}>
+        <AlertDialogContent className="rounded-[2.5rem] border-none shadow-2xl p-8">
+          <AlertDialogHeader>
+            <div className="h-16 w-16 bg-destructive/10 rounded-[1.5rem] flex items-center justify-center mb-4 text-destructive mx-auto">
+              <LeaveIcon className="h-8 w-8" />
+            </div>
+            <AlertDialogTitle className="text-3xl font-black tracking-tighter uppercase text-center">LEAVE COMMUNITY?</AlertDialogTitle>
+            <AlertDialogDescription className="text-center font-medium text-muted-foreground">
+              You are about to exit <span className="text-foreground font-black">"{community?.name}"</span>. You will lose access to all channels and messages in this Verse.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-3 mt-6">
+            <AlertDialogCancel className="rounded-2xl font-bold h-14 flex-1 border-none bg-muted/50">Stay Here</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleLeaveCommunity}
+              disabled={isLeaving}
+              className="rounded-2xl font-black h-14 flex-1 bg-destructive hover:bg-destructive/90 shadow-xl shadow-destructive/20 uppercase tracking-widest"
+            >
+              {isLeaving ? <Loader2 className="h-5 w-5 animate-spin" /> : "Leave Verse"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </aside>
   );
 }
