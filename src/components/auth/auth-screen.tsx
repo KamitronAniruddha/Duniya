@@ -13,6 +13,7 @@ import { Loader2, Heart } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { Logo } from "@/components/logo";
+import { cn } from "@/lib/utils";
 
 export function AuthScreen() {
   const auth = useAuth();
@@ -40,7 +41,6 @@ export function AuthScreen() {
         if (password !== confirmPassword) throw new Error("Passwords do not match");
         if (cleanUsername.length < 3) throw new Error("Username must be at least 3 characters");
 
-        // 1. Check uniqueness of username
         const q = query(
           collection(db, "users"), 
           where("username", "==", cleanUsername),
@@ -52,17 +52,14 @@ export function AuthScreen() {
           throw new Error("Username already taken. Please try another one.");
         }
 
-        // 2. Create Auth User
         const userCredential = await createUserWithEmailAndPassword(auth, cleanEmail, password);
         const user = userCredential.user;
 
-        // 3. Update Auth profile
         await updateProfile(user, { 
           displayName: username.trim(),
           photoURL: "" 
         });
 
-        // 4. Create Firestore user document with all required schema fields
         const userRef = doc(db, "users", user.uid);
         
         const userData = {
@@ -97,25 +94,28 @@ export function AuthScreen() {
   };
 
   return (
-    <div className="h-svh w-full flex flex-col bg-background overflow-y-auto custom-scrollbar selection:bg-primary/30">
-      <div className="min-h-full w-full flex flex-col items-center justify-center p-4 py-8">
-        <Card className="w-full max-w-md shadow-2xl border-none bg-card animate-in fade-in zoom-in-95 duration-500">
-          <CardHeader className="space-y-1 text-center pb-6 pt-8">
-            <div className="flex justify-center mb-4">
-              <div className="p-4 bg-primary/10 rounded-[2rem] shadow-inner animate-bounce [animation-duration:3s]">
-                <Logo size={48} />
+    <div className="fixed inset-0 w-full flex flex-col bg-background overflow-y-auto custom-scrollbar selection:bg-primary/30">
+      <div className={cn(
+        "min-h-full w-full flex flex-col items-center p-4 py-6 md:py-12 transition-all duration-300",
+        isLogin ? "justify-center" : "justify-start md:justify-center"
+      )}>
+        <Card className="w-full max-w-md shadow-2xl border-none bg-card animate-in fade-in zoom-in-95 duration-500 my-auto">
+          <CardHeader className="space-y-1 text-center pb-4 pt-6">
+            <div className="flex justify-center mb-2">
+              <div className="p-3 bg-primary/10 rounded-[1.5rem] shadow-inner animate-bounce [animation-duration:4s]">
+                <Logo size={40} />
               </div>
             </div>
-            <CardTitle className="text-3xl font-black tracking-tighter text-foreground">Duniya</CardTitle>
-            <CardDescription className="text-xs font-bold uppercase tracking-widest text-muted-foreground/60">
+            <CardTitle className="text-2xl font-black tracking-tighter text-foreground uppercase">Duniya</CardTitle>
+            <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
               {isLogin ? "Welcome back to the Verse" : "Join the modern community platform"}
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleSubmit}>
-            <CardContent className="space-y-4 px-6 md:px-8">
+            <CardContent className="space-y-3 px-6 md:px-8">
               {!isLogin && (
-                <div className="space-y-1.5">
-                  <Label htmlFor="username" className="text-[10px] font-black uppercase tracking-wider text-muted-foreground/80 ml-1">Unique Username</Label>
+                <div className="space-y-1">
+                  <Label htmlFor="username" className="text-[9px] font-black uppercase tracking-wider text-muted-foreground/80 ml-1">Unique Username</Label>
                   <Input 
                     id="username" 
                     placeholder="johndoe" 
@@ -123,12 +123,12 @@ export function AuthScreen() {
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     disabled={isLoading}
-                    className="bg-muted/50 border-none h-11 rounded-xl focus:ring-2 focus:ring-primary/20 transition-all text-sm"
+                    className="bg-muted/50 border-none h-10 rounded-xl focus:ring-2 focus:ring-primary/20 transition-all text-sm"
                   />
                 </div>
               )}
-              <div className="space-y-1.5">
-                <Label htmlFor="email" className="text-[10px] font-black uppercase tracking-wider text-muted-foreground/80 ml-1">Email Address</Label>
+              <div className="space-y-1">
+                <Label htmlFor="email" className="text-[9px] font-black uppercase tracking-wider text-muted-foreground/80 ml-1">Email Address</Label>
                 <Input 
                   id="email" 
                   type="email" 
@@ -137,11 +137,11 @@ export function AuthScreen() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={isLoading}
-                  className="bg-muted/50 border-none h-11 rounded-xl focus:ring-2 focus:ring-primary/20 transition-all text-sm"
+                  className="bg-muted/50 border-none h-10 rounded-xl focus:ring-2 focus:ring-primary/20 transition-all text-sm"
                 />
               </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="password" className="text-[10px] font-black uppercase tracking-wider text-muted-foreground/80 ml-1">Password</Label>
+              <div className="space-y-1">
+                <Label htmlFor="password" className="text-[9px] font-black uppercase tracking-wider text-muted-foreground/80 ml-1">Password</Label>
                 <Input 
                   id="password" 
                   type="password" 
@@ -149,12 +149,12 @@ export function AuthScreen() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={isLoading}
-                  className="bg-muted/50 border-none h-11 rounded-xl focus:ring-2 focus:ring-primary/20 transition-all text-sm"
+                  className="bg-muted/50 border-none h-10 rounded-xl focus:ring-2 focus:ring-primary/20 transition-all text-sm"
                 />
               </div>
               {!isLogin && (
-                <div className="space-y-1.5">
-                  <Label htmlFor="confirmPassword" className="text-[10px] font-black uppercase tracking-wider text-muted-foreground/80 ml-1">Confirm Password</Label>
+                <div className="space-y-1">
+                  <Label htmlFor="confirmPassword" className="text-[9px] font-black uppercase tracking-wider text-muted-foreground/80 ml-1">Confirm Password</Label>
                   <Input 
                     id="confirmPassword" 
                     type="password" 
@@ -162,18 +162,18 @@ export function AuthScreen() {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     disabled={isLoading}
-                    className="bg-muted/50 border-none h-11 rounded-xl focus:ring-2 focus:ring-primary/20 transition-all text-sm"
+                    className="bg-muted/50 border-none h-10 rounded-xl focus:ring-2 focus:ring-primary/20 transition-all text-sm"
                   />
                 </div>
               )}
             </CardContent>
-            <CardFooter className="flex flex-col space-y-4 px-6 md:px-8 pb-8 pt-4">
-              <Button type="submit" className="w-full h-12 text-base font-black rounded-xl shadow-xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]" disabled={isLoading}>
-                {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : (isLogin ? "Sign In" : "Create Account")}
+            <CardFooter className="flex flex-col space-y-4 px-6 md:px-8 pb-6 pt-2">
+              <Button type="submit" className="w-full h-11 text-sm font-black rounded-xl shadow-xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98] uppercase tracking-widest" disabled={isLoading}>
+                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (isLogin ? "Sign In" : "Create Account")}
               </Button>
               <button 
                 type="button"
-                className="text-xs text-primary hover:text-primary/80 font-black tracking-tight transition-colors uppercase tracking-widest"
+                className="text-[10px] text-primary hover:text-primary/80 font-black tracking-widest transition-colors uppercase"
                 onClick={() => setIsLogin(!isLogin)}
                 disabled={isLoading}
               >
@@ -183,9 +183,9 @@ export function AuthScreen() {
           </form>
         </Card>
         
-        <div className="flex flex-col items-center gap-4 mt-8 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-300">
-          <div className="flex items-center gap-2 px-4 py-2 bg-muted/40 backdrop-blur-md rounded-full border border-border shadow-sm">
-            <span className="text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground/70">Made by Aniruddha with love</span>
+        <div className="flex flex-col items-center gap-3 mt-6 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-300">
+          <div className="flex items-center gap-2 px-4 py-1.5 bg-muted/40 backdrop-blur-md rounded-full border border-border shadow-sm">
+            <span className="text-[8px] font-black uppercase tracking-[0.3em] text-muted-foreground/70">Made by Aniruddha with love</span>
             <Heart className="h-2.5 w-2.5 text-red-500 fill-red-500 animate-pulse" />
           </div>
         </div>
