@@ -90,7 +90,7 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
             <DropdownMenuTrigger asChild>
               <header className="h-16 px-4 border-b flex items-center justify-between hover:bg-muted/30 transition-all cursor-pointer shrink-0 group">
                 <div className="flex flex-col min-w-0 flex-1">
-                  <h2 className="font-black truncate text-base text-foreground tracking-tighter uppercase group-hover:text-primary transition-colors">{community?.name || "..." }</h2>
+                  <h2 className="font-black truncate text-lg text-foreground tracking-tighter uppercase group-hover:text-primary transition-colors">{community?.name || "..." }</h2>
                   <div className="flex items-center gap-1.5">
                     {community?.joinCode && <span className="text-[9px] text-primary font-black font-mono tracking-widest uppercase opacity-70">CODE: {community.joinCode}</span>}
                   </div>
@@ -100,19 +100,19 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
                 </div>
               </header>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-60 font-black uppercase text-[10px] tracking-widest" align="start">
+            <DropdownMenuContent className="w-64 font-black uppercase text-[10px] tracking-widest p-1 border-none shadow-2xl bg-popover/95 backdrop-blur-md" align="start">
               {isAdmin && (
                 <>
-                  <DropdownMenuItem onClick={() => setServerSettingsOpen(true)} className="gap-2 p-3">
-                    <Settings className="h-4 w-4" /> Community Settings
+                  <DropdownMenuItem onClick={() => setServerSettingsOpen(true)} className="gap-2 p-3 rounded-xl hover:bg-primary/10">
+                    <Settings className="h-4 w-4 text-primary" /> Community Settings
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setDisappearingOpen(true)} className="gap-2 p-3">
+                  <DropdownMenuItem onClick={() => setDisappearingOpen(true)} className="gap-2 p-3 rounded-xl hover:bg-orange-500/10">
                     <Timer className="h-4 w-4 text-orange-500" /> Ghost Mode (Disappearing)
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator />
+                  <DropdownMenuSeparator className="bg-border/50" />
                 </>
               )}
-              <DropdownMenuItem className="text-destructive font-black p-3">Leave Community</DropdownMenuItem>
+              <DropdownMenuItem className="text-destructive font-black p-3 rounded-xl hover:bg-destructive/10">Leave Community</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
@@ -174,7 +174,7 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
                 <AvatarImage src={userData?.photoURL || undefined} />
                 <AvatarFallback className="bg-primary text-white font-black text-xs">{userData?.username?.[0]?.toUpperCase()}</AvatarFallback>
               </Avatar>
-              <div className={cn("absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-background shadow-sm", userData?.onlineStatus === "online" ? "bg-green-500" : "bg-muted-foreground/30")} />
+              <div className={cn("absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-background shadow-sm transition-colors duration-200", userData?.onlineStatus === "online" && userData?.showOnlineStatus !== false ? "bg-green-500" : "bg-muted-foreground/30")} />
             </div>
             <div className="flex flex-col min-w-0">
               <span className="text-xs font-black truncate leading-none mb-1 uppercase tracking-tight">@{userData?.username || "..."}</span>

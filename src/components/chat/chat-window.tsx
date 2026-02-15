@@ -194,41 +194,41 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
     return (
       <div className="flex-1 flex flex-col items-center justify-center bg-background h-full p-6 text-center overflow-hidden">
         <motion.div 
-          initial={{ opacity: 0, scale: 0.9, y: 20 }}
+          initial={{ opacity: 0, scale: 0.95, y: 30 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          transition={{ duration: 0.4, ease: "easeOut" }}
+          transition={{ duration: 0.2, ease: "easeOut" }}
           className="flex flex-col items-center"
         >
           <div className="relative mb-12">
             <motion.div
               animate={{ 
-                scale: [1, 1.1, 1],
-                rotate: [0, 5, -5, 0]
+                scale: [1, 1.05, 1],
+                rotate: [0, 2, -2, 0]
               }}
               transition={{ 
-                duration: 4, 
+                duration: 3, 
                 repeat: Infinity,
                 ease: "easeInOut"
               }}
-              className="p-10 bg-primary/5 rounded-[3rem] relative z-10"
+              className="p-12 bg-primary/5 rounded-[3.5rem] relative z-10"
             >
-              <MessageCircle className="h-20 w-20 text-primary" />
+              <MessageCircle className="h-24 w-24 text-primary" />
             </motion.div>
             <motion.div 
-              animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.4, 0.2] }}
+              animate={{ scale: [1, 1.2, 1], opacity: [0.1, 0.3, 0.1] }}
               transition={{ duration: 2, repeat: Infinity }}
               className="absolute inset-0 bg-primary/20 blur-3xl rounded-full"
             />
           </div>
           
-          <div className="space-y-4 max-w-lg">
-            <h2 className="text-6xl font-[900] tracking-tighter uppercase text-foreground leading-none">DUNIYA</h2>
-            <div className="flex flex-col items-center gap-2">
-              <span className="font-['Playfair_Display'] italic text-4xl text-primary flex items-center gap-3 lowercase">
-                Karo Chutiyapaa <Heart className="h-8 w-8 fill-red-500 text-red-500 animate-pulse" />
+          <div className="space-y-6 max-w-lg">
+            <h2 className="text-7xl font-[900] tracking-tighter uppercase text-foreground leading-none">DUNIYA</h2>
+            <div className="flex flex-col items-center gap-4">
+              <span className="font-['Playfair_Display'] italic text-5xl text-primary flex items-center gap-4 lowercase">
+                Karo Chutiyapaa <Heart className="h-10 w-10 fill-red-500 text-red-500 animate-pulse" />
               </span>
-              <p className="text-muted-foreground text-[10px] font-black uppercase tracking-[0.4em] opacity-40 mt-4">
-                Select a community to begin your journey
+              <p className="text-muted-foreground text-[11px] font-black uppercase tracking-[0.5em] opacity-40 mt-6">
+                Enter a community to begin your journey
               </p>
             </div>
           </div>
@@ -254,7 +254,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
               initial={{ opacity: 0, y: -20 }} 
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.15, ease: "easeOut" }}
+              transition={{ duration: 0.1, ease: "easeOut" }}
               className="flex items-center gap-4 w-full h-full"
             >
               <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full h-8 w-8" onClick={handleCancelSelection}>
@@ -284,7 +284,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
               initial={{ opacity: 0, y: 10 }} 
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 10 }}
-              transition={{ duration: 0.15, ease: "easeOut" }}
+              transition={{ duration: 0.1, ease: "easeOut" }}
               className="flex items-center justify-between w-full h-full"
             >
               <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -292,8 +292,8 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
                   <Hash className="h-5 w-5 text-primary" />
                 </div>
                 <div className="flex flex-col min-w-0">
-                  <h2 className="font-black text-lg truncate leading-none tracking-tighter text-foreground uppercase">#{headerTitle}</h2>
-                  <span className="text-[9px] text-muted-foreground font-black uppercase tracking-widest mt-0.5">Sync Active</span>
+                  <h2 className="font-black text-xl truncate leading-none tracking-tighter text-foreground uppercase">#{headerTitle}</h2>
+                  <span className="text-[9px] text-muted-foreground font-black uppercase tracking-widest mt-1">Sync Active</span>
                 </div>
               </div>
               
@@ -357,9 +357,9 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ 
                         opacity: 0, 
-                        transition: { duration: 0.15, ease: "easeOut" } 
+                        transition: { duration: 0.1, ease: "easeOut" } 
                       }}
-                      transition={{ duration: 0.15, ease: "easeOut" }}
+                      transition={{ duration: 0.1, ease: "easeOut" }}
                     >
                       <MessageBubble 
                         message={msg}

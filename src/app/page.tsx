@@ -63,6 +63,7 @@ export default function DuniyaApp() {
   useEffect(() => {
     if (!user || !db || !auth.currentUser) return;
 
+    // Set online immediately on load
     updateStatus("online");
 
     const handleVisibility = () => {
