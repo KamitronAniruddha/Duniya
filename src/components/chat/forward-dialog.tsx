@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Hash, Search, Forward, Loader2, CheckCircle2, X, Info, MessageSquare } from "lucide-react";
+import { Hash, Search, Forward, Loader2, CheckCircle2, X, Info } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -21,18 +21,16 @@ interface ForwardDialogProps {
   onOpenChange: (open: boolean) => void;
   messagesToForward: any[];
   currentCommunityName?: string;
-  memberMap?: Record<string, any>;
 }
 
 interface SelectedTarget {
-  type: "channel" | "dm";
-  communityId?: string;
-  channelId?: string;
-  conversationId?: string;
+  type: "channel";
+  communityId: string;
+  channelId: string;
   name: string;
 }
 
-export function ForwardDialog({ open, onOpenChange, messagesToForward, currentCommunityName, memberMap }: ForwardDialogProps) {
+export function ForwardDialog({ open, onOpenChange, messagesToForward, currentCommunityName }: ForwardDialogProps) {
   const db = useFirestore();
   const { user } = useUser();
   const { toast } = useToast();
@@ -47,18 +45,11 @@ export function ForwardDialog({ open, onOpenChange, messagesToForward, currentCo
   }, [db, user?.uid]);
   const { data: communities } = useCollection(communitiesQuery);
 
-  const convsQuery = useMemoFirebase(() => {
-    if (!db || !user) return null;
-    return query(collection(db, "conversations"), where("participantIds", "array-contains", user.uid), orderBy("updatedAt", "desc"));
-  }, [db, user?.uid]);
-  const { data: conversations } = useCollection(convsQuery);
-
   const toggleTargetSelection = (target: SelectedTarget) => {
     setSelectedTargets(prev => {
-      const idKey = target.type === "channel" ? target.channelId : target.conversationId;
-      const isAlreadySelected = prev.find(t => (t.type === "channel" ? t.channelId : t.conversationId) === idKey);
+      const isAlreadySelected = prev.find(t => t.channelId === target.channelId);
       if (isAlreadySelected) {
-        return prev.filter(t => (t.type === "channel" ? t.channelId : t.conversationId) !== idKey);
+        return prev.filter(t => t.channelId !== target.channelId);
       } else {
         return [...prev, target];
       }
@@ -71,13 +62,11 @@ export function ForwardDialog({ open, onOpenChange, messagesToForward, currentCo
 
     try {
       for (const target of selectedTargets) {
-        const basePath = target.type === "channel" 
-          ? `communities/${target.communityId}/channels/${target.channelId}`
-          : `conversations/${target.conversationId}`;
+        const basePath = `communities/${target.communityId}/channels/${target.channelId}`;
 
         for (const msg of messagesToForward) {
           const newMsgRef = doc(collection(db, basePath, "messages"));
-          const currentSenderName = user.displayName || memberMap?.[user.uid]?.username || "User";
+          const currentSenderName = user.displayName || "User";
           const existingChain = msg.forwardingChain || [];
           const newChain = [...existingChain];
 
@@ -85,7 +74,7 @@ export function ForwardDialog({ open, onOpenChange, messagesToForward, currentCo
              if (newChain.length === 0) {
                newChain.push({
                  communityName: currentCommunityName || "Original Source",
-                 senderName: memberMap?.[msg.senderId]?.username || "Original Sender",
+                 senderName: msg.senderName || "Original Sender",
                  timestamp: msg.sentAt || new Date().toISOString(),
                  isInitial: true
                });
@@ -100,10 +89,9 @@ export function ForwardDialog({ open, onOpenChange, messagesToForward, currentCo
 
           const data = {
             id: newMsgRef.id,
-            channelId: target.channelId || null,
-            conversationId: target.conversationId || null,
+            channelId: target.channelId,
             senderId: user.uid,
-            content: msg.content || msg.text || "",
+            content: msg.content || "",
             type: msg.type || "text",
             sentAt: new Date().toISOString(),
             isForwarded: true,
@@ -116,13 +104,6 @@ export function ForwardDialog({ open, onOpenChange, messagesToForward, currentCo
             ...(includeRoot && { forwardingChain: newChain })
           };
           await setDoc(newMsgRef, data);
-        }
-
-        if (target.type === "dm" && target.conversationId) {
-          await setDoc(doc(db, "conversations", target.conversationId), {
-            lastMessage: messagesToForward[messagesToForward.length-1].content || "Forwarded Message",
-            updatedAt: new Date().toISOString()
-          }, { merge: true });
         }
       }
 
@@ -137,7 +118,6 @@ export function ForwardDialog({ open, onOpenChange, messagesToForward, currentCo
   };
 
   const filteredCommunities = communities?.filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase()));
-  const filteredConversations = conversations?.filter(c => c.id.toLowerCase().includes(searchQuery.toLowerCase()));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -148,7 +128,7 @@ export function ForwardDialog({ open, onOpenChange, messagesToForward, currentCo
             Forward Message
           </DialogTitle>
           <DialogDescription className="font-medium text-muted-foreground">
-            Broadcast to channels or private chats.
+            Broadcast to community channels in the Verse.
           </DialogDescription>
         </DialogHeader>
 
@@ -167,7 +147,7 @@ export function ForwardDialog({ open, onOpenChange, messagesToForward, currentCo
           <div className="relative">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input 
-              placeholder="Search Verse..." 
+              placeholder="Search Communities..." 
               className="pl-9 bg-muted/50 border-none rounded-xl text-sm"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -178,8 +158,8 @@ export function ForwardDialog({ open, onOpenChange, messagesToForward, currentCo
             <ScrollArea className="max-h-16 w-full">
               <div className="flex flex-wrap gap-1.5 p-1">
                 {selectedTargets.map(t => (
-                  <Badge key={t.type === "channel" ? t.channelId : t.conversationId} variant="secondary" className="flex items-center gap-1 py-1 px-2 rounded-lg bg-primary/10 text-primary border-primary/20">
-                    {t.type === "channel" ? <Hash className="h-3 w-3" /> : <MessageSquare className="h-3 w-3" />}
+                  <Badge key={t.channelId} variant="secondary" className="flex items-center gap-1 py-1 px-2 rounded-lg bg-primary/10 text-primary border-primary/20">
+                    <Hash className="h-3 w-3" />
                     <span className="text-[10px] font-bold">{t.name}</span>
                     <button onClick={() => toggleTargetSelection(t)} className="hover:bg-primary/20 rounded-full p-0.5">
                       <X className="h-2.5 w-2.5" />
@@ -193,33 +173,15 @@ export function ForwardDialog({ open, onOpenChange, messagesToForward, currentCo
 
         <div className="flex-1 min-h-0 overflow-hidden px-6">
           <ScrollArea className="h-full w-full">
-            <div className="space-y-6 pb-6">
-              <div className="space-y-2">
-                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 px-1">Private Chats</span>
-                {filteredConversations?.map(conv => {
-                  const otherId = conv.participantIds.find((id: string) => id !== user?.uid);
-                  return (
-                    <ConversationTarget 
-                      key={conv.id} 
-                      conversationId={conv.id} 
-                      otherUserId={otherId} 
-                      onSelect={toggleTargetSelection}
-                      isSelected={selectedTargets.some(t => t.conversationId === conv.id)}
-                    />
-                  );
-                })}
-              </div>
-              <div className="space-y-4">
-                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 px-1">Communities</span>
-                {filteredCommunities?.map((community) => (
-                  <CommunitySection 
-                    key={community.id} 
-                    community={community} 
-                    onSelect={toggleTargetSelection}
-                    selectedIds={selectedTargets.filter(t => t.type === "channel").map(c => c.channelId!)}
-                  />
-                ))}
-              </div>
+            <div className="space-y-4 pb-6">
+              {filteredCommunities?.map((community) => (
+                <CommunitySection 
+                  key={community.id} 
+                  community={community} 
+                  onSelect={toggleTargetSelection}
+                  selectedIds={selectedTargets.map(c => c.channelId)}
+                />
+              ))}
             </div>
           </ScrollArea>
         </div>
@@ -241,31 +203,6 @@ export function ForwardDialog({ open, onOpenChange, messagesToForward, currentCo
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
-}
-
-function ConversationTarget({ conversationId, otherUserId, onSelect, isSelected }: any) {
-  const db = useFirestore();
-  const userRef = useMemoFirebase(() => doc(db, "users", otherUserId), [db, otherUserId]);
-  const { data: user } = useDoc(userRef);
-
-  return (
-    <button
-      onClick={() => onSelect({ type: "dm", conversationId, name: user?.username || "Private Chat" })}
-      className={cn(
-        "w-full flex items-center justify-between p-3 rounded-xl transition-all border",
-        isSelected ? "bg-primary/10 border-primary shadow-sm" : "bg-background border-transparent hover:bg-muted/30"
-      )}
-    >
-      <div className="flex items-center gap-3">
-        <Avatar className="h-6 w-6 border">
-          <AvatarImage src={user?.photoURL} />
-          <AvatarFallback className="text-[8px] bg-primary text-white">{user?.username?.[0]}</AvatarFallback>
-        </Avatar>
-        <span className={cn("text-sm font-bold", isSelected ? "text-primary" : "text-foreground")}>@{user?.username || "..."}</span>
-      </div>
-      {isSelected && <CheckCircle2 className="h-4 w-4 text-primary animate-in zoom-in" />}
-    </button>
   );
 }
 

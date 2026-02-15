@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "User": {
@@ -14,7 +15,10 @@
         "onlineStatus": { "type": "string" },
         "lastOnlineAt": { "type": "string", "format": "date-time" },
         "createdAt": { "type": "string", "format": "date-time" },
-        "updatedAt": { "type": "string", "format": "date-time" }
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "serverIds": { "type": "array", "items": { "type": "string" } },
+        "allowGroupInvites": { "type": "boolean" },
+        "showOnlineStatus": { "type": "boolean" }
       },
       "required": ["id", "displayName", "email", "createdAt"]
     },
@@ -32,7 +36,8 @@
         "joinCode": { "type": "string" },
         "members": { "type": "array", "items": { "type": "string" } },
         "isPublic": { "type": "boolean" },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "createdAt": { "type": "string", "format": "date-time" },
+        "disappearingMessagesDuration": { "type": "string" }
       },
       "required": ["id", "name", "ownerId", "createdAt"]
     },
@@ -60,7 +65,13 @@
         "senderId": { "type": "string" },
         "content": { "type": "string" },
         "type": { "type": "string" },
-        "sentAt": { "type": "string", "format": "date-time" }
+        "sentAt": { "type": "string", "format": "date-time" },
+        "audioUrl": { "type": "string" },
+        "videoUrl": { "type": "string" },
+        "disappearingEnabled": { "type": "boolean" },
+        "disappearDuration": { "type": "number" },
+        "seenBy": { "type": "array", "items": { "type": "string" } },
+        "forwardingChain": { "type": "array" }
       },
       "required": ["id", "senderId", "content", "sentAt"]
     }

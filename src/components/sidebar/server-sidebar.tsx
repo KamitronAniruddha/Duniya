@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -109,12 +110,6 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive }
       const targetId = communityDoc.id;
       const communityData = communityDoc.data();
 
-      if (communityData.members?.includes(user.uid)) {
-        onSelectServer(targetId);
-        setIsJoinModalOpen(false);
-        return;
-      }
-
       const batch = writeBatch(db);
       batch.update(doc(db, "communities", targetId), {
         members: arrayUnion(user.uid)
@@ -132,12 +127,6 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive }
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleShare = (community: any) => {
-    const url = `${window.location.origin}?join=${community.joinCode}`;
-    navigator.clipboard.writeText(url);
-    toast({ title: "Invite Link Copied", description: "Share this link with your friends to join!" });
   };
 
   return (
@@ -190,9 +179,6 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive }
                 </DropdownMenuTrigger>
                 <DropdownMenuContent side="right" align="start" className="w-48">
                   <DropdownMenuItem onClick={() => onSelectServer(s.id)}>Open Community</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleShare(s)} className="gap-2">
-                    <Share2 className="h-4 w-4" /> Share Invite
-                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
               <TooltipContent side="right" className="font-bold">{s.name}</TooltipContent>

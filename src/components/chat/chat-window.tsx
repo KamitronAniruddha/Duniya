@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useRef, useEffect, useState, useMemo, useCallback } from "react";
@@ -27,7 +28,6 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
   const { user } = useUser();
   const { toast } = useToast();
   const scrollRef = useRef<HTMLDivElement>(null);
-  const messageRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
   const [replyingTo, setReplyingTo] = useState<any | null>(null);
   const [selectionMode, setSelectionMode] = useState(false);
@@ -35,7 +35,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isClearChatDialogOpen, setIsClearChatDialogOpen] = useState(false);
 
-  // Path resolution logic - Community only
+  // Path resolution logic
   const basePath = useMemo(() => {
     if (serverId && channelId) {
       return `communities/${serverId}/channels/${channelId}`;

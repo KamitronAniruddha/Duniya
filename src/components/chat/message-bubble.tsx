@@ -4,7 +4,7 @@
 import React, { memo, useState, useRef, useEffect, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useFirestore, useUser } from "@/firebase";
+import { useFirestore, useUser, useDoc, useMemoFirebase } from "@/firebase";
 import { doc, arrayUnion, deleteField } from "firebase/firestore";
 import { UserProfilePopover } from "@/components/profile/user-profile-popover";
 import { Reply, CornerDownRight, Play, Pause, Volume2, MoreHorizontal, Trash2, Ban, Copy, Timer, Check, CheckCheck, Forward, Landmark, History } from "lucide-react";
@@ -13,6 +13,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { useToast } from "@/hooks/use-toast";
 import { MessageTraceDialog } from "./message-trace-dialog";
+import { ForwardDialog } from "./forward-dialog";
 
 interface ForwardHop {
   communityName: string;
@@ -47,33 +48,30 @@ interface MessageBubbleProps {
     forwardingChain?: ForwardHop[];
   };
   messagePath: string;
-  sender?: any;
   isMe: boolean;
   isSelected?: boolean;
   selectionMode?: boolean;
   onSelect?: (id: string) => void;
   onLongPress?: (id: string) => void;
   onReply?: () => void;
-  onForward?: () => void;
-  onQuoteClick?: (messageId: string) => void;
 }
 
 export const MessageBubble = memo(function MessageBubble({ 
   message, 
   messagePath,
-  sender, 
   isMe, 
   isSelected, 
   selectionMode,
   onSelect,
   onLongPress,
-  onReply, 
-  onForward,
-  onQuoteClick 
+  onReply
 }: MessageBubbleProps) {
   const db = useFirestore();
   const { user } = useUser();
   const { toast } = useToast();
+
+  const senderRef = useMemoFirebase(() => (message.senderId ? doc(db, "users", message.senderId) : null), [db, message.senderId]);
+  const { data: sender } = useDoc(senderRef);
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -83,6 +81,7 @@ export const MessageBubble = memo(function MessageBubble({
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [isTraceOpen, setIsTraceOpen] = useState(false);
+  const [isForwardOpen, setIsForwardOpen] = useState(false);
 
   // Swipe & Long Press
   const [dragX, setDragX] = useState(0);
@@ -104,7 +103,7 @@ export const MessageBubble = memo(function MessageBubble({
 
   // Mark as seen and handle disappearing timers
   useEffect(() => {
-    if (!user || isMe || message.isDeleted || message.fullyDeleted || !messagePath || messagePath.includes('null')) return;
+    if (!user || isMe || message.isDeleted || message.fullyDeleted || !messagePath) return;
     
     const hasSeen = message.seenBy?.includes(user.uid);
     if (!hasSeen) {
@@ -193,13 +192,6 @@ export const MessageBubble = memo(function MessageBubble({
     setIsDragging(false);
   };
 
-  const formatAudioTime = (time: number) => {
-    if (isNaN(time)) return "0:00";
-    const mins = Math.floor(time / 60);
-    const secs = Math.floor(time % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
   const togglePlay = () => {
     if (!audioRef.current) return;
     if (isPlaying) audioRef.current.pause();
@@ -214,7 +206,7 @@ export const MessageBubble = memo(function MessageBubble({
   };
 
   const handleDeleteForEveryone = () => {
-    if (!db || !messagePath || messagePath.includes('null')) return;
+    if (!db || !messagePath) return;
     const msgRef = doc(db, messagePath);
     updateDocumentNonBlocking(msgRef, {
       isDeleted: true,
@@ -250,7 +242,6 @@ export const MessageBubble = memo(function MessageBubble({
       onTouchEnd={handleEnd}
       onClick={() => selectionMode && onSelect?.(message.id)}
     >
-      {/* Selection Checkbox */}
       <div className={cn(
         "shrink-0 flex items-center justify-center transition-all duration-300 overflow-hidden",
         selectionMode ? "w-10 opacity-100" : "w-0 opacity-0",
@@ -264,7 +255,6 @@ export const MessageBubble = memo(function MessageBubble({
         </div>
       </div>
 
-      {/* Swipe Indicator */}
       <div className="absolute left-4 top-1/2 -translate-y-1/2 transition-all flex items-center justify-center bg-primary/10 rounded-full h-8 w-8 pointer-events-none" style={{ opacity: Math.min(dragX / 60, 1), transform: `scale(${Math.min(dragX / 60, 1)})`, left: `${Math.min(dragX / 2, 20)}px` }}>
         <Reply className={cn("h-4 w-4", dragX >= 60 ? "text-primary" : "text-muted-foreground")} />
       </div>
@@ -301,7 +291,6 @@ export const MessageBubble = memo(function MessageBubble({
               "px-3.5 py-2.5 rounded-2xl shadow-sm transition-all relative",
               isMe ? "bg-primary text-white rounded-br-none" : "bg-card text-foreground rounded-bl-none border border-border"
             )}>
-              {/* Forwarding Context */}
               {message.isForwarded && (
                 <div className={cn("flex flex-col mb-1.5 opacity-70", isMe ? "items-end" : "items-start")}>
                   <button onClick={(e) => { e.stopPropagation(); setIsTraceOpen(true); }} className={cn("flex items-center gap-1 italic text-[9px] font-black uppercase tracking-widest hover:text-primary transition-colors group/forward", isMe ? "text-white/90" : "text-muted-foreground")}>
@@ -317,9 +306,8 @@ export const MessageBubble = memo(function MessageBubble({
                 </div>
               )}
 
-              {/* Reply Quote */}
               {message.replyTo && (
-                <button onClick={() => onQuoteClick?.(message.replyTo!.messageId)} className={cn("w-full text-left mb-2 p-2 rounded-lg border-l-4 text-xs bg-black/5 flex flex-col gap-0.5", isMe ? "border-white/40" : "border-primary/50")}>
+                <button className={cn("w-full text-left mb-2 p-2 rounded-lg border-l-4 text-xs bg-black/5 flex flex-col gap-0.5", isMe ? "border-white/40" : "border-primary/50")}>
                   <span className={cn("font-bold text-[10px] flex items-center gap-1 uppercase", isMe ? "text-white/90" : "text-primary")}>
                     <CornerDownRight className="h-3 w-3" />{message.replyTo.senderName}
                   </span>
@@ -327,7 +315,6 @@ export const MessageBubble = memo(function MessageBubble({
                 </button>
               )}
 
-              {/* Media Content */}
               {message.type === 'media' && message.audioUrl ? (
                 <div className="flex items-center gap-3 py-1 min-w-[220px]">
                   <audio ref={audioRef} src={message.audioUrl} onTimeUpdate={() => audioRef.current && (setCurrentTime(audioRef.current.currentTime), setProgress((audioRef.current.currentTime / audioRef.current.duration) * 100))} onLoadedMetadata={() => audioRef.current && setDuration(audioRef.current.duration)} />
@@ -337,9 +324,6 @@ export const MessageBubble = memo(function MessageBubble({
                   <div className="flex-1 space-y-1.5">
                     <div className={cn("h-1.5 w-full rounded-full overflow-hidden", isMe ? "bg-white/30" : "bg-muted")}>
                       <div className={cn("h-full transition-all duration-300", isMe ? "bg-white" : "bg-primary")} style={{ width: `${progress}%` }} />
-                    </div>
-                    <div className={cn("text-[10px] font-mono font-bold flex items-center gap-1", isMe ? "text-white/80" : "text-primary")}>
-                      <Volume2 className="h-3 w-3" />{formatAudioTime(isPlaying ? currentTime : duration)}
                     </div>
                   </div>
                 </div>
@@ -351,7 +335,6 @@ export const MessageBubble = memo(function MessageBubble({
                 <p className="whitespace-pre-wrap break-words leading-relaxed text-sm tracking-tight">{message.content}</p>
               )}
 
-              {/* Status Footer */}
               <div className="flex items-center justify-between gap-4 mt-1.5">
                 {message.disappearingEnabled && (
                   <div className={cn("flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tighter", isMe ? "bg-white/10 text-white" : "bg-primary/10 text-primary")}>
@@ -377,7 +360,6 @@ export const MessageBubble = memo(function MessageBubble({
         )}
       </div>
 
-      {/* Bubble Menu */}
       {!selectionMode && !isActuallyDeleted && (
         <div className={cn("mb-2 mx-1 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5", isMe ? "mr-1" : "ml-1")}>
           <button onClick={onReply} className="h-7 w-7 rounded-full hover:bg-muted/50 flex items-center justify-center text-muted-foreground hover:text-primary"><Reply className="h-3.5 w-3.5" /></button>
@@ -385,7 +367,7 @@ export const MessageBubble = memo(function MessageBubble({
             <DropdownMenuTrigger asChild><button className="h-7 w-7 rounded-full hover:bg-muted/50 flex items-center justify-center text-muted-foreground hover:text-primary"><MoreHorizontal className="h-3.5 w-3.5" /></button></DropdownMenuTrigger>
             <DropdownMenuContent align={isMe ? "end" : "start"} className="rounded-xl font-bold uppercase text-[10px] tracking-widest">
               <DropdownMenuItem onClick={handleCopy} className="gap-2"><Copy className="h-4 w-4" />Copy</DropdownMenuItem>
-              <DropdownMenuItem onClick={onForward} className="gap-2"><Forward className="h-4 w-4" />Forward</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setIsForwardOpen(true)} className="gap-2"><Forward className="h-4 w-4" />Forward</DropdownMenuItem>
               {isMe && <DropdownMenuItem onClick={handleDeleteForEveryone} className="text-destructive gap-2"><Trash2 className="h-4 w-4" />Delete for all</DropdownMenuItem>}
             </DropdownMenuContent>
           </DropdownMenu>
@@ -395,6 +377,12 @@ export const MessageBubble = memo(function MessageBubble({
       {message.forwardingChain && (
         <MessageTraceDialog open={isTraceOpen} onOpenChange={setIsTraceOpen} chain={message.forwardingChain} />
       )}
+      
+      <ForwardDialog 
+        open={isForwardOpen} 
+        onOpenChange={setIsForwardOpen} 
+        messagesToForward={[message]} 
+      />
     </div>
   );
 });
