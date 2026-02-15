@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -6,8 +7,8 @@ import { ChannelSidebar } from "@/components/sidebar/channel-sidebar";
 import { ChatWindow } from "@/components/chat/chat-window";
 import { AuthScreen } from "@/components/auth/auth-screen";
 import { DuniyaPanel } from "@/components/duniya/duniya-panel";
-import { useUser, useFirestore, useMemoFirebase, useAuth, useDoc } from "@/firebase";
-import { doc } from "firebase/firestore";
+import { useUser, useFirestore, useMemoFirebase, useAuth, useDoc, useCollection } from "@/firebase";
+import { doc, collection, query } from "firebase/firestore";
 import { Loader2, Menu, Heart } from "lucide-react";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
@@ -26,6 +27,24 @@ export default function DuniyaApp() {
 
   const userRef = useMemoFirebase(() => (user ? doc(db, "users", user.uid) : null), [db, user?.uid]);
   const { data: userData } = useDoc(userRef);
+
+  // Auto-select first channel logic
+  const channelsQuery = useMemoFirebase(() => {
+    if (!db || !activeCommunityId || !user) return null;
+    return query(collection(db, "communities", activeCommunityId, "channels"));
+  }, [db, activeCommunityId, user?.uid]);
+
+  const { data: channels } = useCollection(channelsQuery);
+
+  useEffect(() => {
+    // If we have a community but no channel selected, or if we just switched communities, select the first channel
+    if (activeCommunityId && channels && channels.length > 0) {
+      const currentChannelExistsInNewList = channels.find(c => c.id === activeChannelId);
+      if (!activeChannelId || !currentChannelExistsInNewList) {
+        setActiveChannelId(channels[0].id);
+      }
+    }
+  }, [activeCommunityId, channels, activeChannelId]);
 
   useEffect(() => {
     if (!user || !db || !auth.currentUser) return;
@@ -80,6 +99,7 @@ export default function DuniyaApp() {
             } else {
               setView("chat");
               setActiveCommunityId(id);
+              // reset channel to let useEffect pick the first one
               setActiveChannelId(null);
             }
           }} 
@@ -93,7 +113,7 @@ export default function DuniyaApp() {
         )}
       </div>
 
-      <main className="flex-1 flex flex-col min-0 h-full relative overflow-hidden">
+      <main className="flex-1 flex flex-col min-w-0 h-full relative overflow-hidden">
         <div className="md:hidden p-2 border-b flex items-center gap-2 bg-background shrink-0">
           <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
             <SheetTrigger asChild>
@@ -136,7 +156,7 @@ export default function DuniyaApp() {
               </div>
             </SheetContent>
           </Sheet>
-          <span className="font-bold text-sm">Duniya</span>
+          <span className="font-black text-sm tracking-tight text-primary">Duniya</span>
         </div>
         
         <div className="flex-1 min-h-0 flex relative overflow-hidden">

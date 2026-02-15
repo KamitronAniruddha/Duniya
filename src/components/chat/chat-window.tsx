@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useRef, useEffect, useState, useMemo, useCallback } from "react";
@@ -193,9 +194,9 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
     return (
       <div className="flex-1 flex flex-col items-center justify-center bg-background h-full p-6 text-center">
         <MessageCircle className="h-16 w-16 text-primary/20 mb-4" />
-        <h2 className="text-2xl font-black mb-2 tracking-tight">Duniya Verse Chat</h2>
-        <p className="text-muted-foreground text-xs max-w-xs font-medium uppercase tracking-widest">
-          Select a community channel to start messaging.
+        <h2 className="text-2xl font-black mb-2 tracking-tighter">DUNIYA VERSE</h2>
+        <p className="text-muted-foreground text-[10px] max-w-xs font-black uppercase tracking-[0.2em]">
+          Select a community to start your journey.
         </p>
       </div>
     );
@@ -226,7 +227,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
               </Button>
               <div className="flex-1 flex flex-col">
                 <span className="font-black text-base tracking-tighter leading-none">{selectedIds.size} SELECTED</span>
-                <span className="text-[9px] font-bold uppercase tracking-widest opacity-60">Verse Operations</span>
+                <span className="text-[9px] font-bold uppercase tracking-widest opacity-60">Operations</span>
               </div>
               <div className="flex items-center gap-1">
                 <Button 
@@ -252,15 +253,17 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
               transition={{ duration: 0.15, ease: "easeOut" }}
               className="flex items-center justify-between w-full h-full"
             >
-              <div className="flex items-center gap-3">
-                <Hash className="h-5 w-5 text-muted-foreground" />
-                <div className="flex flex-col">
-                  <h2 className="font-black text-sm truncate leading-none mb-0.5 tracking-tight">#{headerTitle}</h2>
-                  <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">Channel</span>
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                <div className="p-2 bg-primary/5 rounded-xl shrink-0">
+                  <Hash className="h-5 w-5 text-primary" />
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <h2 className="font-black text-base truncate leading-none tracking-tighter text-foreground uppercase">#{headerTitle}</h2>
+                  <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mt-0.5">Community Channel</span>
                 </div>
               </div>
               
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 shrink-0">
                 <ThemeToggle />
                 <Button 
                   variant="ghost" 
@@ -276,14 +279,14 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
                       <MoreVertical className="h-5 w-5" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56 font-bold uppercase text-[10px] tracking-widest p-1 border-none shadow-2xl bg-popover/95 backdrop-blur-md">
+                  <DropdownMenuContent align="end" className="w-56 font-black uppercase text-[10px] tracking-widest p-1 border-none shadow-2xl bg-popover/95 backdrop-blur-md">
                     {isAdmin && (
                       <DropdownMenuItem onClick={() => setIsChannelSettingsOpen(true)} className="gap-2 p-3 rounded-xl">
-                        <Settings className="h-4 w-4 text-primary" /> Channel Settings
+                        <Settings className="h-4 w-4 text-primary" /> Edit Channel
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuItem onClick={() => setIsClearChatDialogOpen(true)} className="gap-2 text-destructive p-3 rounded-xl">
-                      <Eraser className="h-4 w-4" /> Clear Chat
+                      <Eraser className="h-4 w-4" /> Wipe Messages
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -299,13 +302,15 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
             {messagesLoading ? (
               <div className="flex flex-col items-center justify-center py-20 opacity-30 gap-3">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <p className="text-xs font-black uppercase tracking-widest">Syncing Chat</p>
+                <p className="text-xs font-black uppercase tracking-widest">Syncing the Verse</p>
               </div>
             ) : messages.length === 0 ? (
-              <div className="py-24 text-center opacity-30">
-                <Hash className="h-12 w-12 mx-auto mb-4" />
-                <h3 className="text-xl font-black mb-1">WELCOME TO #{headerTitle}</h3>
-                <p className="text-[10px] font-black uppercase tracking-widest">No messages yet.</p>
+              <div className="py-24 text-center opacity-30 flex flex-col items-center">
+                <div className="h-20 w-20 bg-muted/50 rounded-[2.5rem] flex items-center justify-center mb-6">
+                  <Hash className="h-10 w-10 text-muted-foreground" />
+                </div>
+                <h3 className="text-2xl font-black mb-1 tracking-tighter uppercase">WELCOME TO #{headerTitle}</h3>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em]">The start of something legendary.</p>
               </div>
             ) : (
               <div className="flex flex-col justify-end min-h-full">
@@ -319,7 +324,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
                       exit={{ 
                         opacity: 0, 
                         scale: 0.95, 
-                        transition: { duration: 0.15, ease: "easeIn" } 
+                        transition: { duration: 0.15, ease: "easeOut" } 
                       }}
                       transition={{ duration: 0.15, ease: "easeOut" }}
                     >
@@ -390,14 +395,14 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
       <AlertDialog open={isClearChatDialogOpen} onOpenChange={setIsClearChatDialogOpen}>
         <AlertDialogContent className="rounded-[2.5rem] border-none shadow-2xl p-8">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-2xl font-black tracking-tight">Clear Chat?</AlertDialogTitle>
+            <AlertDialogTitle className="text-2xl font-black tracking-tighter">CLEAR CONVERSATION?</AlertDialogTitle>
             <AlertDialogDescription className="font-medium text-muted-foreground">
-              This will hide all current messages from your view in the Verse. This action is irreversible for your local view.
+              All messages will be hidden from your local view. This action is irreversible within the Verse.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="gap-3 mt-4">
             <AlertDialogCancel className="rounded-2xl font-bold h-12 flex-1">Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleClearChat} className="rounded-2xl font-black h-12 flex-1 bg-destructive hover:bg-destructive/90 shadow-lg shadow-destructive/20">Clear Everything</AlertDialogAction>
+            <AlertDialogAction onClick={handleClearChat} className="rounded-2xl font-black h-12 flex-1 bg-destructive hover:bg-destructive/90 shadow-lg shadow-destructive/20 uppercase tracking-widest">Wipe Everything</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

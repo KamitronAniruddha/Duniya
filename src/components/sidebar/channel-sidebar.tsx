@@ -89,39 +89,39 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <header className="h-16 px-4 border-b flex items-center justify-between hover:bg-muted/30 transition-all cursor-pointer shrink-0 group">
-                <div className="flex flex-col min-w-0">
-                  <h2 className="font-black truncate text-sm text-foreground tracking-tight group-hover:text-primary transition-colors">{community?.name || "..." }</h2>
+                <div className="flex flex-col min-w-0 flex-1">
+                  <h2 className="font-black truncate text-sm text-foreground tracking-tighter uppercase group-hover:text-primary transition-colors">{community?.name || "..." }</h2>
                   <div className="flex items-center gap-1.5">
-                    {community?.joinCode && <span className="text-[9px] text-primary font-black font-mono tracking-widest uppercase opacity-70">Code: {community.joinCode}</span>}
+                    {community?.joinCode && <span className="text-[9px] text-primary font-black font-mono tracking-widest uppercase opacity-70">CODE: {community.joinCode}</span>}
                   </div>
                 </div>
-                <div className="p-1.5 rounded-lg bg-muted group-hover:bg-primary/10 transition-all">
+                <div className="p-1.5 rounded-lg bg-muted group-hover:bg-primary/10 transition-all ml-2 shrink-0">
                   <ChevronDown className="h-4 w-4" />
                 </div>
               </header>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-60" align="start">
+            <DropdownMenuContent className="w-60 font-black uppercase text-[10px] tracking-widest" align="start">
               {isAdmin && (
                 <>
-                  <DropdownMenuItem onClick={() => setServerSettingsOpen(true)} className="gap-2">
+                  <DropdownMenuItem onClick={() => setServerSettingsOpen(true)} className="gap-2 p-3">
                     <Settings className="h-4 w-4" /> Community Settings
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setDisappearingOpen(true)} className="gap-2">
-                    <Timer className="h-4 w-4 text-orange-500" /> Disappearing Messages
+                  <DropdownMenuItem onClick={() => setDisappearingOpen(true)} className="gap-2 p-3">
+                    <Timer className="h-4 w-4 text-orange-500" /> Ghost Mode (Disappearing)
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                 </>
               )}
-              <DropdownMenuItem className="text-destructive font-bold">Leave Community</DropdownMenuItem>
+              <DropdownMenuItem className="text-destructive font-black p-3">Leave Community</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
           <div className="flex-1 overflow-y-auto py-6 space-y-6 custom-scrollbar px-3">
             <div>
-              <div className="px-2 mb-2 flex items-center justify-between">
-                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">Channels</span>
+              <div className="px-2 mb-3 flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">VERSE CHANNELS</span>
                 {isAdmin && (
-                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setCreateChannelOpen(true)}>
+                  <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-primary" onClick={() => setCreateChannelOpen(true)}>
                     <Plus className="h-3 w-3" />
                   </Button>
                 )}
@@ -137,11 +137,11 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
                       <button 
                         onClick={() => onSelectChannel(c.id)}
                         className={cn(
-                          "flex-1 flex items-center px-3 py-2 rounded-xl text-sm transition-all text-left",
-                          isActive ? "bg-primary text-white font-bold shadow-lg" : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                          "flex-1 flex items-center px-3 py-2.5 rounded-xl text-xs transition-all text-left uppercase font-black tracking-tight",
+                          isActive ? "bg-primary text-white shadow-lg" : "text-muted-foreground hover:bg-muted hover:text-foreground"
                         )}
                       >
-                        <Hash className="h-4 w-4 mr-2.5 opacity-50" />
+                        <Hash className={cn("h-4 w-4 mr-2.5 opacity-50", isActive && "opacity-100")} />
                         <span className="truncate">{c.name}</span>
                       </button>
                     </div>
@@ -153,17 +153,17 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
         </>
       ) : (
         <div className="flex-1 flex flex-col items-center justify-center p-8 text-center opacity-40">
-          <div className="p-4 bg-muted rounded-full mb-4">
+          <div className="p-4 bg-muted rounded-[2rem] mb-4">
             <Globe className="h-8 w-8 text-muted-foreground" />
           </div>
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Select a Community</p>
         </div>
       )}
 
-      <div className="p-4 bg-muted/40 border-t flex flex-col gap-4 shrink-0">
+      <div className="p-4 bg-muted/20 border-t flex flex-col gap-4 shrink-0">
         <ContactFormDialog trigger={
-          <Button variant="outline" size="sm" className="w-full gap-2 text-[10px] font-bold uppercase tracking-wider h-8 border-dashed">
-            <Mail className="h-3 w-3" /> Contact Support
+          <Button variant="outline" size="sm" className="w-full gap-2 text-[10px] font-black uppercase tracking-widest h-8 border-dashed bg-background/50">
+            <Mail className="h-3 w-3" /> Contact Admin
           </Button>
         } />
         
@@ -172,13 +172,13 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
             <div className="relative cursor-pointer group/avatar" onClick={() => setProfileOpen(true)}>
               <Avatar className="h-10 w-10 shadow-md transition-transform group-hover/avatar:scale-105 border-2 border-transparent group-hover/avatar:border-primary/20">
                 <AvatarImage src={userData?.photoURL || undefined} />
-                <AvatarFallback className="bg-primary text-white font-black">{userData?.username?.[0]?.toUpperCase()}</AvatarFallback>
+                <AvatarFallback className="bg-primary text-white font-black text-xs">{userData?.username?.[0]?.toUpperCase()}</AvatarFallback>
               </Avatar>
-              <div className={cn("absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-background", userData?.onlineStatus === "online" ? "bg-green-500" : "bg-muted-foreground/30")} />
+              <div className={cn("absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-background shadow-sm", userData?.onlineStatus === "online" ? "bg-green-500" : "bg-muted-foreground/30")} />
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="text-sm font-black truncate leading-none mb-1">@{userData?.username || "..."}</span>
-              <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">{userData?.onlineStatus || "offline"}</span>
+              <span className="text-xs font-black truncate leading-none mb-1 uppercase tracking-tight">@{userData?.username || "..."}</span>
+              <span className="text-[9px] text-muted-foreground font-black uppercase tracking-widest">{userData?.onlineStatus || "offline"}</span>
             </div>
           </div>
           <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-destructive hover:bg-destructive/10" onClick={handleLogout}>
@@ -191,17 +191,20 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
       {serverId && <ServerSettingsDialog open={serverSettingsOpen} onOpenChange={setServerSettingsOpen} serverId={serverId} />}
       {serverId && <DisappearingMessagesDialog open={disappearingOpen} onOpenChange={setDisappearingOpen} serverId={serverId} />}
       <Dialog open={createChannelOpen} onOpenChange={setCreateChannelOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Create Channel</DialogTitle></DialogHeader>
+        <DialogContent className="rounded-[2.5rem] border-none shadow-2xl">
+          <DialogHeader><DialogTitle className="text-xl font-black uppercase tracking-tighter">NEW CHANNEL</DialogTitle></DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>Name</Label>
-              <Input placeholder="new-channel" value={newChannelName} onChange={(e) => setNewChannelName(e.target.value)} />
+              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Channel Name</Label>
+              <Input placeholder="general-chat" className="bg-muted/40 border-none rounded-2xl h-12 font-bold" value={newChannelName} onChange={(e) => setNewChannelName(e.target.value)} />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setCreateChannelOpen(false)}>Cancel</Button>
-            <Button onClick={handleCreateChannel} disabled={isCreating || !newChannelName.trim()}>Create</Button>
+          <DialogFooter className="gap-2">
+            <Button variant="ghost" className="rounded-xl font-bold" onClick={() => setCreateChannelOpen(false)}>Cancel</Button>
+            <Button className="rounded-xl font-black shadow-lg shadow-primary/20" onClick={handleCreateChannel} disabled={isCreating || !newChannelName.trim()}>
+              {isCreating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
+              Create
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
