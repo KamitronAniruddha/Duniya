@@ -155,7 +155,7 @@ export function AuthScreen() {
                       exit={{ opacity: 0, scale: 0.9 }}
                     >
                       <motion.path
-                        d="M15,22 C15,12 30,12 30,18 C30,24 15,24 15,30 C15,36 30,36 30,30 M40,30 C40,24 55,24 55,30 V36 M65,36 V22 C65,18 75,18 75,22 V36 M85,22 V30 C85,36 100,36 100,30 V22"
+                        d="M30,10 C15,10 15,20 30,20 C45,20 45,30 30,30 M45,30 C45,22 55,22 55,30 V34 M65,34 V22 C65,18 75,18 75,22 V34 M85,22 V30 C85,34 100,34 100,30 V22"
                         stroke="currentColor"
                         strokeWidth="2.5"
                         strokeLinecap="round"
