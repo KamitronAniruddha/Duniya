@@ -62,7 +62,6 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
 
   const messages = useMemo(() => {
     if (!rawMessages || !user) return [];
-    // Only show messages not fully deleted and not deleted for current user
     return rawMessages.filter(msg => !msg.fullyDeleted && !msg.deletedFor?.includes(user.uid));
   }, [rawMessages, user?.uid]);
 
@@ -199,63 +198,76 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
   return (
     <div className="flex-1 flex flex-col h-full bg-background overflow-hidden relative">
       <header className={cn(
-        "h-14 border-b flex items-center justify-between px-4 shrink-0 transition-all z-20",
+        "h-14 border-b flex items-center justify-between px-4 shrink-0 transition-all duration-500 z-20 overflow-hidden",
         selectionMode ? "bg-primary text-white" : "bg-background/80 backdrop-blur-md"
       )}>
-        {selectionMode ? (
-          <motion.div 
-            initial={{ opacity: 0, y: -10 }} 
-            animate={{ opacity: 1, y: 0 }}
-            className="flex items-center gap-4 w-full"
-          >
-            <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full" onClick={handleCancelSelection}>
-              <X className="h-5 w-5" />
-            </Button>
-            <span className="font-black text-lg flex-1 tracking-tight">{selectedIds.size} SELECTED</span>
-            <div className="flex items-center gap-1">
-              <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full" onClick={() => setIsForwardOpen(true)}>
-                <Forward className="h-5 w-5" />
+        <AnimatePresence mode="wait">
+          {selectionMode ? (
+            <motion.div 
+              key="selection-header"
+              initial={{ opacity: 0, y: -20, filter: "blur(10px)" }} 
+              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+              exit={{ opacity: 0, y: 20, filter: "blur(10px)" }}
+              className="flex items-center gap-4 w-full h-full"
+            >
+              <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full" onClick={handleCancelSelection}>
+                <X className="h-5 w-5" />
               </Button>
-              <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full" onClick={() => setIsDeleteDialogOpen(true)}>
-                <Trash2 className="h-5 w-5" />
-              </Button>
-            </div>
-          </motion.div>
-        ) : (
-          <>
-            <div className="flex items-center gap-3">
-              <Hash className="h-5 w-5 text-muted-foreground" />
-              <div className="flex flex-col">
-                <h2 className="font-black text-sm truncate leading-none mb-0.5 tracking-tight">#{headerTitle}</h2>
-                <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">Channel</span>
+              <div className="flex-1 flex flex-col">
+                <span className="font-black text-lg tracking-tighter leading-none">{selectedIds.size} SELECTED</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">Verse Operations</span>
               </div>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <ThemeToggle />
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className={cn("h-9 w-9 rounded-xl", showMembers ? "bg-primary/10 text-primary" : "text-muted-foreground")} 
-                onClick={onToggleMembers}
-              >
-                <Users className="h-5 w-5" />
-              </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-muted-foreground">
-                    <MoreVertical className="h-5 w-5" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48 font-bold uppercase text-[10px] tracking-widest">
-                  <DropdownMenuItem onClick={() => setIsClearChatDialogOpen(true)} className="gap-2 text-destructive">
-                    <Eraser className="h-4 w-4" /> Clear Chat
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </>
-        )}
+              <div className="flex items-center gap-1">
+                <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full" onClick={() => setIsForwardOpen(true)}>
+                  <Forward className="h-5 w-5" />
+                </Button>
+                <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full" onClick={() => setIsDeleteDialogOpen(true)}>
+                  <Trash2 className="h-5 w-5" />
+                </Button>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div 
+              key="normal-header"
+              initial={{ opacity: 0, y: 10, filter: "blur(10px)" }} 
+              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+              exit={{ opacity: 0, y: -10, filter: "blur(10px)" }}
+              className="flex items-center justify-between w-full h-full"
+            >
+              <div className="flex items-center gap-3">
+                <Hash className="h-5 w-5 text-muted-foreground" />
+                <div className="flex flex-col">
+                  <h2 className="font-black text-sm truncate leading-none mb-0.5 tracking-tight">#{headerTitle}</h2>
+                  <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">Channel</span>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <ThemeToggle />
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className={cn("h-9 w-9 rounded-xl transition-all duration-300", showMembers ? "bg-primary/10 text-primary" : "text-muted-foreground")} 
+                  onClick={onToggleMembers}
+                >
+                  <Users className="h-5 w-5" />
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-muted-foreground">
+                      <MoreVertical className="h-5 w-5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48 font-bold uppercase text-[10px] tracking-widest p-1 border-none shadow-2xl">
+                    <DropdownMenuItem onClick={() => setIsClearChatDialogOpen(true)} className="gap-2 text-destructive p-3 rounded-xl">
+                      <Eraser className="h-4 w-4" /> Clear Chat
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </header>
 
       <div className="flex-1 flex min-h-0 overflow-hidden bg-background">
@@ -275,18 +287,20 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
             ) : (
               <div className="flex flex-col justify-end min-h-full">
                 <AnimatePresence mode="popLayout" initial={false}>
-                  {messages.map((msg) => (
+                  {messages.map((msg, index) => (
                     <motion.div
                       key={msg.id}
                       layout
-                      initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                      initial={{ opacity: 0, scale: 0.95, y: 20 }}
                       animate={{ opacity: 1, scale: 1, y: 0 }}
                       exit={{ 
                         opacity: 0, 
                         scale: 0.8, 
-                        filter: "blur(10px)",
-                        transition: { duration: 0.25 }
+                        x: msg.senderId === user?.uid ? 50 : -50,
+                        filter: "blur(12px)",
+                        transition: { duration: 0.3, delay: index * 0.02 } 
                       }}
+                      transition={{ type: "spring", stiffness: 350, damping: 25 }}
                     >
                       <MessageBubble 
                         message={msg}
@@ -315,7 +329,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
         </div>
 
         {showMembers && serverId && (
-          <div className="hidden lg:block border-l z-10 bg-background">
+          <div className="hidden lg:block border-l z-10 bg-background overflow-hidden">
             <MembersPanel serverId={serverId} />
           </div>
         )}
@@ -343,14 +357,16 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
       />
 
       <AlertDialog open={isClearChatDialogOpen} onOpenChange={setIsClearChatDialogOpen}>
-        <AlertDialogContent className="rounded-[2rem] border-none shadow-2xl">
+        <AlertDialogContent className="rounded-[2.5rem] border-none shadow-2xl p-8">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-xl font-black">Clear Chat?</AlertDialogTitle>
-            <AlertDialogDescription className="font-medium text-muted-foreground">This will hide all current messages from your view in the Verse.</AlertDialogDescription>
+            <AlertDialogTitle className="text-2xl font-black tracking-tight">Clear Chat?</AlertDialogTitle>
+            <AlertDialogDescription className="font-medium text-muted-foreground">
+              This will hide all current messages from your view in the Verse. This action is cinematic but irreversible for your local view.
+            </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="gap-2">
-            <AlertDialogCancel className="rounded-xl font-bold">Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleClearChat} className="rounded-xl font-black bg-destructive hover:bg-destructive/90">Clear Everything</AlertDialogAction>
+          <AlertDialogFooter className="gap-3 mt-4">
+            <AlertDialogCancel className="rounded-2xl font-bold h-12 flex-1">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleClearChat} className="rounded-2xl font-black h-12 flex-1 bg-destructive hover:bg-destructive/90 shadow-lg shadow-destructive/20">Clear Everything</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
