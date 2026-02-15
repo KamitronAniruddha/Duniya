@@ -31,6 +31,7 @@ interface MessageBubbleProps {
     id: string;
     senderId: string;
     senderName?: string;
+    senderPhotoURL?: string;
     content: string;
     type?: string;
     audioUrl?: string;
@@ -74,9 +75,6 @@ export const MessageBubble = memo(function MessageBubble({
   const db = useFirestore();
   const { user } = useUser();
   const { toast } = useToast();
-
-  const senderRef = useMemoFirebase(() => (message.senderId ? doc(db, "users", message.senderId) : null), [db, message.senderId]);
-  const { data: sender } = useDoc(senderRef);
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -241,8 +239,8 @@ export const MessageBubble = memo(function MessageBubble({
         <UserProfilePopover userId={message.senderId}>
           <button className="h-8 w-8 mb-0.5 mr-2 shrink-0 transition-transform active:scale-95">
             <Avatar className="h-full w-full border border-border shadow-sm">
-              <AvatarImage src={sender?.photoURL} className="aspect-square object-cover" />
-              <AvatarFallback className="text-[9px] font-black bg-primary text-primary-foreground">{sender?.username?.[0]?.toUpperCase() || "?"}</AvatarFallback>
+              <AvatarImage src={message.senderPhotoURL} className="aspect-square object-cover" />
+              <AvatarFallback className="text-[9px] font-black bg-primary text-primary-foreground">{message.senderName?.[0]?.toUpperCase() || "?"}</AvatarFallback>
             </Avatar>
           </button>
         </UserProfilePopover>
@@ -258,7 +256,7 @@ export const MessageBubble = memo(function MessageBubble({
           <>
             {!isMe && !selectionMode && (
               <UserProfilePopover userId={message.senderId}>
-                <button className="text-[9px] font-black text-muted-foreground/60 ml-1 mb-0.5 hover:text-primary uppercase tracking-widest transition-colors">{sender?.username || "..."}</button>
+                <button className="text-[9px] font-black text-muted-foreground/60 ml-1 mb-0.5 hover:text-primary uppercase tracking-widest transition-colors">{message.senderName || "..."}</button>
               </UserProfilePopover>
             )}
             

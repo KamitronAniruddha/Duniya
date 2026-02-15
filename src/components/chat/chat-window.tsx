@@ -77,6 +77,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
       channelId: channelId,
       senderId: user.uid,
       senderName: user.displayName || "User",
+      senderPhotoURL: user.photoURL || "",
       content: text,
       type: videoUrl ? "media" : (audioUrl ? "media" : "text"),
       sentAt: sentAt.toISOString(),
