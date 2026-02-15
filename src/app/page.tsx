@@ -1,16 +1,16 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { ServerSidebar } from "@/components/sidebar/server-sidebar";
 import { ChannelSidebar } from "@/components/sidebar/channel-sidebar";
 import { ChatWindow } from "@/components/chat/chat-window";
 import { AuthScreen } from "@/components/auth/auth-screen";
 import { DuniyaPanel } from "@/components/duniya/duniya-panel";
 import { useUser, useFirestore, useMemoFirebase, useAuth, useDoc, useCollection } from "@/firebase";
-import { doc, collection, query } from "firebase/firestore";
+import { doc, collection, query, limit } from "firebase/firestore";
 import { Loader2, Menu, Heart } from "lucide-react";
-import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 
@@ -31,7 +31,7 @@ export default function DuniyaApp() {
   // Auto-select first channel logic
   const channelsQuery = useMemoFirebase(() => {
     if (!db || !activeCommunityId || !user) return null;
-    return query(collection(db, "communities", activeCommunityId, "channels"));
+    return query(collection(db, "communities", activeCommunityId, "channels"), limit(10));
   }, [db, activeCommunityId, user?.uid]);
 
   const { data: channels } = useCollection(channelsQuery);
@@ -46,23 +46,33 @@ export default function DuniyaApp() {
     }
   }, [activeCommunityId, channels, activeChannelId]);
 
+  // Robust Status Syncing
+  const updateStatus = useCallback((status: "online" | "idle" | "offline") => {
+    if (!user || !db || !auth.currentUser) return;
+    
+    // Respect privacy setting
+    const finalStatus = userData?.showOnlineStatus === false ? "offline" : status;
+    const userRef = doc(db, "users", user.uid);
+    
+    updateDocumentNonBlocking(userRef, {
+      onlineStatus: finalStatus,
+      lastOnlineAt: new Date().toISOString()
+    });
+  }, [user, db, auth, userData?.showOnlineStatus]);
+
   useEffect(() => {
     if (!user || !db || !auth.currentUser) return;
 
-    const userRef = doc(db, "users", user.uid);
-    const updateStatus = (status: "online" | "idle" | "offline") => {
-      if (!auth.currentUser) return;
-      const finalStatus = userData?.showOnlineStatus === false ? "offline" : status;
-      
-      setDocumentNonBlocking(userRef, {
-        onlineStatus: finalStatus,
-        lastOnlineAt: new Date().toISOString()
-      }, { merge: true });
+    updateStatus("online");
+
+    const handleVisibility = () => {
+      updateStatus(document.visibilityState === 'visible' ? "online" : "idle");
     };
 
-    updateStatus("online");
-    const handleVisibility = () => updateStatus(document.visibilityState === 'visible' ? "online" : "idle");
-    const handleUnload = () => updateStatus("offline");
+    const handleUnload = () => {
+      // Direct update for faster offline marking
+      updateStatus("offline");
+    };
 
     window.addEventListener('visibilitychange', handleVisibility);
     window.addEventListener('beforeunload', handleUnload);
@@ -70,8 +80,9 @@ export default function DuniyaApp() {
     return () => {
       window.removeEventListener('visibilitychange', handleVisibility);
       window.removeEventListener('beforeunload', handleUnload);
+      handleUnload();
     };
-  }, [user, db, auth, userData?.showOnlineStatus]);
+  }, [user, db, auth, updateStatus]);
 
   if (isUserLoading) {
     return (
@@ -99,7 +110,6 @@ export default function DuniyaApp() {
             } else {
               setView("chat");
               setActiveCommunityId(id);
-              // reset channel to let useEffect pick the first one
               setActiveChannelId(null);
             }
           }} 
@@ -156,7 +166,7 @@ export default function DuniyaApp() {
               </div>
             </SheetContent>
           </Sheet>
-          <span className="font-black text-sm tracking-tight text-primary">Duniya</span>
+          <span className="font-black text-sm tracking-tight text-primary uppercase">Duniya</span>
         </div>
         
         <div className="flex-1 min-h-0 flex relative overflow-hidden">
@@ -176,7 +186,7 @@ export default function DuniyaApp() {
         </div>
         
         <div className="hidden md:flex justify-center py-1 bg-background border-t">
-          <div className="flex items-center gap-1 text-[8px] font-black uppercase tracking-[0.3em] text-muted-foreground/40">
+          <div className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.3em] text-muted-foreground/40">
             <span>Made by Aniruddha with love</span>
             <Heart className="h-2 w-2 text-red-500 fill-red-500 animate-pulse" />
           </div>

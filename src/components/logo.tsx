@@ -3,6 +3,7 @@
 
 import { cn } from "@/lib/utils";
 import { Heart } from "lucide-react";
+import { motion } from "framer-motion";
 
 interface LogoProps {
   className?: string;
@@ -28,7 +29,16 @@ export function Logo({ className, size = 32 }: LogoProps) {
         <path d="M2 12h20" />
       </svg>
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <Heart className="h-2/5 w-2/5 text-red-500 fill-red-500" />
+        <motion.div
+          animate={{ scale: [1, 1.2, 1] }}
+          transition={{ 
+            duration: 1.5, 
+            repeat: Infinity, 
+            ease: "easeInOut" 
+          }}
+        >
+          <Heart className="h-2/5 w-2/5 text-red-500 fill-red-500" />
+        </motion.div>
       </div>
     </div>
   );

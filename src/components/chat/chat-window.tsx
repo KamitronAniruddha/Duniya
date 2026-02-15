@@ -6,7 +6,7 @@ import { useCollection, useFirestore, useUser, useDoc, useMemoFirebase } from "@
 import { collection, query, orderBy, limit, doc, arrayUnion, writeBatch, deleteField } from "firebase/firestore";
 import { MessageBubble } from "./message-bubble";
 import { MessageInput } from "./message-input";
-import { Hash, Users, Loader2, MessageCircle, X, Trash2, MoreVertical, Eraser, Forward, Settings } from "lucide-react";
+import { Hash, Users, Loader2, MessageCircle, X, Trash2, MoreVertical, Eraser, Forward, Settings, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { setDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { cn } from "@/lib/utils";
@@ -192,19 +192,54 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
 
   if (!basePath) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center bg-background h-full p-6 text-center">
-        <MessageCircle className="h-16 w-16 text-primary/20 mb-4" />
-        <h2 className="text-2xl font-black mb-2 tracking-tighter uppercase">DUNIYA VERSE</h2>
-        <p className="text-muted-foreground text-[10px] max-w-xs font-black uppercase tracking-[0.2em]">
-          Select a community to start your journey.
-        </p>
+      <div className="flex-1 flex flex-col items-center justify-center bg-background h-full p-6 text-center overflow-hidden">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: "easeOut" }}
+          className="flex flex-col items-center"
+        >
+          <div className="relative mb-12">
+            <motion.div
+              animate={{ 
+                scale: [1, 1.1, 1],
+                rotate: [0, 5, -5, 0]
+              }}
+              transition={{ 
+                duration: 4, 
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+              className="p-10 bg-primary/5 rounded-[3rem] relative z-10"
+            >
+              <MessageCircle className="h-20 w-20 text-primary" />
+            </motion.div>
+            <motion.div 
+              animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.4, 0.2] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="absolute inset-0 bg-primary/20 blur-3xl rounded-full"
+            />
+          </div>
+          
+          <div className="space-y-4 max-w-lg">
+            <h2 className="text-6xl font-[900] tracking-tighter uppercase text-foreground leading-none">DUNIYA</h2>
+            <div className="flex flex-col items-center gap-2">
+              <span className="font-['Playfair_Display'] italic text-4xl text-primary flex items-center gap-3 lowercase">
+                Karo Chutiyapaa <Heart className="h-8 w-8 fill-red-500 text-red-500 animate-pulse" />
+              </span>
+              <p className="text-muted-foreground text-[10px] font-black uppercase tracking-[0.4em] opacity-40 mt-4">
+                Select a community to begin your journey
+              </p>
+            </div>
+          </div>
+        </motion.div>
       </div>
     );
   }
 
   const headerTitle = contextData?.name || "...";
-  const selectedMessages = rawMessages?.filter(m => selectedIds.has(m.id) && !m.isDeleted) || [];
-  const allSelectedFromMe = selectedMessages.length > 0 && selectedMessages.every(m => m.senderId === user?.uid);
+  const selectedMessagesCount = selectedIds.size;
+  const allSelectedFromMe = rawMessages?.filter(m => selectedIds.has(m.id)).every(m => m.senderId === user?.uid) ?? false;
 
   return (
     <div className="flex-1 flex flex-col h-full bg-background overflow-hidden relative">
@@ -226,15 +261,14 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
                 <X className="h-4 w-4" />
               </Button>
               <div className="flex-1 flex flex-col">
-                <span className="font-black text-base tracking-tighter leading-none">{selectedIds.size} SELECTED</span>
-                <span className="text-[9px] font-bold uppercase tracking-widest opacity-60">Operations</span>
+                <span className="font-black text-base tracking-tighter leading-none">{selectedMessagesCount} SELECTED</span>
+                <span className="text-[9px] font-bold uppercase tracking-widest opacity-60">Verse Operations</span>
               </div>
               <div className="flex items-center gap-1">
                 <Button 
                   variant="ghost" 
                   size="icon" 
                   className="text-white hover:bg-white/10 rounded-full h-9 w-9" 
-                  disabled={selectedMessages.length === 0}
                   onClick={() => setIsForwardOpen(true)}
                 >
                   <Forward className="h-4 w-4" />
@@ -259,7 +293,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
                 </div>
                 <div className="flex flex-col min-w-0">
                   <h2 className="font-black text-lg truncate leading-none tracking-tighter text-foreground uppercase">#{headerTitle}</h2>
-                  <span className="text-[9px] text-muted-foreground font-black uppercase tracking-widest mt-0.5">Active Channel</span>
+                  <span className="text-[9px] text-muted-foreground font-black uppercase tracking-widest mt-0.5">Sync Active</span>
                 </div>
               </div>
               
@@ -302,15 +336,15 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
             {messagesLoading ? (
               <div className="flex flex-col items-center justify-center py-20 opacity-30 gap-3">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <p className="text-xs font-black uppercase tracking-widest">Syncing the Verse</p>
+                <p className="text-xs font-black uppercase tracking-widest text-primary">Syncing Verse</p>
               </div>
             ) : messages.length === 0 ? (
               <div className="py-24 text-center opacity-30 flex flex-col items-center">
                 <div className="h-20 w-20 bg-muted/50 rounded-[2.5rem] flex items-center justify-center mb-6">
                   <Hash className="h-10 w-10 text-muted-foreground" />
                 </div>
-                <h3 className="text-2xl font-black mb-1 tracking-tighter uppercase">WELCOME TO #{headerTitle}</h3>
-                <p className="text-[10px] font-black uppercase tracking-[0.2em]">The start of something legendary.</p>
+                <h3 className="text-2xl font-black mb-1 tracking-tighter uppercase text-foreground">WELCOME TO #{headerTitle}</h3>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Start something legendary.</p>
               </div>
             ) : (
               <div className="flex flex-col justify-end min-h-full">
@@ -323,7 +357,6 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ 
                         opacity: 0, 
-                        scale: 0.95, 
                         transition: { duration: 0.15, ease: "easeOut" } 
                       }}
                       transition={{ duration: 0.15, ease: "easeOut" }}
@@ -378,7 +411,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
             handleCancelSelection();
           }
         }} 
-        messagesToForward={selectedMessages}
+        messagesToForward={rawMessages?.filter(m => selectedIds.has(m.id)) || []}
         currentCommunityName={server?.name}
         currentChannelName={contextData?.name}
       />
@@ -395,14 +428,14 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
       <AlertDialog open={isClearChatDialogOpen} onOpenChange={setIsClearChatDialogOpen}>
         <AlertDialogContent className="rounded-[2.5rem] border-none shadow-2xl p-8">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-2xl font-black tracking-tighter uppercase">CLEAR CONVERSATION?</AlertDialogTitle>
+            <AlertDialogTitle className="text-2xl font-black tracking-tighter uppercase">CLEAR CHAT?</AlertDialogTitle>
             <AlertDialogDescription className="font-medium text-muted-foreground">
-              All messages will be hidden from your local view. This action is irreversible within the Verse.
+              This will remove all messages from your view. This operation is synchronized.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="gap-3 mt-4">
             <AlertDialogCancel className="rounded-2xl font-bold h-12 flex-1">Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleClearChat} className="rounded-2xl font-black h-12 flex-1 bg-destructive hover:bg-destructive/90 shadow-lg shadow-destructive/20 uppercase tracking-widest">Wipe Everything</AlertDialogAction>
+            <AlertDialogAction onClick={handleClearChat} className="rounded-2xl font-black h-12 flex-1 bg-destructive hover:bg-destructive/90 shadow-lg shadow-destructive/20 uppercase tracking-widest">Wipe Verse</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
