@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -86,7 +87,7 @@ export function useCollection<T = any>(
         setIsLoading(false);
       },
       (error: FirestoreError) => {
-        // Suppress permission errors during logout transitions
+        // PERMANENT FIX: Suppress permission errors during logout transitions or auth resets
         const auth = getAuth();
         if (error.code === 'permission-denied' && !auth.currentUser) {
           setIsLoading(false);
@@ -108,8 +109,10 @@ export function useCollection<T = any>(
         setData(null)
         setIsLoading(false)
 
-        // trigger global error propagation
-        errorEmitter.emit('permission-error', contextualError);
+        // Only trigger global error if user is actually authenticated
+        if (auth.currentUser) {
+          errorEmitter.emit('permission-error', contextualError);
+        }
       }
     );
 

@@ -27,7 +27,6 @@ export function AuthScreen() {
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [pin, setPin] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   
   // State for toggling between Ani and Sanu signature
@@ -54,7 +53,6 @@ export function AuthScreen() {
       } else {
         if (password !== confirmPassword) throw new Error("Passwords do not match");
         if (cleanUsername.length < 3) throw new Error("Username must be at least 3 characters");
-        if (pin.length !== 4 || !/^\d+$/.test(pin)) throw new Error("PIN must be 4 digits");
 
         const q = query(
           collection(db, "users"), 
@@ -93,7 +91,6 @@ export function AuthScreen() {
           serverIds: [],
           allowGroupInvites: true,
           showOnlineStatus: true,
-          securityPin: pin,
           interfaceMode: "laptop"
         };
         
@@ -299,46 +296,27 @@ export function AuthScreen() {
                 </div>
               </div>
               {view === "signup" && (
-                <>
-                  <div className="space-y-0.5">
-                    <Label htmlFor="confirmPassword" className="text-[8px] font-black uppercase tracking-wider text-muted-foreground/80 ml-1">Confirm Password</Label>
-                    <div className="relative">
-                      <Input 
-                        id="confirmPassword" 
-                        type={showPassword ? "text" : "password"} 
-                        required 
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        disabled={isLoading}
-                        className="bg-muted/50 border-none h-9 rounded-xl focus:ring-2 focus:ring-primary/20 transition-all text-sm pr-10"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors focus:outline-none"
-                      >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
-                    </div>
-                  </div>
-                  <div className="space-y-0.5">
-                    <div className="flex items-center gap-1 ml-1 mb-0.5">
-                      <Label htmlFor="pin" className="text-[8px] font-black uppercase tracking-wider text-muted-foreground/80">Security PIN</Label>
-                      <ShieldCheck className="h-2.5 w-2.5 text-primary" />
-                    </div>
+                <div className="space-y-0.5">
+                  <Label htmlFor="confirmPassword" className="text-[8px] font-black uppercase tracking-wider text-muted-foreground/80 ml-1">Confirm Password</Label>
+                  <div className="relative">
                     <Input 
-                      id="pin" 
-                      type="text" 
-                      maxLength={4}
-                      placeholder="4 Digits (e.g. 1234)" 
+                      id="confirmPassword" 
+                      type={showPassword ? "text" : "password"} 
                       required 
-                      value={pin}
-                      onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
                       disabled={isLoading}
-                      className="bg-muted/50 border-none h-9 rounded-xl focus:ring-2 focus:ring-primary/20 transition-all text-sm font-mono tracking-[0.5em] text-center"
+                      className="bg-muted/50 border-none h-9 rounded-xl focus:ring-2 focus:ring-primary/20 transition-all text-sm pr-10"
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors focus:outline-none"
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
                   </div>
-                </>
+                </div>
               )}
             </CardContent>
             <CardFooter className="flex flex-col space-y-3 px-6 md:px-8 pb-4 pt-1">
