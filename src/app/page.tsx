@@ -52,30 +52,27 @@ export default function DuniyaApp() {
     }
   }, [userData?.showOnlineStatus]);
 
-  const updateStatus = useCallback((status: "online" | "idle" | "offline") => {
-    if (!user || !db || !auth.currentUser) return;
-    
-    // Respect privacy setting via ref to keep function identity stable
-    const finalStatus = privacySettingsRef.current.showOnlineStatus === false ? "offline" : status;
-    const userRef = doc(db, "users", user.uid);
-    
-    updateDocumentNonBlocking(userRef, {
-      onlineStatus: finalStatus,
-      lastOnlineAt: new Date().toISOString()
-    });
-  }, [user, db, auth]);
-
+  // STABLE STATUS UPDATE: Removed dependencies that cause flip-flopping
   useEffect(() => {
-    if (!user || !db || !auth.currentUser) return;
+    if (!user?.uid || !db || !auth.currentUser) return;
 
-    updateStatus("online");
+    const setPresence = (status: "online" | "idle" | "offline") => {
+      const finalStatus = privacySettingsRef.current.showOnlineStatus === false ? "offline" : status;
+      updateDocumentNonBlocking(doc(db, "users", user.uid), {
+        onlineStatus: finalStatus,
+        lastOnlineAt: new Date().toISOString()
+      });
+    };
+
+    // Initial online set
+    setPresence("online");
 
     const handleVisibility = () => {
-      updateStatus(document.visibilityState === 'visible' ? "online" : "idle");
+      setPresence(document.visibilityState === 'visible' ? "online" : "idle");
     };
 
     const handleUnload = () => {
-      updateStatus("offline");
+      setPresence("offline");
     };
 
     window.addEventListener('visibilitychange', handleVisibility);
@@ -84,9 +81,10 @@ export default function DuniyaApp() {
     return () => {
       window.removeEventListener('visibilitychange', handleVisibility);
       window.removeEventListener('beforeunload', handleUnload);
-      handleUnload();
+      // CRITICAL: We do NOT call handleUnload() here. React re-renders are frequent.
+      // Calling offline/online on every re-render causes the Firestore loop that freezes the site.
     };
-  }, [user, db, auth, updateStatus]);
+  }, [user?.uid, db]); // Only depend on stable UID and DB instance
 
   if (isUserLoading) {
     return (

@@ -32,7 +32,7 @@ export function CommunityProfileDialog({ open, onOpenChange, serverId }: Communi
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[425px] rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl bg-background">
+        <DialogContent className="sm:max-w-[425px] rounded-[2rem] p-0 overflow-hidden border-none shadow-2xl bg-background">
           <DialogHeader className="sr-only">
             <DialogTitle>{server.name} Profile</DialogTitle>
             <DialogDescription>Detailed information about the {server.name} community in the Verse.</DialogDescription>
