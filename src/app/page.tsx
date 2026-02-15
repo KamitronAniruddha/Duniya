@@ -59,7 +59,8 @@ export default function DuniyaApp() {
     const setPresence = (status: "online" | "idle" | "offline") => {
       const finalStatus = privacySettingsRef.current.showOnlineStatus === false ? "offline" : status;
       
-      // CRITICAL: Prevent flip-flop loops that freeze the UI
+      // CRITICAL STABILITY FIX: Only update Firestore if the status has physically changed.
+      // This prevents background write-loops that freeze the browser.
       if (lastSentStatusRef.current !== finalStatus) {
         lastSentStatusRef.current = finalStatus;
         updateDocumentNonBlocking(doc(db, "users", user.uid), {
@@ -86,7 +87,7 @@ export default function DuniyaApp() {
       window.removeEventListener('visibilitychange', handleVisibility);
       window.removeEventListener('beforeunload', handleUnload);
     };
-  }, [user?.uid, db, auth.currentUser]); // Added stable dependencies
+  }, [user?.uid, db, auth.currentUser]); 
 
   const handleSelectServer = useCallback((id: string | "duniya") => {
     if (id === "duniya") {

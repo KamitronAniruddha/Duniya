@@ -525,5 +525,6 @@ export const MessageBubble = memo(function MessageBubble({
          prev.message.seenBy?.length === next.message.seenBy?.length &&
          prev.isSelected === next.isSelected &&
          prev.selectionMode === next.selectionMode &&
-         prev.message.senderExpireAt === next.message.senderExpireAt;
+         prev.message.senderExpireAt === next.message.senderExpireAt &&
+         prev.message.viewerExpireAt === next.message.viewerExpireAt;
 });

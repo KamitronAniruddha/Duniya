@@ -3,62 +3,73 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
     // User Profiles: Authenticated read, owner-only write
     match /users/{userId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow read: if isSignedIn();
+      allow write: if isOwner(userId);
     }
 
     // Communities: Public read for discovery, authenticated creation
     match /communities/{communityId} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if isSignedIn();
       
       // Channels: Authenticated access
       match /channels/{channelId} {
-        allow read, write: if request.auth != null;
+        allow read, write: if isSignedIn();
         
         // Messages: Advanced visibility and seen status rules
         match /messages/{messageId} {
-          allow create: if request.auth != null;
+          allow create: if isSignedIn();
           
-          // Read rule MUST match the visibleTo query logic: 
+          // Read rule matching the visibleTo query logic: 
           // where("visibleTo", "array-contains-any", ["all", user.uid])
-          allow read: if request.auth != null && 
-            (resource.data.visibleTo.hasAny(['all', request.auth.uid]));
+          allow read: if isSignedIn() && (
+            !('visibleTo' in resource.data) || 
+            resource.data.visibleTo.hasAny(['all', request.auth.uid])
+          );
 
           // Allow updates:
           // 1. Full updates by the sender (editing, deleting for everyone)
           // 2. Seen status and local delete updates by participants
-          allow update: if request.auth != null && (
+          allow update: if isSignedIn() && (
             resource.data.senderId == request.auth.uid || 
             (request.resource.data.diff(resource.data).affectedKeys().hasAny(['seenBy', 'viewerExpireAt', 'deletedFor']))
           );
           
-          allow delete: if request.auth != null && resource.data.senderId == request.auth.uid;
+          allow delete: if isSignedIn() && resource.data.senderId == request.auth.uid;
         }
       }
       
       // Subcollections like members
       match /{allSubcollections=**} {
-        allow read, write: if request.auth != null;
+        allow read, write: if isSignedIn();
       }
     }
 
     // Conversations (DMs)
     match /conversations/{conversationId} {
-      allow read, write: if request.auth != null && request.auth.uid in resource.data.participantIds;
+      allow read, write: if isSignedIn() && (request.auth.uid in resource.data.participantIds);
     }
 
     // Contact Submissions
     match /contact_form_submissions/{submissionId} {
       allow create: if true;
-      allow read, update, delete: if request.auth != null;
+      allow read, update, delete: if isSignedIn();
     }
 
     // Global Fallback for authenticated users
     match /{document=**} {
-      allow read, write: if request.auth != null;
+      allow read, write: if isSignedIn();
     }
   }
 }

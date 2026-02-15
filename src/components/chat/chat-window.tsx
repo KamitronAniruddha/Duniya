@@ -59,8 +59,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
 
   const messagesQuery = useMemoFirebase(() => {
     if (!db || !basePath || !user) return null;
-    // CRITICAL PERFORMANCE FIX: We only query messages that are public OR addressed to us OR sent by us.
-    // This prevents the Firestore listener from crashing on 'Missing or insufficient permissions'.
+    // CRITICAL SECURITY SYNC: Ensure the query filter exactly matches the 'visibleTo' rule in firestore.rules
     return query(
       collection(db, basePath, "messages"), 
       where("visibleTo", "array-contains-any", ["all", user.uid]),
@@ -122,7 +121,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
       viewerExpireAt: {},
       whisperTo: finalWhisper?.id || null,
       whisperToUsername: finalWhisper?.username || null,
-      // Permission array for high-performance filtering and security compliance
+      // CRITICAL PERMISSION ARRAY: Hardens the whisper system and public visibility.
       visibleTo: finalWhisper ? [user.uid, finalWhisper.id] : ["all"]
     };
     if (disappearing?.enabled) data.senderExpireAt = new Date(sentAt.getTime() + disappearing.duration).toISOString();
