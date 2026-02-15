@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useFirestore, useUser, useDoc, useMemoFirebase } from "@/firebase";
 import { doc, arrayUnion, deleteField } from "firebase/firestore";
 import { UserProfilePopover } from "@/components/profile/user-profile-popover";
-import { Reply, CornerDownRight, Play, Pause, MoreHorizontal, Trash2, Ban, Copy, Timer, Check, CheckCheck, Forward, Landmark } from "lucide-react";
+import { Reply, CornerDownRight, Play, Pause, MoreHorizontal, Trash2, Ban, Copy, Timer, Check, CheckCheck, Forward, Landmark, Mic } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
@@ -322,14 +322,40 @@ export const MessageBubble = memo(function MessageBubble({
               )}
 
               {message.type === 'media' && message.audioUrl ? (
-                <div className="flex items-center gap-3 py-1 min-w-[200px]">
-                  <audio ref={audioRef} src={message.audioUrl} onTimeUpdate={() => audioRef.current && setProgress((audioRef.current.currentTime / audioRef.current.duration) * 100)} />
-                  <Button variant="ghost" size="icon" className={cn("h-9 w-9 rounded-full shadow-md", isMe ? "bg-white/10 text-white" : "bg-primary/10 text-primary")} onClick={(e) => { e.stopPropagation(); togglePlay(); }}>
-                    {isPlaying ? <Pause className="h-5 w-5 fill-current" /> : <Reply className="h-5 w-5 fill-current ml-1 rotate-180" />}
+                <div className="flex items-center gap-3 py-2 min-w-[220px] max-w-full">
+                  <audio ref={audioRef} src={message.audioUrl} onTimeUpdate={() => audioRef.current && setProgress((audioRef.current.currentTime / audioRef.current.duration) * 100)} onEnded={() => { setIsPlaying(false); setProgress(0); }} />
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className={cn(
+                      "h-10 w-10 rounded-full shadow-lg shrink-0 transition-transform active:scale-95", 
+                      isMe ? "bg-white text-primary" : "bg-primary text-white"
+                    )} 
+                    onClick={(e) => { e.stopPropagation(); togglePlay(); }}
+                  >
+                    {isPlaying ? <Pause className="h-5 w-5 fill-current" /> : <Play className="h-5 w-5 fill-current ml-0.5" />}
                   </Button>
-                  <div className="flex-1 space-y-1.5">
-                    <div className={cn("h-1.5 w-full rounded-full overflow-hidden", isMe ? "bg-white/20" : "bg-muted")}>
-                      <div className={cn("h-full", isMe ? "bg-white" : "bg-primary")} style={{ width: `${progress}%` }} />
+                  <div className="flex-1 flex flex-col gap-1.5 min-w-0">
+                    <div className="flex items-end gap-0.5 h-6 overflow-hidden items-center">
+                      {[...Array(20)].map((_, i) => (
+                        <motion.div 
+                          key={i} 
+                          animate={isPlaying ? { height: [4, Math.random() * 16 + 4, 4] } : { height: 4 }}
+                          transition={{ repeat: Infinity, duration: 0.5, delay: i * 0.05 }}
+                          className={cn(
+                            "w-1 rounded-full shrink-0",
+                            isMe 
+                              ? (progress > (i * 5) ? "bg-white" : "bg-white/30") 
+                              : (progress > (i * 5) ? "bg-primary" : "bg-primary/20")
+                          )} 
+                        />
+                      ))}
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                       <span className={cn("text-[8px] font-black", isMe ? "text-white/70" : "text-muted-foreground/70")}>
+                         {audioRef.current ? `${Math.floor(audioRef.current.currentTime)}s` : "0:00"}
+                       </span>
+                       <Mic className={cn("h-2.5 w-2.5", isMe ? "text-white/40" : "text-primary/40")} />
                     </div>
                   </div>
                 </div>

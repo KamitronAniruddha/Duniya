@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { motion } from "framer-motion";
 
 interface MessageInputProps {
   onSendMessage: (content: string, audioUrl?: string, videoUrl?: string, replySenderName?: string, disappearing?: DisappearingConfig) => void;
@@ -101,14 +102,29 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ 
-        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } 
+        audio: { 
+          echoCancellation: true, 
+          noiseSuppression: true, 
+          autoGainControl: true,
+          channelCount: 1,
+          sampleRate: 48000
+        } 
       });
-      const recorder = new MediaRecorder(stream, { audioBitsPerSecond: 128000 });
+      
+      // High-quality options for clear voice
+      const options = { 
+        audioBitsPerSecond: 128000,
+        mimeType: MediaRecorder.isTypeSupported('audio/webm;codecs=opus') 
+          ? 'audio/webm;codecs=opus' 
+          : 'audio/webm'
+      };
+
+      const recorder = new MediaRecorder(stream, options);
       mediaRecorderRef.current = recorder;
       chunksRef.current = [];
       recorder.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
       recorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        const blob = new Blob(chunksRef.current, { type: options.mimeType });
         const reader = new FileReader();
         reader.readAsDataURL(blob);
         reader.onloadend = () => {
@@ -120,7 +136,7 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
         };
         stream.getTracks().forEach(track => track.stop());
       };
-      recorder.start();
+      recorder.start(200); // Collect data in 200ms chunks for reliability
       setIsRecording(true);
       setRecordingTime(0);
       timerRef.current = setInterval(() => setRecordingTime(prev => prev + 1), 1000);
@@ -133,7 +149,7 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ 
         video: { width: 480, height: 480, facingMode: "user" },
-        audio: true 
+        audio: { echoCancellation: true, noiseSuppression: true } 
       });
       streamRef.current = stream;
       if (videoRef.current) videoRef.current.srcObject = stream;
@@ -208,7 +224,7 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
 
       <div className="p-4 bg-background border-t relative">
         {(isRecording || isRecordingVideo) ? (
-          <div className="flex items-center gap-4 max-w-5xl mx-auto bg-muted/20 p-2 rounded-xl animate-in fade-in zoom-in-95">
+          <div className="flex items-center gap-4 max-w-5xl mx-auto bg-muted/20 p-3 rounded-2xl animate-in fade-in zoom-in-95 border border-primary/10 shadow-xl">
             {isRecordingVideo && (
               <div className="h-24 w-24 rounded-full overflow-hidden border-4 border-primary bg-black shrink-0 relative shadow-lg">
                 <video ref={videoRef} autoPlay muted playsInline className="h-full w-full object-cover scale-x-[-1]" />
@@ -216,17 +232,32 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
               </div>
             )}
             <div className="flex-1 flex flex-col gap-1">
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-2 px-3 py-1 bg-red-500/10 text-red-500 rounded-full w-fit">
-                  <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
-                  <span className="text-xs font-mono font-bold">{formatTime(recordingTime)}</span>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 px-4 py-1.5 bg-red-500/10 text-red-500 rounded-full w-fit border border-red-500/20">
+                  <motion.div 
+                    animate={{ scale: [1, 1.2, 1], opacity: [1, 0.5, 1] }} 
+                    transition={{ repeat: Infinity, duration: 1 }}
+                    className="h-2.5 w-2.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]" 
+                  />
+                  <span className="text-sm font-black font-mono">{formatTime(recordingTime)}</span>
                 </div>
-                <span className="text-sm font-semibold text-primary">{isRecordingVideo ? "Video Message" : "Audio Message"}</span>
+                <div className="flex-1 flex items-center gap-1.5 h-4 overflow-hidden">
+                  {[...Array(12)].map((_, i) => (
+                    <motion.div 
+                      key={i}
+                      animate={{ height: [2, Math.random() * 12 + 2, 2] }}
+                      transition={{ repeat: Infinity, duration: 0.4, delay: i * 0.1 }}
+                      className="w-1 bg-primary/40 rounded-full"
+                    />
+                  ))}
+                </div>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full" onClick={cancelRecording}><Trash2 className="h-5 w-5" /></Button>
-              <Button size="icon" className="h-12 w-12 rounded-full bg-red-500 hover:bg-red-600 shadow-lg text-white" onClick={stopRecording}><Square className="h-5 w-5 fill-current" /></Button>
+              <Button variant="ghost" size="icon" className="h-11 w-11 rounded-full hover:bg-destructive/10 hover:text-destructive" onClick={cancelRecording}><Trash2 className="h-5 w-5" /></Button>
+              <Button size="icon" className="h-14 w-14 rounded-full bg-red-500 hover:bg-red-600 shadow-2xl shadow-red-500/30 text-white transition-transform active:scale-90" onClick={stopRecording}>
+                <Square className="h-6 w-6 fill-current" />
+              </Button>
             </div>
           </div>
         ) : (
@@ -351,7 +382,7 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
                 ) : (
                   <>
                     <Button type="button" variant="ghost" size="icon" onClick={startVideoRecording} className="rounded-xl h-10 w-10 shrink-0 text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors"><Video className="h-5 w-5" /></Button>
-                    <Button type="button" size="icon" onClick={startRecording} className="rounded-xl h-10 w-10 shrink-0 bg-muted text-muted-foreground hover:bg-primary hover:text-primary-foreground transition-all shadow-sm"><Mic className="h-5 w-5" /></Button>
+                    <Button type="button" size="icon" onClick={startRecording} className="rounded-xl h-10 w-10 shrink-0 bg-muted text-muted-foreground hover:bg-primary hover:text-primary-foreground transition-all shadow-sm active:scale-95"><Mic className="h-5 w-5" /></Button>
                   </>
                 )}
               </div>
