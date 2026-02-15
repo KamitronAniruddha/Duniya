@@ -6,7 +6,7 @@ import { useCollection, useFirestore, useUser, useDoc, useMemoFirebase } from "@
 import { collection, query, orderBy, limit, doc, arrayUnion, writeBatch, deleteField } from "firebase/firestore";
 import { MessageBubble } from "./message-bubble";
 import { MessageInput } from "./message-input";
-import { Hash, Users, Loader2, MessageCircle, X, Trash2, MoreVertical, Eraser } from "lucide-react";
+import { Hash, Users, Loader2, MessageCircle, X, Trash2, MoreVertical, Eraser, Forward } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { setDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { cn } from "@/lib/utils";
@@ -15,6 +15,9 @@ import { MembersPanel } from "@/components/members/members-panel";
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DeleteOptionsDialog } from "./delete-options-dialog";
+import { ForwardDialog } from "./forward-dialog";
+import { AnimatePresence } from "framer-motion";
 
 interface ChatWindowProps {
   channelId?: string | null;
@@ -33,9 +36,9 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isForwardOpen, setIsForwardOpen] = useState(false);
   const [isClearChatDialogOpen, setIsClearChatDialogOpen] = useState(false);
 
-  // Path resolution logic - Community only as requested
   const basePath = useMemo(() => {
     if (serverId && channelId) {
       return `communities/${serverId}/channels/${channelId}`;
@@ -46,7 +49,6 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
   const contextRef = useMemoFirebase(() => (basePath ? doc(db, basePath) : null), [db, basePath]);
   const { data: contextData } = useDoc(contextRef);
 
-  // Message querying
   const messagesQuery = useMemoFirebase(() => {
     if (!db || !basePath || !user) return null;
     return query(
@@ -185,6 +187,8 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
   }
 
   const headerTitle = contextData?.name || "...";
+  const selectedMessages = rawMessages?.filter(m => selectedIds.has(m.id)) || [];
+  const allSelectedFromMe = selectedMessages.every(m => m.senderId === user?.uid);
 
   return (
     <div className="flex-1 flex flex-col h-full bg-background overflow-hidden relative">
@@ -201,9 +205,14 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
               <X className="h-5 w-5" />
             </Button>
             <span className="font-black text-lg flex-1 tracking-tight">{selectedIds.size} SELECTED</span>
-            <Button variant="ghost" size="icon" className="text-white hover:bg-white/10" onClick={() => setIsDeleteDialogOpen(true)}>
-              <Trash2 className="h-5 w-5" />
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="icon" className="text-white hover:bg-white/10" onClick={() => setIsForwardOpen(true)}>
+                <Forward className="h-5 w-5" />
+              </Button>
+              <Button variant="ghost" size="icon" className="text-white hover:bg-white/10" onClick={() => setIsDeleteDialogOpen(true)}>
+                <Trash2 className="h-5 w-5" />
+              </Button>
+            </div>
           </div>
         ) : (
           <>
@@ -258,19 +267,21 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
               </div>
             ) : (
               <div className="flex flex-col justify-end min-h-full">
-                {messages.map((msg) => (
-                  <MessageBubble 
-                    key={msg.id}
-                    message={msg}
-                    messagePath={`${basePath}/messages/${msg.id}`}
-                    isMe={msg.senderId === user?.uid}
-                    isSelected={selectedIds.has(msg.id)}
-                    selectionMode={selectionMode}
-                    onLongPress={enterSelectionMode}
-                    onSelect={toggleMessageSelection}
-                    onReply={() => setReplyingTo(msg)}
-                  />
-                ))}
+                <AnimatePresence mode="popLayout">
+                  {messages.map((msg) => (
+                    <MessageBubble 
+                      key={msg.id}
+                      message={msg}
+                      messagePath={`${basePath}/messages/${msg.id}`}
+                      isMe={msg.senderId === user?.uid}
+                      isSelected={selectedIds.has(msg.id)}
+                      selectionMode={selectionMode}
+                      onLongPress={enterSelectionMode}
+                      onSelect={toggleMessageSelection}
+                      onReply={() => setReplyingTo(msg)}
+                    />
+                  ))}
+                </AnimatePresence>
               </div>
             )}
           </div>
@@ -291,19 +302,27 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
         )}
       </div>
       
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete {selectedIds.size} Messages?</AlertDialogTitle>
-            <AlertDialogDescription>Choose how you want to remove these messages.</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="flex-col gap-2">
-            <AlertDialogAction onClick={() => handleBatchDelete("me")} className="w-full">Delete for Me</AlertDialogAction>
-            <AlertDialogAction onClick={() => handleBatchDelete("everyone")} className="w-full bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete for Everyone</AlertDialogAction>
-            <AlertDialogCancel className="w-full">Cancel</AlertDialogCancel>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <DeleteOptionsDialog 
+        open={isDeleteDialogOpen} 
+        onOpenChange={setIsDeleteDialogOpen} 
+        onDeleteForMe={() => handleBatchDelete("me")} 
+        onDeleteForEveryone={allSelectedFromMe ? () => handleBatchDelete("everyone") : undefined} 
+        isSender={allSelectedFromMe}
+        count={selectedIds.size}
+      />
+
+      <ForwardDialog 
+        open={isForwardOpen} 
+        onOpenChange={(val) => {
+          setIsForwardOpen(val);
+          if (!val) {
+            setSelectionMode(false);
+            setSelectedIds(new Set());
+          }
+        }} 
+        messagesToForward={selectedMessages}
+        currentCommunityName={contextData?.name}
+      />
 
       <AlertDialog open={isClearChatDialogOpen} onOpenChange={setIsClearChatDialogOpen}>
         <AlertDialogContent>

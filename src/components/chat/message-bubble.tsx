@@ -14,6 +14,8 @@ import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { useToast } from "@/hooks/use-toast";
 import { MessageTraceDialog } from "./message-trace-dialog";
 import { ForwardDialog } from "./forward-dialog";
+import { DeleteOptionsDialog } from "./delete-options-dialog";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface ForwardHop {
   communityName: string;
@@ -82,8 +84,9 @@ export const MessageBubble = memo(function MessageBubble({
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [isTraceOpen, setIsTraceOpen] = useState(false);
   const [isForwardOpen, setIsForwardOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
-  // Swipe & Long Press logic for mobile and desktop interactivity
+  // Swipe & Long Press logic
   const [dragX, setDragX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const startX = useRef(0);
@@ -101,7 +104,6 @@ export const MessageBubble = memo(function MessageBubble({
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }, [message.sentAt]);
 
-  // Mark as seen and handle disappearing timers
   useEffect(() => {
     if (!user || isMe || message.isDeleted || message.fullyDeleted || !messagePath) return;
     
@@ -122,7 +124,6 @@ export const MessageBubble = memo(function MessageBubble({
     }
   }, [message.id, user?.uid, isMe, messagePath, message.disappearingEnabled, message.seenBy]);
 
-  // Disappearing Timer countdown
   useEffect(() => {
     if (!message.disappearingEnabled || !user || message.isDeleted || message.fullyDeleted) return;
     
@@ -199,10 +200,13 @@ export const MessageBubble = memo(function MessageBubble({
     setIsPlaying(!isPlaying);
   };
 
-  const handleCopy = () => {
-    if (!message.content) return;
-    navigator.clipboard.writeText(message.content);
-    toast({ title: "Copied" });
+  const handleDeleteForMe = () => {
+    if (!db || !messagePath || !user) return;
+    const msgRef = doc(db, messagePath);
+    updateDocumentNonBlocking(msgRef, {
+      deletedFor: arrayUnion(user.uid)
+    });
+    toast({ title: "Deleted for you" });
   };
 
   const handleDeleteForEveryone = () => {
@@ -215,6 +219,7 @@ export const MessageBubble = memo(function MessageBubble({
       videoUrl: deleteField(),
       type: "text"
     });
+    toast({ title: "Deleted for everyone" });
   };
 
   const formatCountdown = (seconds: number) => {
@@ -227,7 +232,10 @@ export const MessageBubble = memo(function MessageBubble({
   const latestHop = message.forwardingChain?.[message.forwardingChain.length - 1];
 
   return (
-    <div 
+    <motion.div 
+      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.8, filter: "blur(10px)" }}
       className={cn(
         "flex w-full py-0.5 group items-end relative transition-all duration-300 rounded-lg select-none", 
         isMe ? "flex-row-reverse" : "flex-row",
@@ -255,9 +263,18 @@ export const MessageBubble = memo(function MessageBubble({
         </div>
       </div>
 
-      <div className="absolute left-4 top-1/2 -translate-y-1/2 transition-all flex items-center justify-center bg-primary/10 rounded-full h-8 w-8 pointer-events-none" style={{ opacity: Math.min(dragX / 60, 1), transform: `scale(${Math.min(dragX / 60, 1)})`, left: `${Math.min(dragX / 2, 20)}px` }}>
-        <Reply className={cn("h-4 w-4", dragX >= 60 ? "text-primary" : "text-muted-foreground")} />
-      </div>
+      <AnimatePresence>
+        {dragX >= 60 && (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0, x: -20 }}
+            animate={{ opacity: 1, scale: 1, x: 0 }}
+            exit={{ opacity: 0, scale: 0, x: -20 }}
+            className="absolute left-4 top-1/2 -translate-y-1/2 bg-primary/20 rounded-full h-8 w-8 flex items-center justify-center pointer-events-none z-10"
+          >
+            <Reply className="h-4 w-4 text-primary" />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {!isMe && !selectionMode && (
         <UserProfilePopover userId={message.senderId}>
@@ -272,13 +289,17 @@ export const MessageBubble = memo(function MessageBubble({
       
       <div className={cn("flex flex-col max-w-[75%] relative transition-transform ease-out", isMe ? "items-end" : "items-start")} style={{ transform: `translateX(${dragX}px)` }}>
         {isActuallyDeleted ? (
-          <div className={cn(
-            "px-3.5 py-2.5 rounded-2xl text-[11px] italic opacity-60 flex items-center gap-2 border shadow-none bg-card",
-            isMe ? "rounded-br-none" : "rounded-bl-none"
-          )}>
+          <motion.div 
+            initial={{ opacity: 0.5 }}
+            animate={{ opacity: 1 }}
+            className={cn(
+              "px-3.5 py-2.5 rounded-2xl text-[11px] italic opacity-60 flex items-center gap-2 border shadow-none bg-card",
+              isMe ? "rounded-br-none" : "rounded-bl-none"
+            )}
+          >
             <Ban className="h-3 w-3" />
             {isDisappeared ? "This message disappeared" : (isMe ? "You deleted this message" : "This message was deleted")}
-          </div>
+          </motion.div>
         ) : (
           <>
             {!isMe && !selectionMode && (
@@ -361,14 +382,30 @@ export const MessageBubble = memo(function MessageBubble({
       </div>
 
       {!selectionMode && !isActuallyDeleted && (
-        <div className={cn("mb-2 mx-1 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5", isMe ? "mr-1" : "ml-1")}>
-          <button onClick={onReply} className="h-7 w-7 rounded-full hover:bg-muted/50 flex items-center justify-center text-muted-foreground hover:text-primary"><Reply className="h-3.5 w-3.5" /></button>
+        <div className={cn("mb-2 mx-1 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1", isMe ? "mr-1 flex-row-reverse" : "ml-1 flex-row")}>
+          <button onClick={() => setIsForwardOpen(true)} className="h-8 w-8 rounded-full bg-muted/40 hover:bg-primary/10 flex items-center justify-center text-muted-foreground hover:text-primary transition-all shadow-sm">
+            <Forward className="h-4 w-4" />
+          </button>
+          
           <DropdownMenu>
-            <DropdownMenuTrigger asChild><button className="h-7 w-7 rounded-full hover:bg-muted/50 flex items-center justify-center text-muted-foreground hover:text-primary"><MoreHorizontal className="h-3.5 w-3.5" /></button></DropdownMenuTrigger>
-            <DropdownMenuContent align={isMe ? "end" : "start"} className="rounded-xl font-bold uppercase text-[10px] tracking-widest">
-              <DropdownMenuItem onClick={handleCopy} className="gap-2"><Copy className="h-4 w-4" />Copy</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setIsForwardOpen(true)} className="gap-2"><Forward className="h-4 w-4" />Forward</DropdownMenuItem>
-              {isMe && <DropdownMenuItem onClick={handleDeleteForEveryone} className="text-destructive gap-2"><Trash2 className="h-4 w-4" />Delete for all</DropdownMenuItem>}
+            <DropdownMenuTrigger asChild>
+              <button className="h-8 w-8 rounded-full bg-muted/40 hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-primary transition-all shadow-sm">
+                <MoreHorizontal className="h-4 w-4" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align={isMe ? "end" : "start"} className="rounded-xl font-bold uppercase text-[10px] tracking-widest p-1 border-none shadow-xl">
+              <DropdownMenuItem onClick={() => { onReply?.(); }} className="gap-2 p-2 rounded-lg">
+                <Reply className="h-4 w-4" /> Reply
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(message.content); toast({ title: "Copied" }); }} className="gap-2 p-2 rounded-lg">
+                <Copy className="h-4 w-4" /> Copy
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setIsForwardOpen(true)} className="gap-2 p-2 rounded-lg">
+                <Forward className="h-4 w-4" /> Forward
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setIsDeleteDialogOpen(true)} className="text-destructive gap-2 p-2 rounded-lg hover:bg-destructive/10">
+                <Trash2 className="h-4 w-4" /> Delete
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -383,6 +420,14 @@ export const MessageBubble = memo(function MessageBubble({
         onOpenChange={setIsForwardOpen} 
         messagesToForward={[message]} 
       />
-    </div>
+
+      <DeleteOptionsDialog 
+        open={isDeleteDialogOpen} 
+        onOpenChange={setIsDeleteDialogOpen} 
+        onDeleteForMe={handleDeleteForMe} 
+        onDeleteForEveryone={handleDeleteForEveryone} 
+        isSender={isMe} 
+      />
+    </motion.div>
   );
 });
