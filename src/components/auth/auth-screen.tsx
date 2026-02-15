@@ -128,7 +128,7 @@ export function AuthScreen() {
                       exit={{ opacity: 0, scale: 0.9 }}
                     >
                       <motion.path
-                        d="M15,28 C20,5 30,5 35,28 M22,20 L38,20 M45,28 L45,16 C45,10 55,10 55,16 L55,28 M65,16 L65,28 M65,8 L65,10"
+                        d="M15,28 L25,8 L35,28 M20,20 L30,20 M45,28 L45,18 C45,14 55,14 55,18 L55,28 M65,18 L65,28 M65,10 L65,12"
                         stroke="currentColor"
                         strokeWidth="2.5"
                         strokeLinecap="round"
@@ -136,7 +136,7 @@ export function AuthScreen() {
                         initial={{ pathLength: 0 }}
                         animate={{ pathLength: 1 }}
                         transition={{ 
-                          duration: 2, 
+                          duration: 1.5, 
                           ease: "easeInOut",
                         }}
                       />
@@ -155,7 +155,7 @@ export function AuthScreen() {
                       exit={{ opacity: 0, scale: 0.9 }}
                     >
                       <motion.path
-                        d="M15,25 C15,10 35,10 35,18 C35,25 15,25 15,32 C15,40 35,40 35,32 M45,32 C45,25 55,25 55,32 L55,35 M55,28 L55,35 M62,35 L62,28 C62,24 72,24 72,28 L72,35 M78,28 L78,32 C78,36 88,36 88,32 L88,28 M88,28 L88,35"
+                        d="M20,10 C10,10 10,20 20,20 C30,20 30,30 20,30 M35,30 C30,30 30,22 35,22 C40,22 40,30 35,30 M40,22 L40,30 M50,30 L50,22 C50,18 60,18 60,22 L60,30 M70,22 L70,26 C70,32 80,32 80,26 L80,22 M80,22 L80,30"
                         stroke="currentColor"
                         strokeWidth="2.5"
                         strokeLinecap="round"
@@ -163,7 +163,7 @@ export function AuthScreen() {
                         initial={{ pathLength: 0 }}
                         animate={{ pathLength: 1 }}
                         transition={{ 
-                          duration: 2.2, 
+                          duration: 1.8, 
                           ease: "easeInOut",
                         }}
                       />
