@@ -260,8 +260,10 @@ export const MessageBubble = memo(function MessageBubble({
 
   const isActuallyDeleted = message.isDeleted || isDisappeared || message.fullyDeleted;
 
-  // Root of the genealogy is the first hop in the chain
-  const rootHop = message.forwardingChain && message.forwardingChain.length > 0 ? message.forwardingChain[0] : null;
+  // Latest hop for the bubble label
+  const latestHop = message.forwardingChain && message.forwardingChain.length > 0 
+    ? message.forwardingChain[message.forwardingChain.length - 1] 
+    : null;
 
   return (
     <div 
@@ -345,10 +347,10 @@ export const MessageBubble = memo(function MessageBubble({
                     Forwarded
                     <History className="h-2 w-2 ml-1 opacity-0 group-hover/forward:opacity-100 transition-opacity" />
                   </button>
-                  {rootHop && (
+                  {latestHop && (
                     <div className={cn("flex items-center gap-1 text-[8px] font-bold tracking-tight mt-0.5", isMe ? "text-white/60" : "text-primary/70")}>
                       <Landmark className="h-2 w-2" />
-                      <span>from {rootHop.communityName}</span>
+                      <span>via {latestHop.communityName}</span>
                     </div>
                   )}
                 </div>
