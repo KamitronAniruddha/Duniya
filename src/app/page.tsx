@@ -34,7 +34,6 @@ export default function DuniyaApp() {
 
   const { data: channels } = useCollection(channelsQuery);
 
-  // Optimized auto-select to prevent recursive loops
   useEffect(() => {
     if (activeCommunityId && channels && channels.length > 0) {
       const firstChannelId = channels[0].id;
@@ -44,20 +43,16 @@ export default function DuniyaApp() {
     }
   }, [activeCommunityId, channels?.length]);
 
-  const privacySettingsRef = useRef({ showOnlineStatus: true });
-  useEffect(() => {
-    if (userData) {
-      privacySettingsRef.current.showOnlineStatus = userData.showOnlineStatus !== false;
-    }
-  }, [userData?.showOnlineStatus]);
-
   const lastSentStatusRef = useRef<string | null>(null);
 
+  // Core Presence Logic: Visibility and Focus
   useEffect(() => {
     if (!user?.uid || !db || !auth.currentUser) return;
 
     const setPresence = (status: "online" | "idle" | "offline") => {
-      const finalStatus = privacySettingsRef.current.showOnlineStatus === false ? "offline" : status;
+      // Check privacy settings from current state or ref
+      const showStatus = userData?.showOnlineStatus !== false;
+      const finalStatus = showStatus ? status : "offline";
       
       // CRITICAL STABILITY FIX: Only update Firestore if the status has physically changed.
       // This prevents background write-loops that freeze the browser.
@@ -70,25 +65,27 @@ export default function DuniyaApp() {
       }
     };
 
-    // Initial online status
-    setPresence("online");
+    // Initial status check
+    setPresence(document.visibilityState === 'visible' ? "online" : "idle");
 
     const handleVisibility = () => {
       setPresence(document.visibilityState === 'visible' ? "online" : "idle");
     };
 
-    const handleUnload = () => {
-      setPresence("offline");
-    };
+    const handleFocus = () => setPresence("online");
+    const handleBlur = () => setPresence("idle");
 
     window.addEventListener('visibilitychange', handleVisibility);
-    window.addEventListener('beforeunload', handleUnload);
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('blur', handleBlur);
+    window.addEventListener('beforeunload', () => setPresence("offline"));
 
     return () => {
       window.removeEventListener('visibilitychange', handleVisibility);
-      window.removeEventListener('beforeunload', handleUnload);
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('blur', handleBlur);
     };
-  }, [user?.uid, db, auth.currentUser, userData?.showOnlineStatus]); // Added showOnlineStatus to deps for instant privacy updates
+  }, [user?.uid, db, auth.currentUser, userData?.showOnlineStatus]); // Reactive to privacy changes
 
   const handleSelectServer = useCallback((id: string | "duniya") => {
     if (id === "duniya") {

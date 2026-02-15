@@ -88,8 +88,9 @@ export function MembersPanel({ serverId, onWhisper }: MembersPanelProps) {
   const isOwner = server.ownerId === currentUser?.uid;
   const serverAdmins = server.admins || [];
   
-  // Unified Active Members: includes both 'online' and 'idle'
-  const activeMembers = members?.filter(m => (m.onlineStatus === "online" || m.onlineStatus === "idle") && m.showOnlineStatus !== false) || [];
+  // High-Fidelity Presence Segmentation
+  const onlineMembers = members?.filter(m => m.onlineStatus === "online" && m.showOnlineStatus !== false) || [];
+  const awayMembers = members?.filter(m => m.onlineStatus === "idle" && m.showOnlineStatus !== false) || [];
   const offlineMembers = members?.filter(m => (m.onlineStatus !== "online" && m.onlineStatus !== "idle") || m.showOnlineStatus === false) || [];
 
   const handleInvite = async () => {
@@ -172,11 +173,14 @@ export function MembersPanel({ serverId, onWhisper }: MembersPanelProps) {
             </div>
           ) : (
             <>
-              {activeMembers.length > 0 && (
+              {onlineMembers.length > 0 && (
                 <div className="space-y-2">
-                  <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-2">Online — {activeMembers.length}</h4>
+                  <h4 className="text-[10px] font-bold uppercase tracking-wider text-green-500/80 px-2 flex items-center gap-2">
+                    <div className="h-1.5 w-1.5 rounded-full bg-green-500 shadow-[0_0_4px_rgba(34,197,94,0.6)]" />
+                    Online — {onlineMembers.length}
+                  </h4>
                   <div className="space-y-0.5">
-                    {activeMembers.map((member) => (
+                    {onlineMembers.map((member) => (
                       <MemberItem 
                         key={member.id} 
                         member={member} 
@@ -191,10 +195,34 @@ export function MembersPanel({ serverId, onWhisper }: MembersPanelProps) {
                   </div>
                 </div>
               )}
+              
+              {awayMembers.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-[10px] font-bold uppercase tracking-wider text-amber-500/80 px-2 flex items-center gap-2">
+                    <div className="h-1.5 w-1.5 rounded-full bg-amber-500 shadow-[0_0_4px_rgba(245,158,11,0.6)]" />
+                    Away — {awayMembers.length}
+                  </h4>
+                  <div className="space-y-0.5">
+                    {awayMembers.map((member) => (
+                      <MemberItem 
+                        key={member.id} 
+                        member={member} 
+                        isOwner={member.id === server.ownerId}
+                        isAdmin={serverAdmins.includes(member.id)}
+                        canManage={(isOwner || serverAdmins.includes(currentUser?.uid)) && member.id !== currentUser?.uid}
+                        onRemove={() => handleRemoveMember(member.id, member.username)}
+                        onToggleAdmin={() => handleToggleAdmin(member.id, serverAdmins.includes(member.id))}
+                        onWhisper={onWhisper}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {offlineMembers.length > 0 && (
                 <div className="space-y-2">
                   <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-2">Offline — {offlineMembers.length}</h4>
-                  <div className="space-y-0.5">
+                  <div className="space-y-0.5 opacity-60 grayscale-[0.5]">
                     {offlineMembers.map((member) => (
                       <MemberItem 
                         key={member.id} 
