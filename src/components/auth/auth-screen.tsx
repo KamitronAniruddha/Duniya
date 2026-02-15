@@ -158,8 +158,10 @@ export function AuthScreen() {
 
   if (view === "loggedOut") {
     return (
-      <div className="fixed inset-0 w-full flex flex-col bg-background overflow-y-auto custom-scrollbar p-4">
-        {renderLoggedOut()}
+      <div className="fixed inset-0 w-full flex flex-col bg-background overflow-y-auto custom-scrollbar p-4 selection:bg-primary/30">
+        <div className="min-h-svh w-full flex flex-col items-center justify-center">
+          {renderLoggedOut()}
+        </div>
       </div>
     );
   }
@@ -222,7 +224,7 @@ export function AuthScreen() {
                       exit={{ opacity: 0, scale: 0.9 }}
                     >
                       <motion.path
-                        d="M30,10 C15,10 15,20 30,20 C45,20 45,30 30,30 M45,30 C45,22 55,22 55,30 V34 M65,34 V22 C65,18 75,18 75,22 V34 M85,22 V30 C85,34 100,34 100,30 V22"
+                        d="M15,10 C25,10 25,20 15,25 C15,25 35,30 25,10 M35,25 V15 C35,10 45,10 45,15 V25 M55,15 V25 M55,8 V10 M65,15 V25 C65,30 75,30 75,25 V15"
                         stroke="currentColor"
                         strokeWidth="2.5"
                         strokeLinecap="round"
