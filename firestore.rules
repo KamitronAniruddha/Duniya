@@ -31,7 +31,7 @@ service cloud.firestore {
         match /messages/{messageId} {
           allow create: if isSignedIn();
           
-          // Read rule perfectly aligned with the visibleTo query logic: 
+          // Simplified read rule perfectly aligned with the visibleTo query logic: 
           // where("visibleTo", "array-contains-any", ["all", user.uid])
           allow read: if isSignedIn() && (
             resource.data.get('visibleTo', ['all']).hasAny(['all', request.auth.uid]) ||
@@ -39,19 +39,14 @@ service cloud.firestore {
             !('visibleTo' in resource.data)
           );
 
-          // Allow updates:
-          // 1. Full updates by the sender (editing, deleting for everyone)
-          // 2. Seen status and local delete updates by participants
-          allow update: if isSignedIn() && (
-            resource.data.senderId == request.auth.uid || 
-            (request.resource.data.diff(resource.data).affectedKeys().hasAny(['seenBy', 'viewerExpireAt', 'deletedFor']))
-          );
+          // Allow updates for seen status, disappearing timers, and deletions
+          allow update: if isSignedIn();
           
           allow delete: if isSignedIn() && resource.data.senderId == request.auth.uid;
         }
       }
       
-      // Subcollections like members
+      // Subcollections fallback
       match /{allSubcollections=**} {
         allow read, write: if isSignedIn();
       }
