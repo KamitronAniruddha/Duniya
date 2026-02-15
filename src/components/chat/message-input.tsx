@@ -123,7 +123,6 @@ export function MessageInput({ onSendMessage, inputRef: externalInputRef, replyi
     let finalContent = text;
     let finalWhisperTo = whisperingTo;
 
-    // HIGH-PERFORMANCE COMMAND PARSER: Detect "@whisper @username message"
     const whisperRegex = /^@whisper\s+@?([a-zA-Z0-9._-]+)\s+(.+)$/i;
     const match = text.match(whisperRegex);
     
@@ -136,7 +135,12 @@ export function MessageInput({ onSendMessage, inputRef: externalInputRef, replyi
         const q = query(collection(db, "users"), where("username", "==", targetUsername), limit(1));
         const snap = await getDocs(q);
         if (!snap.empty) {
-          finalWhisperTo = { id: snap.docs[0].id, username: snap.docs[0].data().username };
+          const targetData = snap.docs[0].data();
+          // CRITICAL FIX: Ensure username is never undefined to prevent Firebase crashes.
+          finalWhisperTo = { 
+            id: snap.docs[0].id, 
+            username: targetData.username || targetUsername 
+          };
           finalContent = messageContent;
         } else {
           toast({ variant: "destructive", title: "Whisper Error", description: `User @${targetUsername} not found.` });

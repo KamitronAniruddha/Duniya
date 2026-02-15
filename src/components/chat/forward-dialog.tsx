@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -93,15 +92,15 @@ export function ForwardDialog({ open, onOpenChange, messagesToForward, currentCo
              });
           }
 
-          // Intelligent type detection for legacy or missing data
           let msgType = msg.type || "text";
           if (msg.imageUrl && (msgType === "text" || !msgType)) msgType = "media";
           if (msg.fileUrl && (msgType === "text" || !msgType)) msgType = "file";
           if (msg.audioUrl && (msgType === "text" || !msgType)) msgType = "media";
 
+          // CRITICAL FIX: Explicitly handle potential "undefined" fields.
           const data = {
             id: newMsgRef.id,
-            channelId: target.channelId,
+            channelId: target.channelId || null,
             senderId: user.uid,
             senderName: currentSenderName,
             content: msg.content || "",
@@ -118,6 +117,7 @@ export function ForwardDialog({ open, onOpenChange, messagesToForward, currentCo
             deletedFor: [],
             viewerExpireAt: {},
             fullyDeleted: false,
+            visibleTo: ["all"],
             ...(includeRoot && { forwardingChain: newChain })
           };
           await setDoc(newMsgRef, data);

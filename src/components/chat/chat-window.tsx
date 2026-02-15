@@ -59,8 +59,6 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
 
   const messagesQuery = useMemoFirebase(() => {
     if (!db || !basePath || !user) return null;
-    // CRITICAL PERFORMANCE FIX: Removed array-contains-any filter to avoid composite index requirements.
-    // Filtering for "Whispers" is now handled in-memory for the latest 100 messages.
     return query(
       collection(db, basePath, "messages"), 
       orderBy("sentAt", "asc"), 
@@ -72,16 +70,11 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
 
   const messages = useMemo(() => {
     if (!rawMessages || !user) return [];
-    // CRITICAL PRIVACY FILTER: In-memory filtering for whispers and deletions
     return rawMessages.filter(msg => {
-      // 1. Check for physical/local deletion
       if (msg.fullyDeleted || msg.deletedFor?.includes(user.uid)) return false;
-      
-      // 2. Enforce Whisper Privacy
       const visibleTo = msg.visibleTo || ["all"];
       const isPublic = visibleTo.includes("all");
       const isAuthorizedParticipant = visibleTo.includes(user.uid);
-      
       return isPublic || isAuthorizedParticipant;
     });
   }, [rawMessages, user?.uid]);
@@ -106,13 +99,15 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
 
     const finalWhisper = whisperTarget !== undefined ? whisperTarget : whisperingTo;
 
+    // CRITICAL FIX: Ensure NO "undefined" values are passed to Firestore.
+    // Firestore accepts null, but crashes on undefined.
     const data: any = {
       id: messageRef.id,
-      channelId: channelId,
+      channelId: channelId || null,
       senderId: user.uid,
       senderName: user.displayName || "User",
       senderPhotoURL: user.photoURL || "",
-      content: text,
+      content: text || "",
       type: messageType,
       sentAt: sentAt.toISOString(),
       audioUrl: audioUrl || null,
@@ -121,7 +116,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
       fileUrl: file?.url || null,
       fileName: file?.name || null,
       fileType: file?.type || null,
-      disappearingEnabled: disappearing?.enabled || false,
+      disappearingEnabled: !!disappearing?.enabled,
       disappearDuration: disappearing?.duration || 0,
       fullyDeleted: false,
       seenBy: [],
@@ -129,11 +124,20 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
       viewerExpireAt: {},
       whisperTo: finalWhisper?.id || null,
       whisperToUsername: finalWhisper?.username || null,
-      // CRITICAL PERMISSION ARRAY: Hardens the whisper system and public visibility.
-      visibleTo: finalWhisper ? [user.uid, finalWhisper.id] : ["all"]
+      visibleTo: finalWhisper?.id ? [user.uid, finalWhisper.id] : ["all"]
     };
-    if (disappearing?.enabled) data.senderExpireAt = new Date(sentAt.getTime() + disappearing.duration).toISOString();
-    if (replyingTo && replySenderName) data.replyTo = { messageId: replyingTo.id, senderName: replySenderName, text: replyingTo.content || 'Media Message' };
+
+    if (disappearing?.enabled) {
+      data.senderExpireAt = new Date(sentAt.getTime() + (disappearing.duration || 10000)).toISOString();
+    }
+
+    if (replyingTo && replySenderName) {
+      data.replyTo = { 
+        messageId: replyingTo.id || "", 
+        senderName: replySenderName || "User", 
+        text: replyingTo.content || 'Media Message' 
+      };
+    }
     
     setDocumentNonBlocking(messageRef, data, { merge: true });
     setReplyingTo(null);
