@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useFirestore, useUser } from "@/firebase";
 import { doc, arrayUnion, deleteField } from "firebase/firestore";
 import { UserProfilePopover } from "@/components/profile/user-profile-popover";
-import { Reply, CornerDownRight, Play, Pause, Volume2, MoreHorizontal, Trash2, Ban, Copy, Timer, Check, CheckCheck } from "lucide-react";
+import { Reply, CornerDownRight, Play, Pause, Volume2, MoreHorizontal, Trash2, Ban, Copy, Timer, Check, CheckCheck, CheckSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useRef, useEffect } from "react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -38,13 +38,29 @@ interface MessageBubbleProps {
   };
   channelId: string;
   serverId: string;
-  sender?: any; // Received from parent for performance
+  sender?: any;
   isMe: boolean;
+  isSelected?: boolean;
+  selectionMode?: boolean;
+  onSelect?: () => void;
+  onLongPress?: () => void;
   onReply?: () => void;
   onQuoteClick?: () => void;
 }
 
-export function MessageBubble({ message, channelId, serverId, sender, isMe, onReply, onQuoteClick }: MessageBubbleProps) {
+export function MessageBubble({ 
+  message, 
+  channelId, 
+  serverId, 
+  sender, 
+  isMe, 
+  isSelected, 
+  selectionMode,
+  onSelect,
+  onLongPress,
+  onReply, 
+  onQuoteClick 
+}: MessageBubbleProps) {
   const db = useFirestore();
   const { user } = useUser();
   const { toast } = useToast();
@@ -57,16 +73,20 @@ export function MessageBubble({ message, channelId, serverId, sender, isMe, onRe
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
 
+  // Swipe logic
   const [dragX, setDragX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const startX = useRef(0);
   const swipeThreshold = 60;
 
+  // Long press logic
+  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+  const LONG_PRESS_DURATION = 500;
+
   const [formattedTime, setFormattedTime] = useState("");
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [isDisappeared, setIsDisappeared] = useState(false);
 
-  // Format timestamp once
   useEffect(() => {
     if (message.createdAt) {
       const date = typeof message.createdAt === 'string' ? new Date(message.createdAt) : message.createdAt.toDate?.() || new Date(message.createdAt);
@@ -74,47 +94,27 @@ export function MessageBubble({ message, channelId, serverId, sender, isMe, onRe
     }
   }, [message.createdAt]);
 
-  // Handle viewing messages (Seen Status)
   useEffect(() => {
     if (!user || isMe || message.isDeleted || message.fullyDeleted) return;
-    
     const hasSeen = message.seenBy?.includes(user.uid);
     if (!hasSeen && message.id) {
       const msgRef = doc(db, "communities", serverId, "channels", channelId, "messages", message.id);
-      
-      const updateData: any = {
-        seenBy: arrayUnion(user.uid),
-      };
-
-      // Only set expiration if disappearing is enabled
+      const updateData: any = { seenBy: arrayUnion(user.uid) };
       if (message.disappearingEnabled) {
         const now = new Date();
         const expireAt = new Date(now.getTime() + (message.disappearDuration || 10000)).toISOString();
         updateData[`viewerExpireAt.${user.uid}`] = expireAt;
       }
-      
       updateDocumentNonBlocking(msgRef, updateData);
     }
   }, [message.id, user?.uid, isMe, message.disappearingEnabled, message.seenBy, db, serverId, channelId]);
 
-  // Real-time Countdown logic
   useEffect(() => {
     if (!message.disappearingEnabled || !user || message.isDeleted || message.fullyDeleted) return;
-
     const timer = setInterval(() => {
-      let expireAtStr: string | undefined;
-      
-      if (isMe) {
-        expireAtStr = message.senderExpireAt;
-      } else {
-        expireAtStr = message.viewerExpireAt?.[user.uid];
-      }
-
+      let expireAtStr = isMe ? message.senderExpireAt : message.viewerExpireAt?.[user.uid];
       if (expireAtStr) {
-        const expireAt = new Date(expireAtStr);
-        const now = new Date();
-        const diff = expireAt.getTime() - now.getTime();
-        
+        const diff = new Date(expireAtStr).getTime() - new Date().getTime();
         if (diff <= 0) {
           setIsDisappeared(true);
           setTimeRemaining(0);
@@ -124,35 +124,65 @@ export function MessageBubble({ message, channelId, serverId, sender, isMe, onRe
         }
       }
     }, 1000);
-
     return () => clearInterval(timer);
   }, [message.disappearingEnabled, message.senderExpireAt, message.viewerExpireAt, user?.uid, isMe, message.isDeleted, message.fullyDeleted]);
 
-  const handleTouchStart = (e: React.TouchEvent | React.MouseEvent) => {
+  const handleStart = (e: React.TouchEvent | React.MouseEvent) => {
     if (message.isDeleted || isDisappeared) return;
     const clientX = 'touches' in e ? (e as React.TouchEvent).touches[0].clientX : (e as React.MouseEvent).clientX;
     startX.current = clientX;
     setIsDragging(true);
+
+    // Start long press timer
+    longPressTimer.current = setTimeout(() => {
+      if (!selectionMode && onLongPress) {
+        onLongPress();
+        setIsDragging(false); // Cancel swipe if long press triggered
+      }
+    }, LONG_PRESS_DURATION);
   };
 
-  const handleTouchMove = (e: React.TouchEvent | React.MouseEvent) => {
+  const handleMove = (e: React.TouchEvent | React.MouseEvent) => {
     if (!isDragging || message.isDeleted || isDisappeared) return;
     const clientX = 'touches' in e ? (e as React.TouchEvent).touches[0].clientX : (e as React.MouseEvent).clientX;
     const diff = clientX - startX.current;
-    if (diff > 0) {
+    
+    // If we moved significantly, cancel long press
+    if (Math.abs(diff) > 10 && longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+
+    if (diff > 0 && !selectionMode) {
       const rubberBand = Math.pow(diff, 0.85);
       setDragX(Math.min(rubberBand * 2, 100));
     }
   };
 
-  const handleTouchEnd = () => {
+  const handleEnd = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+    
+    if (selectionMode && isDragging && dragX === 0) {
+       onSelect?.();
+    }
+
     if (!isDragging) return;
-    if (dragX >= swipeThreshold) {
+    if (dragX >= swipeThreshold && !selectionMode) {
       onReply?.();
       if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate(10);
     }
     setDragX(0);
     setIsDragging(false);
+  };
+
+  const handleBubbleClick = (e: React.MouseEvent) => {
+    if (selectionMode) {
+      e.stopPropagation();
+      onSelect?.();
+    }
   };
 
   const formatAudioTime = (time: number) => {
@@ -216,40 +246,56 @@ export function MessageBubble({ message, channelId, serverId, sender, isMe, onRe
     );
   }
 
-  // Seen Status logic for UI
   const isSeenByOthers = (message.seenBy?.length || 0) > 0;
 
   return (
     <div 
-      className={cn("flex w-full py-0.5 group items-end relative transition-colors duration-500 rounded-lg touch-none select-none", isMe ? "flex-row-reverse" : "flex-row")}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-      onMouseDown={handleTouchStart}
-      onMouseMove={handleTouchMove}
-      onMouseUp={handleTouchEnd}
-      onMouseLeave={handleTouchEnd}
+      className={cn(
+        "flex w-full py-0.5 group items-end relative transition-all duration-300 rounded-lg touch-none select-none", 
+        isMe ? "flex-row-reverse" : "flex-row",
+        isSelected && "bg-primary/10"
+      )}
+      onTouchStart={handleStart}
+      onTouchMove={handleMove}
+      onTouchEnd={handleEnd}
+      onMouseDown={handleStart}
+      onMouseMove={handleMove}
+      onMouseUp={handleEnd}
+      onMouseLeave={handleEnd}
+      onClick={handleBubbleClick}
     >
       <div className="absolute left-4 top-1/2 -translate-y-1/2 transition-all duration-75 flex items-center justify-center bg-primary/10 rounded-full h-8 w-8 pointer-events-none" style={{ opacity: Math.min(dragX / swipeThreshold, 1), transform: `scale(${Math.min(dragX / swipeThreshold, 1)})`, left: `${Math.min(dragX / 2, 20)}px` }}>
         <Reply className={cn("h-4 w-4", dragX >= swipeThreshold ? "text-primary" : "text-muted-foreground")} />
       </div>
 
-      {!isMe && (
+      {selectionMode && (
+        <div className={cn("mx-2 mb-1", isMe ? "ml-auto" : "mr-auto")}>
+          <div className={cn(
+            "h-5 w-5 rounded border-2 flex items-center justify-center transition-colors",
+            isSelected ? "bg-primary border-primary text-white" : "border-muted-foreground/30"
+          )}>
+            {isSelected && <CheckSquare className="h-4 w-4" />}
+          </div>
+        </div>
+      )}
+
+      {!isMe && !selectionMode && (
         <UserProfilePopover userId={message.senderId}>
           <button className="h-8 w-8 mb-1 mr-2 shrink-0"><Avatar className="h-full w-full"><AvatarImage src={sender?.photoURL || undefined} /><AvatarFallback className="text-[10px] font-bold bg-primary text-white">{sender?.username?.[0]?.toUpperCase() || "?"}</AvatarFallback></Avatar></button>
         </UserProfilePopover>
       )}
       
       <div className={cn("flex flex-col max-w-[75%] relative transition-transform ease-out", isMe ? "items-end" : "items-start")} style={{ transform: `translateX(${dragX}px)` }}>
-        {!isMe && (
+        {!isMe && !selectionMode && (
           <UserProfilePopover userId={message.senderId}>
             <button className="text-[10px] font-bold text-muted-foreground ml-1 mb-0.5 hover:text-primary transition-colors">{sender?.username || "..."}</button>
           </UserProfilePopover>
         )}
         
         <div className={cn(
-          "px-3 py-2 rounded-2xl shadow-sm transition-shadow group-hover:shadow-md relative",
+          "px-3 py-2 rounded-2xl shadow-sm transition-all group-hover:shadow-md relative",
           message.disappearingEnabled && "ring-2 ring-primary/20",
+          isSelected && "ring-2 ring-primary",
           isMe ? "bg-primary text-white rounded-br-none" : "bg-card text-foreground rounded-bl-none border border-border"
         )}>
           {message.replyTo && (
@@ -319,16 +365,18 @@ export function MessageBubble({ message, channelId, serverId, sender, isMe, onRe
         </div>
       </div>
 
-      <div className={cn("mb-2 mx-1 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5", isMe ? "mr-1" : "ml-1")}>
-        <button onClick={onReply} className="h-7 w-7 rounded-full hover:bg-muted flex items-center justify-center"><Reply className="h-3.5 w-3.5 text-muted-foreground" /></button>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild><button className="h-7 w-7 rounded-full hover:bg-muted flex items-center justify-center"><MoreHorizontal className="h-3.5 w-3.5 text-muted-foreground" /></button></DropdownMenuTrigger>
-          <DropdownMenuContent align={isMe ? "end" : "start"}>
-            <DropdownMenuItem onClick={handleCopy}><Copy className="h-4 w-4 mr-2" />Copy</DropdownMenuItem>
-            {isMe && <DropdownMenuItem onClick={handleDeleteForEveryone} className="text-destructive"><Trash2 className="h-4 w-4 mr-2" />Delete for everyone</DropdownMenuItem>}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+      {!selectionMode && (
+        <div className={cn("mb-2 mx-1 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5", isMe ? "mr-1" : "ml-1")}>
+          <button onClick={onReply} className="h-7 w-7 rounded-full hover:bg-muted flex items-center justify-center"><Reply className="h-3.5 w-3.5 text-muted-foreground" /></button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild><button className="h-7 w-7 rounded-full hover:bg-muted flex items-center justify-center"><MoreHorizontal className="h-3.5 w-3.5 text-muted-foreground" /></button></DropdownMenuTrigger>
+            <DropdownMenuContent align={isMe ? "end" : "start"}>
+              <DropdownMenuItem onClick={handleCopy}><Copy className="h-4 w-4 mr-2" />Copy</DropdownMenuItem>
+              {isMe && <DropdownMenuItem onClick={handleDeleteForEveryone} className="text-destructive"><Trash2 className="h-4 w-4 mr-2" />Delete for everyone</DropdownMenuItem>}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      )}
     </div>
   );
 }

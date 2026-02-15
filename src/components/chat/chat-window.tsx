@@ -1,17 +1,18 @@
 
 "use client";
 
-import { useRef, useEffect, useState, useMemo } from "react";
+import { useRef, useEffect, useState, useMemo, useCallback } from "react";
 import { useCollection, useFirestore, useUser, useDoc, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy, limit, doc, where } from "firebase/firestore";
+import { collection, query, orderBy, limit, doc, where, writeBatch, arrayUnion, deleteField } from "firebase/firestore";
 import { MessageBubble } from "./message-bubble";
 import { MessageInput } from "./message-input";
-import { Hash, Users, Loader2, MessageCircle } from "lucide-react";
+import { Hash, Users, Loader2, MessageCircle, X, Trash2, CheckSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { setDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { MembersPanel } from "@/components/members/members-panel";
+import { useToast } from "@/hooks/use-toast";
 
 interface ChatWindowProps {
   channelId: string | null;
@@ -23,10 +24,15 @@ interface ChatWindowProps {
 export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }: ChatWindowProps) {
   const db = useFirestore();
   const { user } = useUser();
+  const { toast } = useToast();
   const scrollRef = useRef<HTMLDivElement>(null);
   const messageRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
   const [replyingTo, setReplyingTo] = useState<any | null>(null);
+  
+  // Selection Mode State
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const channelRef = useMemoFirebase(() => (channelId && serverId && user ? doc(db, "communities", serverId, "channels", channelId) : null), [db, serverId, channelId, user?.uid]);
   const { data: channel } = useDoc(channelRef);
@@ -34,7 +40,6 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
   const serverRef = useMemoFirebase(() => (serverId && user ? doc(db, "communities", serverId) : null), [db, serverId, user?.uid]);
   const { data: server } = useDoc(serverRef);
 
-  // Optimization: Fetch all members once instead of per-bubble
   const membersQuery = useMemoFirebase(() => {
     if (!db || !serverId || !user) return null;
     return query(collection(db, "users"), where("serverIds", "array-contains", serverId));
@@ -42,7 +47,6 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
 
   const { data: members } = useCollection(membersQuery);
 
-  // Create a high-performance lookup map for members
   const memberMap = useMemo(() => {
     if (!members) return {};
     return members.reduce((acc, m) => {
@@ -107,6 +111,61 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
     setReplyingTo(null);
   };
 
+  const handleBatchDelete = async () => {
+    if (!db || !serverId || !channelId || !user || selectedIds.size === 0) return;
+    
+    const batch = writeBatch(db);
+    const selectedMessages = rawMessages?.filter(m => selectedIds.has(m.id)) || [];
+    
+    selectedMessages.forEach(msg => {
+      const msgRef = doc(db, "communities", serverId, "channels", channelId, "messages", msg.id);
+      
+      // If user is sender, delete for everyone (standard WhatsApp style for Duniya)
+      if (msg.senderId === user.uid) {
+        batch.update(msgRef, {
+          isDeleted: true,
+          content: "This message was deleted",
+          audioUrl: deleteField(),
+          videoUrl: deleteField(),
+          type: "text"
+        });
+      } else {
+        // If not sender, delete for me only
+        batch.update(msgRef, {
+          deletedFor: arrayUnion(user.uid)
+        });
+      }
+    });
+
+    try {
+      await batch.commit();
+      toast({ title: `Deleted ${selectedIds.size} message(s)` });
+      setSelectionMode(false);
+      setSelectedIds(new Set());
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Delete Failed", description: e.message });
+    }
+  };
+
+  const toggleMessageSelection = useCallback((id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+        if (next.size === 0) setSelectionMode(false);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }, []);
+
+  const enterSelectionMode = useCallback((id: string) => {
+    setSelectionMode(true);
+    setSelectedIds(new Set([id]));
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate(20);
+  }, []);
+
   const handleJumpToMessage = (messageId: string) => {
     const el = messageRefs.current[messageId];
     if (el) {
@@ -117,10 +176,10 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
   };
 
   useEffect(() => {
-    if (scrollRef.current) {
+    if (scrollRef.current && !selectionMode) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [messages, selectionMode]);
 
   if (!serverId) {
     return (
@@ -139,28 +198,48 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
 
   return (
     <div className="flex-1 flex flex-col h-full bg-background overflow-hidden relative">
-      <header className="h-14 border-b flex items-center justify-between px-4 shrink-0 bg-background/80 backdrop-blur-md z-20">
-        <div className="flex items-center gap-3">
-          <div className="p-1.5 bg-muted rounded-lg">
-            <Hash className="h-4 w-4 text-muted-foreground" />
+      <header className={cn(
+        "h-14 border-b flex items-center justify-between px-4 shrink-0 transition-all z-20",
+        selectionMode ? "bg-primary text-white" : "bg-background/80 backdrop-blur-md"
+      )}>
+        {selectionMode ? (
+          <div className="flex items-center gap-4 w-full">
+            <Button variant="ghost" size="icon" className="text-white hover:bg-white/10" onClick={() => {
+              setSelectionMode(false);
+              setSelectedIds(new Set());
+            }}>
+              <X className="h-5 w-5" />
+            </Button>
+            <span className="font-bold text-lg flex-1">{selectedIds.size} Selected</span>
+            <Button variant="ghost" size="icon" className="text-white hover:bg-white/10" onClick={handleBatchDelete}>
+              <Trash2 className="h-5 w-5" />
+            </Button>
           </div>
-          <div className="flex flex-col">
-            <h2 className="font-bold text-sm truncate leading-none mb-0.5">{channel?.name || "..."}</h2>
-            <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">{server?.name || "Community"}</span>
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <ThemeToggle />
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className={cn("h-9 w-9 rounded-xl transition-all", showMembers ? "bg-primary/10 text-primary shadow-inner" : "text-muted-foreground")} 
-            onClick={onToggleMembers}
-          >
-            <Users className="h-5 w-5" />
-          </Button>
-        </div>
+        ) : (
+          <>
+            <div className="flex items-center gap-3">
+              <div className="p-1.5 bg-muted rounded-lg">
+                <Hash className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <div className="flex flex-col">
+                <h2 className="font-bold text-sm truncate leading-none mb-0.5">{channel?.name || "..."}</h2>
+                <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">{server?.name || "Community"}</span>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className={cn("h-9 w-9 rounded-xl transition-all", showMembers ? "bg-primary/10 text-primary shadow-inner" : "text-muted-foreground")} 
+                onClick={onToggleMembers}
+              >
+                <Users className="h-5 w-5" />
+              </Button>
+            </div>
+          </>
+        )}
       </header>
 
       <div className="flex-1 flex min-h-0 overflow-hidden bg-background">
@@ -191,8 +270,12 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
                       }}
                       channelId={channelId!}
                       serverId={serverId!}
-                      sender={memberMap[msg.senderId]} // Pass sender data as prop
+                      sender={memberMap[msg.senderId]}
                       isMe={msg.senderId === user?.uid}
+                      isSelected={selectedIds.has(msg.id)}
+                      selectionMode={selectionMode}
+                      onLongPress={() => enterSelectionMode(msg.id)}
+                      onSelect={() => toggleMessageSelection(msg.id)}
                       onReply={() => setReplyingTo(msg)}
                       onQuoteClick={() => handleJumpToMessage(msg.replyTo?.messageId)}
                     />
@@ -216,6 +299,13 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
             <MembersPanel serverId={serverId} />
           </div>
         )}
+      </div>
+      
+      <div className="hidden md:flex justify-center py-1 bg-background border-t">
+        <div className="flex items-center gap-1 text-[8px] font-black uppercase tracking-[0.3em] text-muted-foreground/40">
+          <span>Made by Aniruddha with love</span>
+          <MessageCircle className="h-2 w-2 text-primary fill-primary animate-pulse" />
+        </div>
       </div>
     </div>
   );
