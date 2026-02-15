@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -50,12 +49,10 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
   const [text, setText] = useState("");
   const [recentEmojis, setRecentEmojis] = useState<string[]>([]);
   
-  // Disappearing Message State
   const [disappearingEnabled, setDisappearingEnabled] = useState(false);
   const [disappearDuration, setDisappearDuration] = useState(10000);
   const [customSeconds, setCustomSeconds] = useState("");
 
-  // Recording State
   const [isRecording, setIsRecording] = useState(false);
   const [isRecordingVideo, setIsRecordingVideo] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -102,23 +99,9 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ 
-        audio: { 
-          echoCancellation: true, 
-          noiseSuppression: true, 
-          autoGainControl: true,
-          channelCount: 1,
-          sampleRate: 48000
-        } 
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1, sampleRate: 48000 } 
       });
-      
-      // High-quality options for clear voice
-      const options = { 
-        audioBitsPerSecond: 128000,
-        mimeType: MediaRecorder.isTypeSupported('audio/webm;codecs=opus') 
-          ? 'audio/webm;codecs=opus' 
-          : 'audio/webm'
-      };
-
+      const options = { audioBitsPerSecond: 128000, mimeType: MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm' };
       const recorder = new MediaRecorder(stream, options);
       mediaRecorderRef.current = recorder;
       chunksRef.current = [];
@@ -129,14 +112,11 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
         reader.readAsDataURL(blob);
         reader.onloadend = () => {
           const duration = disappearDuration === -1 ? (parseInt(customSeconds) || 10) * 1000 : disappearDuration;
-          onSendMessage("", reader.result as string, undefined, replyUser?.username, {
-            enabled: disappearingEnabled,
-            duration: duration
-          });
+          onSendMessage("", reader.result as string, undefined, replyUser?.username, { enabled: disappearingEnabled, duration: duration });
         };
         stream.getTracks().forEach(track => track.stop());
       };
-      recorder.start(200); // Collect data in 200ms chunks for reliability
+      recorder.start(200);
       setIsRecording(true);
       setRecordingTime(0);
       timerRef.current = setInterval(() => setRecordingTime(prev => prev + 1), 1000);
@@ -147,10 +127,7 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
 
   const startVideoRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { width: 480, height: 480, facingMode: "user" },
-        audio: { echoCancellation: true, noiseSuppression: true } 
-      });
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 480, height: 480, facingMode: "user" }, audio: { echoCancellation: true, noiseSuppression: true } });
       streamRef.current = stream;
       if (videoRef.current) videoRef.current.srcObject = stream;
       const recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp8,opus' });
@@ -163,10 +140,7 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
         reader.readAsDataURL(blob);
         reader.onloadend = () => {
           const duration = disappearDuration === -1 ? (parseInt(customSeconds) || 10) * 1000 : disappearDuration;
-          onSendMessage("", undefined, reader.result as string, replyUser?.username, {
-            enabled: disappearingEnabled,
-            duration: duration
-          });
+          onSendMessage("", undefined, reader.result as string, replyUser?.username, { enabled: disappearingEnabled, duration: duration });
         };
         stream.getTracks().forEach(track => track.stop());
       };
@@ -206,17 +180,17 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
   };
 
   return (
-    <div className="bg-background shrink-0 w-full flex flex-col">
+    <div className="bg-background shrink-0 w-full flex flex-col font-body">
       {replyingTo && (
-        <div className="px-4 py-2 bg-muted/30 border-t flex items-center gap-3 animate-in slide-in-from-bottom-2 duration-200">
+        <div className="px-4 py-2 bg-muted/30 border-t flex items-center gap-3 animate-in slide-in-from-bottom-2 duration-150">
           <div className="p-1.5 bg-primary/10 rounded-lg shrink-0">
             <CornerDownRight className="h-4 w-4 text-primary" />
           </div>
           <div className="flex-1 min-w-0 flex flex-col">
-            <span className="text-[10px] font-bold text-primary uppercase tracking-wider">Replying to {replyUser?.username || "..."}</span>
-            <p className="text-xs text-muted-foreground truncate italic">{replyingTo.content || replyingTo.text || "Media message"}</p>
+            <span className="text-[10px] font-black text-primary uppercase tracking-wider">Replying to {replyUser?.username || "..."}</span>
+            <p className="text-xs text-muted-foreground truncate italic font-medium">{replyingTo.content || replyingTo.text || "Media message"}</p>
           </div>
-          <button onClick={onCancelReply} className="h-6 w-6 rounded-full hover:bg-muted flex items-center justify-center">
+          <button onClick={onCancelReply} className="h-6 w-6 rounded-full hover:bg-muted flex items-center justify-center transition-colors">
             <X className="h-3 w-3" />
           </button>
         </div>
@@ -234,21 +208,12 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
             <div className="flex-1 flex flex-col gap-1">
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2 px-4 py-1.5 bg-red-500/10 text-red-500 rounded-full w-fit border border-red-500/20">
-                  <motion.div 
-                    animate={{ scale: [1, 1.2, 1], opacity: [1, 0.5, 1] }} 
-                    transition={{ repeat: Infinity, duration: 1 }}
-                    className="h-2.5 w-2.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]" 
-                  />
+                  <motion.div animate={{ scale: [1, 1.2, 1], opacity: [1, 0.5, 1] }} transition={{ repeat: Infinity, duration: 1 }} className="h-2.5 w-2.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
                   <span className="text-sm font-black font-mono">{formatTime(recordingTime)}</span>
                 </div>
                 <div className="flex-1 flex items-center gap-1.5 h-4 overflow-hidden">
                   {[...Array(12)].map((_, i) => (
-                    <motion.div 
-                      key={i}
-                      animate={{ height: [2, Math.random() * 12 + 2, 2] }}
-                      transition={{ repeat: Infinity, duration: 0.4, delay: i * 0.1 }}
-                      className="w-1 bg-primary/40 rounded-full"
-                    />
+                    <motion.div key={i} animate={{ height: [2, Math.random() * 12 + 2, 2] }} transition={{ repeat: Infinity, duration: 0.4, delay: i * 0.1 }} className="w-1 bg-primary/40 rounded-full" />
                   ))}
                 </div>
               </div>
@@ -263,70 +228,44 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
         ) : (
           <form onSubmit={handleSubmit} className="flex flex-col gap-2 max-w-5xl mx-auto">
             {disappearingEnabled && (
-              <div className="flex items-center gap-3 px-3 py-2 bg-primary/5 border border-primary/10 rounded-lg animate-in slide-in-from-top-2 duration-200">
+              <div className="flex items-center gap-3 px-3 py-2 bg-primary/5 border border-primary/10 rounded-lg animate-in slide-in-from-top-2 duration-150">
                 <Timer className="h-4 w-4 text-primary animate-pulse" />
                 <div className="flex-1 flex items-center gap-2">
-                  <span className="text-[10px] font-black uppercase text-primary tracking-widest">Disappearing Settings</span>
-                  <Select 
-                    value={disappearDuration.toString()} 
-                    onValueChange={(val) => setDisappearDuration(parseInt(val))}
-                  >
+                  <span className="text-[10px] font-black uppercase text-primary tracking-widest">Disappearing Messages</span>
+                  <Select value={disappearDuration.toString()} onValueChange={(val) => setDisappearDuration(parseInt(val))}>
                     <SelectTrigger className="h-7 text-[10px] w-24 bg-background border-primary/20">
                       <SelectValue placeholder="Duration" />
                     </SelectTrigger>
                     <SelectContent>
                       {DISAPPEAR_OPTIONS.map(opt => (
-                        <SelectItem key={opt.value} value={opt.value.toString()} className="text-[10px] font-bold">
-                          {opt.label}
-                        </SelectItem>
+                        <SelectItem key={opt.value} value={opt.value.toString()} className="text-[10px] font-bold">{opt.label}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                   {disappearDuration === -1 && (
-                    <Input 
-                      placeholder="Secs" 
-                      className="h-7 w-16 text-[10px] p-1" 
-                      value={customSeconds}
-                      onChange={(e) => setCustomSeconds(e.target.value)}
-                    />
+                    <Input placeholder="Secs" className="h-7 w-16 text-[10px] p-1 font-bold" value={customSeconds} onChange={(e) => setCustomSeconds(e.target.value)} />
                   )}
                 </div>
-                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setDisappearingEnabled(false)}>
-                  <X className="h-3 w-3" />
-                </Button>
+                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setDisappearingEnabled(false)}><X className="h-3 w-3" /></Button>
               </div>
             )}
 
             <div className="flex items-center gap-2">
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    type="button" 
-                    className={cn("shrink-0 transition-colors rounded-xl", disappearingEnabled ? "text-primary bg-primary/10" : "text-muted-foreground")}
-                  >
+                  <Button variant="ghost" size="icon" type="button" className={cn("shrink-0 transition-colors rounded-xl", disappearingEnabled ? "text-primary bg-primary/10" : "text-muted-foreground")}>
                     <Clock className="h-5 w-5" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent side="top" align="start" className="w-56 p-3">
+                <PopoverContent side="top" align="start" className="w-56 p-3 rounded-2xl border-none shadow-2xl">
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <Label className="text-xs font-bold">Disappearing Message</Label>
-                      <Button 
-                        size="sm" 
-                        variant={disappearingEnabled ? "default" : "outline"} 
-                        className="h-6 text-[10px]"
-                        onClick={() => setDisappearingEnabled(!disappearingEnabled)}
-                      >
-                        {disappearingEnabled ? "Enabled" : "Disabled"}
+                      <Label className="text-xs font-black uppercase tracking-wider">Ghost Mode</Label>
+                      <Button size="sm" variant={disappearingEnabled ? "default" : "outline"} className="h-6 text-[10px] font-black" onClick={() => setDisappearingEnabled(!disappearingEnabled)}>
+                        {disappearingEnabled ? "ACTIVE" : "OFF"}
                       </Button>
                     </div>
-                    {disappearingEnabled && (
-                      <p className="text-[10px] text-muted-foreground leading-snug">
-                        Messages vanish after they are viewed by participants.
-                      </p>
-                    )}
+                    {disappearingEnabled && <p className="text-[10px] text-muted-foreground leading-snug font-medium italic">Messages vanish after they are viewed by participants.</p>}
                   </div>
                 </PopoverContent>
               </Popover>
@@ -334,10 +273,10 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
               <div className="flex-1 relative">
                 <input 
                   ref={inputRef}
-                  placeholder={replyingTo ? "Write a reply..." : "Write a message..."}
+                  placeholder={replyingTo ? "Write a reply..." : "Karo Chutiyapaa..."}
                   value={text}
                   onChange={(e) => setText(e.target.value)}
-                  className="w-full bg-muted/40 border-none rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary/20 transition-all text-foreground"
+                  className="w-full bg-muted/40 border-none rounded-xl px-4 py-2.5 text-sm font-body font-medium focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all text-foreground placeholder:text-muted-foreground/50 tracking-tight"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault();
@@ -350,7 +289,7 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
                     <PopoverTrigger asChild>
                       <button type="button" className="text-muted-foreground hover:text-primary transition-colors p-1"><Smile className="h-4 w-4" /></button>
                     </PopoverTrigger>
-                    <PopoverContent side="top" align="end" className="w-80 p-0 overflow-hidden bg-popover">
+                    <PopoverContent side="top" align="end" className="w-80 p-0 overflow-hidden bg-popover border-none shadow-2xl rounded-2xl">
                       <Tabs defaultValue="smileys" className="w-full">
                         <TabsList className="w-full justify-start rounded-none border-b bg-muted/50 p-0 h-10">
                           {EMOJI_CATEGORIES.map((cat) => (
@@ -362,7 +301,7 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
                             <ScrollArea className="h-64 p-2">
                               <div className="grid grid-cols-8 gap-1">
                                 {(cat.id === 'recent' ? recentEmojis : cat.emojis).map((emoji, idx) => (
-                                  <button key={idx} type="button" onClick={() => addEmoji(emoji)} className="text-xl hover:bg-muted rounded aspect-square flex items-center justify-center">{emoji}</button>
+                                  <button key={idx} type="button" onClick={() => addEmoji(emoji)} className="text-xl hover:bg-muted rounded aspect-square flex items-center justify-center transition-transform active:scale-125">{emoji}</button>
                                 ))}
                               </div>
                             </ScrollArea>
@@ -376,12 +315,12 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
 
               <div className="flex items-center gap-1.5">
                 {text.trim() ? (
-                  <Button type="submit" size="icon" className="rounded-xl h-10 w-10 shrink-0 bg-primary text-primary-foreground shadow-md hover:bg-primary/90">
+                  <Button type="submit" size="icon" className="rounded-xl h-10 w-10 shrink-0 bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-transform active:scale-90">
                     <SendHorizontal className="h-4 w-4" />
                   </Button>
                 ) : (
                   <>
-                    <Button type="button" variant="ghost" size="icon" onClick={startVideoRecording} className="rounded-xl h-10 w-10 shrink-0 text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors"><Video className="h-5 w-5" /></Button>
+                    <Button type="button" variant="ghost" size="icon" onClick={startVideoRecording} className="rounded-xl h-10 w-10 shrink-0 text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all"><Video className="h-5 w-5" /></Button>
                     <Button type="button" size="icon" onClick={startRecording} className="rounded-xl h-10 w-10 shrink-0 bg-muted text-muted-foreground hover:bg-primary hover:text-primary-foreground transition-all shadow-sm active:scale-95"><Mic className="h-5 w-5" /></Button>
                   </>
                 )}

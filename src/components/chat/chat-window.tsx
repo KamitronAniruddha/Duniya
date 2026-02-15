@@ -41,9 +41,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
   const [isChannelSettingsOpen, setIsChannelSettingsOpen] = useState(false);
 
   const basePath = useMemo(() => {
-    if (serverId && channelId) {
-      return `communities/${serverId}/channels/${channelId}`;
-    }
+    if (serverId && channelId) return `communities/${serverId}/channels/${channelId}`;
     return null;
   }, [serverId, channelId]);
 
@@ -60,11 +58,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
 
   const messagesQuery = useMemoFirebase(() => {
     if (!db || !basePath || !user) return null;
-    return query(
-      collection(db, basePath, "messages"),
-      orderBy("sentAt", "asc"),
-      limit(100)
-    );
+    return query(collection(db, basePath, "messages"), orderBy("sentAt", "asc"), limit(100));
   }, [db, basePath, user?.uid]);
 
   const { data: rawMessages, isLoading: messagesLoading } = useCollection(messagesQuery);
@@ -76,10 +70,8 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
 
   const handleSendMessage = useCallback(async (text: string, audioUrl?: string, videoUrl?: string, replySenderName?: string, disappearing?: { enabled: boolean; duration: number }) => {
     if (!db || !basePath || !user) return;
-    
     const messageRef = doc(collection(db, basePath, "messages"));
     const sentAt = new Date();
-    
     const data: any = {
       id: messageRef.id,
       channelId: channelId,
@@ -97,46 +89,24 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
       deletedFor: [],
       viewerExpireAt: {}
     };
-
-    if (disappearing?.enabled) {
-      data.senderExpireAt = new Date(sentAt.getTime() + disappearing.duration).toISOString();
-    }
-
-    if (replyingTo && replySenderName) {
-      data.replyTo = {
-        messageId: replyingTo.id,
-        senderName: replySenderName,
-        text: replyingTo.content || 'Media Message'
-      };
-    }
-
+    if (disappearing?.enabled) data.senderExpireAt = new Date(sentAt.getTime() + disappearing.duration).toISOString();
+    if (replyingTo && replySenderName) data.replyTo = { messageId: replyingTo.id, senderName: replySenderName, text: replyingTo.content || 'Media Message' };
     setDocumentNonBlocking(messageRef, data, { merge: true });
     setReplyingTo(null);
   }, [db, basePath, user, replyingTo, channelId]);
 
   const handleBatchDelete = useCallback(async (type: "everyone" | "me") => {
     if (!db || !basePath || !user || selectedIds.size === 0) return;
-    
     const batch = writeBatch(db);
     const selectedMessages = rawMessages?.filter(m => selectedIds.has(m.id)) || [];
-    
     selectedMessages.forEach(msg => {
       const msgRef = doc(db, basePath, "messages", msg.id);
       if (type === "everyone" && msg.senderId === user.uid) {
-        batch.update(msgRef, {
-          isDeleted: true,
-          content: "This message was deleted",
-          audioUrl: deleteField(),
-          videoUrl: deleteField(),
-          type: "text"
-        });
+        batch.update(msgRef, { isDeleted: true, content: "This message was deleted", audioUrl: deleteField(), videoUrl: deleteField(), type: "text" });
       } else {
-        batch.update(msgRef, {
-          deletedFor: arrayUnion(user.uid)
-        });
+        batch.update(msgRef, { deletedFor: arrayUnion(user.uid) });
       }
     });
-
     batch.commit();
     toast({ title: `Removed ${selectedIds.size} message(s)` });
     setSelectionMode(false);
@@ -146,15 +116,11 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
 
   const handleClearChat = useCallback(async () => {
     if (!db || !basePath || !user || !messages.length) return;
-    
     const batch = writeBatch(db);
     messages.forEach(msg => {
       const msgRef = doc(db, basePath, "messages", msg.id);
-      batch.update(msgRef, {
-        deletedFor: arrayUnion(user.uid)
-      });
+      batch.update(msgRef, { deletedFor: arrayUnion(user.uid) });
     });
-
     batch.commit();
     toast({ title: "Chat Cleared" });
     setIsClearChatDialogOpen(false);
@@ -184,40 +150,26 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
   };
 
   useEffect(() => {
-    if (scrollRef.current && !selectionMode) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
+    if (scrollRef.current && !selectionMode) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages.length, selectionMode]);
 
   if (!basePath) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center bg-background h-full p-6 text-center overflow-hidden">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.15, ease: "easeOut" }}
-          className="flex flex-col items-center"
-        >
+      <div className="flex-1 flex flex-col items-center justify-center bg-background h-full p-6 text-center overflow-hidden font-body">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.15, ease: "easeOut" }} className="flex flex-col items-center">
           <div className="relative mb-12">
-            <motion.div
-              animate={{ scale: [1, 1.05, 1] }}
-              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-              className="p-12 bg-primary/5 rounded-[3.5rem] relative z-10"
-            >
+            <motion.div animate={{ scale: [1, 1.05, 1] }} transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }} className="p-12 bg-primary/5 rounded-[3.5rem] relative z-10">
               <MessageCircle className="h-24 w-24 text-primary" />
             </motion.div>
             <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full opacity-30" />
           </div>
-          
           <div className="space-y-6 max-w-lg">
             <h2 className="text-7xl font-[900] tracking-tighter uppercase text-foreground leading-none">DUNIYA</h2>
             <div className="flex flex-col items-center gap-4">
               <span className="font-['Playfair_Display'] italic text-5xl text-primary flex items-center gap-4 lowercase">
                 Karo Chutiyapaa <Heart className="h-10 w-10 fill-red-500 text-red-500 animate-pulse" />
               </span>
-              <p className="text-muted-foreground text-[11px] font-black uppercase tracking-[0.5em] opacity-40 mt-6">
-                Enter a community to begin your journey
-              </p>
+              <p className="text-muted-foreground text-[11px] font-black uppercase tracking-[0.5em] opacity-40 mt-6">Enter a community to begin your journey</p>
             </div>
           </div>
         </motion.div>
@@ -230,51 +182,23 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
   const allSelectedFromMe = rawMessages?.filter(m => selectedIds.has(m.id)).every(m => m.senderId === user?.uid) ?? false;
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-background overflow-hidden relative">
-      <header className={cn(
-        "h-14 border-b flex items-center justify-between px-4 shrink-0 transition-all duration-150 z-20 overflow-hidden",
-        selectionMode ? "bg-primary text-white" : "bg-background/80 backdrop-blur-md"
-      )}>
+    <div className="flex-1 flex flex-col h-full bg-background overflow-hidden relative font-body">
+      <header className={cn("h-14 border-b flex items-center justify-between px-4 shrink-0 transition-all duration-150 z-20 overflow-hidden", selectionMode ? "bg-primary text-white" : "bg-background/80 backdrop-blur-md")}>
         <AnimatePresence mode="wait">
           {selectionMode ? (
-            <motion.div 
-              key="selection-header"
-              initial={{ opacity: 0, y: -10 }} 
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.1, ease: "easeOut" }}
-              className="flex items-center gap-4 w-full h-full"
-            >
-              <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full h-8 w-8" onClick={handleCancelSelection}>
-                <X className="h-4 w-4" />
-              </Button>
+            <motion.div key="selection-header" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.1, ease: "easeOut" }} className="flex items-center gap-4 w-full h-full">
+              <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full h-8 w-8" onClick={handleCancelSelection}><X className="h-4 w-4" /></Button>
               <div className="flex-1 flex flex-col">
                 <span className="font-black text-base tracking-tighter leading-none">{selectedMessagesCount} SELECTED</span>
                 <span className="text-[9px] font-bold uppercase tracking-widest opacity-60">Verse Operations</span>
               </div>
               <div className="flex items-center gap-1">
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="text-white hover:bg-white/10 rounded-full h-9 w-9" 
-                  onClick={() => setIsForwardOpen(true)}
-                >
-                  <Forward className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full h-9 w-9" onClick={() => setIsDeleteDialogOpen(true)}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full h-9 w-9" onClick={() => setIsForwardOpen(true)}><Forward className="h-4 w-4" /></Button>
+                <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full h-9 w-9" onClick={() => setIsDeleteDialogOpen(true)}><Trash2 className="h-4 w-4" /></Button>
               </div>
             </motion.div>
           ) : (
-            <motion.div 
-              key="normal-header"
-              initial={{ opacity: 0, y: 10 }} 
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 10 }}
-              transition={{ duration: 0.1, ease: "easeOut" }}
-              className="flex items-center justify-between w-full h-full"
-            >
+            <motion.div key="normal-header" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} transition={{ duration: 0.1, ease: "easeOut" }} className="flex items-center justify-between w-full h-full">
               <div className="flex items-center gap-3 min-w-0 flex-1">
                 <div className="p-2 bg-primary/5 rounded-xl shrink-0">
                   <Hash className="h-5 w-5 text-primary" />
@@ -284,32 +208,16 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
                   <span className="text-[9px] text-muted-foreground font-black uppercase tracking-widest mt-1">Sync Active</span>
                 </div>
               </div>
-              
               <div className="flex items-center gap-2 shrink-0">
                 <ThemeToggle />
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className={cn("h-9 w-9 rounded-xl transition-all duration-200", showMembers ? "bg-primary/10 text-primary" : "text-muted-foreground")} 
-                  onClick={onToggleMembers}
-                >
-                  <Users className="h-5 w-5" />
-                </Button>
+                <Button variant="ghost" size="icon" className={cn("h-9 w-9 rounded-xl transition-all duration-200", showMembers ? "bg-primary/10 text-primary" : "text-muted-foreground")} onClick={onToggleMembers}><Users className="h-5 w-5" /></Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-muted-foreground">
-                      <MoreVertical className="h-5 w-5" />
-                    </Button>
+                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-muted-foreground"><MoreVertical className="h-5 w-5" /></Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56 font-black uppercase text-[10px] tracking-widest p-1 border-none shadow-2xl bg-popover/95 backdrop-blur-md">
-                    {isAdmin && (
-                      <DropdownMenuItem onClick={() => setIsChannelSettingsOpen(true)} className="gap-2 p-3 rounded-xl">
-                        <Settings className="h-4 w-4 text-primary" /> Edit Channel
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuItem onClick={() => setIsClearChatDialogOpen(true)} className="gap-2 text-destructive p-3 rounded-xl">
-                      <Eraser className="h-4 w-4" /> Wipe Messages
-                    </DropdownMenuItem>
+                    {isAdmin && <DropdownMenuItem onClick={() => setIsChannelSettingsOpen(true)} className="gap-2 p-3 rounded-xl"><Settings className="h-4 w-4 text-primary" /> Edit Channel</DropdownMenuItem>}
+                    <DropdownMenuItem onClick={() => setIsClearChatDialogOpen(true)} className="gap-2 text-destructive p-3 rounded-xl"><Eraser className="h-4 w-4" /> Wipe Messages</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -323,95 +231,37 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
           <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-1 custom-scrollbar min-h-0">
             {messagesLoading ? (
               <div className="flex flex-col items-center justify-center py-20 opacity-30 gap-3">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <p className="text-xs font-black uppercase tracking-widest text-primary">Syncing Verse</p>
+                <Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="text-xs font-black uppercase tracking-widest text-primary">Syncing Verse</p>
               </div>
             ) : messages.length === 0 ? (
               <div className="py-24 text-center opacity-30 flex flex-col items-center">
-                <div className="h-20 w-20 bg-muted/50 rounded-[2.5rem] flex items-center justify-center mb-6">
-                  <Hash className="h-10 w-10 text-muted-foreground" />
-                </div>
+                <div className="h-20 w-20 bg-muted/50 rounded-[2.5rem] flex items-center justify-center mb-6"><Hash className="h-10 w-10 text-muted-foreground" /></div>
                 <h3 className="text-2xl font-black mb-1 tracking-tighter uppercase text-foreground">WELCOME TO #{headerTitle}</h3>
                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Start something legendary.</p>
               </div>
             ) : (
               <div className="flex flex-col justify-end min-h-full">
                 {messages.map((msg) => (
-                  <MessageBubble 
-                    key={msg.id}
-                    message={msg}
-                    messagePath={`${basePath}/messages/${msg.id}`}
-                    isMe={msg.senderId === user?.uid}
-                    isSelected={selectedIds.has(msg.id)}
-                    selectionMode={selectionMode}
-                    onLongPress={enterSelectionMode}
-                    onSelect={toggleMessageSelection}
-                    onReply={() => setReplyingTo(msg)}
-                  />
+                  <MessageBubble key={msg.id} message={msg} messagePath={`${basePath}/messages/${msg.id}`} isMe={msg.senderId === user?.uid} isSelected={selectedIds.has(msg.id)} selectionMode={selectionMode} onLongPress={enterSelectionMode} onSelect={toggleMessageSelection} onReply={() => setReplyingTo(msg)} />
                 ))}
               </div>
             )}
           </div>
-
           <div className="shrink-0 border-t bg-background">
-            <MessageInput 
-              onSendMessage={handleSendMessage} 
-              replyingTo={replyingTo}
-              onCancelReply={() => setReplyingTo(null)}
-            />
+            <MessageInput onSendMessage={handleSendMessage} replyingTo={replyingTo} onCancelReply={() => setReplyingTo(null)} />
           </div>
         </div>
-
-        {showMembers && serverId && (
-          <div className="hidden lg:block border-l z-10 bg-background overflow-hidden">
-            <MembersPanel serverId={serverId} />
-          </div>
-        )}
+        {showMembers && serverId && <div className="hidden lg:block border-l z-10 bg-background overflow-hidden"><MembersPanel serverId={serverId} /></div>}
       </div>
       
-      <DeleteOptionsDialog 
-        open={isDeleteDialogOpen} 
-        onOpenChange={(val) => {
-          setIsDeleteDialogOpen(val);
-          if (!val) {
-            handleCancelSelection();
-          }
-        }} 
-        onDeleteForMe={() => handleBatchDelete("me")} 
-        onDeleteForEveryone={allSelectedFromMe ? () => handleBatchDelete("everyone") : undefined} 
-        isSender={allSelectedFromMe}
-        count={selectedIds.size}
-      />
-
-      <ForwardDialog 
-        open={isForwardOpen} 
-        onOpenChange={(val) => {
-          setIsForwardOpen(val);
-          if (!val) {
-            handleCancelSelection();
-          }
-        }} 
-        messagesToForward={rawMessages?.filter(m => selectedIds.has(m.id)) || []}
-        currentCommunityName={server?.name}
-        currentChannelName={contextData?.name}
-      />
-
-      {serverId && channelId && (
-        <ChannelSettingsDialog 
-          open={isChannelSettingsOpen} 
-          onOpenChange={setIsChannelSettingsOpen} 
-          serverId={serverId}
-          channelId={channelId}
-        />
-      )}
-
+      <DeleteOptionsDialog open={isDeleteDialogOpen} onOpenChange={(val) => { setIsDeleteDialogOpen(val); if (!val) handleCancelSelection(); }} onDeleteForMe={() => handleBatchDelete("me")} onDeleteForEveryone={allSelectedFromMe ? () => handleBatchDelete("everyone") : undefined} isSender={allSelectedFromMe} count={selectedIds.size} />
+      <ForwardDialog open={isForwardOpen} onOpenChange={(val) => { setIsForwardOpen(val); if (!val) handleCancelSelection(); }} messagesToForward={rawMessages?.filter(m => selectedIds.has(m.id)) || []} currentCommunityName={server?.name} currentChannelName={contextData?.name} />
+      {serverId && channelId && <ChannelSettingsDialog open={isChannelSettingsOpen} onOpenChange={setIsChannelSettingsOpen} serverId={serverId} channelId={channelId} />}
       <AlertDialog open={isClearChatDialogOpen} onOpenChange={setIsClearChatDialogOpen}>
         <AlertDialogContent className="rounded-[2.5rem] border-none shadow-2xl p-8">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-2xl font-black tracking-tighter uppercase">CLEAR CHAT?</AlertDialogTitle>
-            <AlertDialogDescription className="font-medium text-muted-foreground">
-              This will remove all messages from your view. This operation is synchronized.
-            </AlertDialogDescription>
+            <AlertDialogDescription className="font-medium text-muted-foreground">This will remove all messages from your view. This operation is synchronized.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="gap-3 mt-4">
             <AlertDialogCancel className="rounded-2xl font-bold h-12 flex-1">Cancel</AlertDialogCancel>
