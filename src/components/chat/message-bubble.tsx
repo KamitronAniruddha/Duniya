@@ -4,10 +4,10 @@
 import React, { memo, useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useFirestore, useUser, useDoc, useMemoFirebase } from "@/firebase";
-import { doc, arrayUnion, arrayRemove, deleteField } from "firebase/firestore";
+import { useFirestore, useUser, useDoc, useMemoFirebase, useCollection } from "@/firebase";
+import { doc, arrayUnion, arrayRemove, deleteField, collection, query, where, documentId, getDocs } from "firebase/firestore";
 import { UserProfilePopover } from "@/components/profile/user-profile-popover";
-import { Reply, CornerDownRight, Play, Pause, MoreHorizontal, Trash2, Ban, Copy, Timer, Check, CheckCheck, Forward, Landmark, Mic, Maximize2, Heart, Download, FileText, File, Eye, Ghost, Lock, Smile } from "lucide-react";
+import { Reply, CornerDownRight, Play, Pause, MoreHorizontal, Trash2, Ban, Copy, Timer, Check, CheckCheck, Forward, Landmark, Mic, Maximize2, Heart, Download, FileText, File, Eye, Ghost, Lock, Smile, Plus, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
@@ -18,6 +18,8 @@ import { DeleteOptionsDialog } from "./delete-options-dialog";
 import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogDescription } from "@/components/ui/dialog";
 import { motion, AnimatePresence } from "framer-motion";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export interface ForwardHop {
   communityName: string;
@@ -30,6 +32,11 @@ export interface ForwardHop {
 }
 
 const QUICK_REACTIONS = ["❤️", "😂", "😮", "😢", "🙏", "👍"];
+
+const EMOJI_CATEGORIES = [
+  { id: "smileys", icon: <Smile className="h-4 w-4" />, label: "Smileys", emojis: ["😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣", "😊", "😇", "🙂", "🙃", "😉", "😌", "😍", "🥰", "😘", "😗", "😙", "😚", "😋", "😛", "😝", "😜", "🤪", "🤨", "🧐", "🤓", "😎", "🤩", "🥳", "😏", "😒", "😞", "😔", "😟", "😕", "🙁", "☹️", "😮", "😯", "😲", "😳", "🥺", "😦", "😧", "😨", "😰", "😥", "😢", "😭", "😱", "😖", "😣", "😞", "😓", "😩", "😫", "🥱", "😤", "😡", "😠", "🤬", "😈", "👿", "💀", "☠️", "💩", "🤡", "👹", "👺", "👻", "👽", "👾", "🤖"] },
+  { id: "animals", icon: <Ghost className="h-4 w-4" />, label: "Animals", emojis: ["🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯", "🦁", "🐮", "🐷", "🐽", "🐸", "🐵", "🙈", "🙉", "🙊", "🐒", "🐔", "🐧", "🐦", "🐤", "🐣", "🐥", "🦆", "🦅", "🦉", "🦇", "🐺", "🐗", "🐴", "🦄", "🐝", "🐛", "🦋", "🐌", "🐞", "🐜", "🦟", "🦗", "🕷", "🕸", "🐙", "🦑", "🦐", "🦞", "🦀", "🐡", "🐠", "🐟", "🐬", "🐳", "🐋", "🦈", "🐊", "🐅", "🦓", "🦍", "🦧", "🐘", "🦛", "🦏", "🐪", "🐫", "🦒", "🦘", "🐃", "🐂", "🐄", "🐎", "🐖", "🐏", "🐑", "🐐", "🦌", "🐕", "🐩", "🦮", "🐈", "🐓", "🦃", "🦚", "🦜", "🦢", "🦩", "🕊", "🐇", "🦝", "🦨", "🦡", "🦦", "🦥", "🐁", "🐀", "🐿", "🦔"] }
+];
 
 interface MessageBubbleProps {
   message: {
@@ -101,6 +108,8 @@ export const MessageBubble = memo(function MessageBubble({
   const [isImageZoomOpen, setIsImageZoomOpen] = useState(false);
   const [isPDFViewOpen, setIsPDFViewOpen] = useState(false);
   const [isReactionPickerOpen, setIsReactionPickerOpen] = useState(false);
+  const [isFullPickerOpen, setIsFullPickerOpen] = useState(false);
+  const [reactionDetails, setReactionDetails] = useState<{ emoji: string; uids: string[] } | null>(null);
 
   const [dragX, setDragX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -165,6 +174,7 @@ export const MessageBubble = memo(function MessageBubble({
       [`reactions.${emoji}`]: hasReacted ? arrayRemove(user.uid) : arrayUnion(user.uid)
     });
     setIsReactionPickerOpen(false);
+    setIsFullPickerOpen(false);
   }, [user, messagePath, message.reactions, isActuallyDeleted, db]);
 
   const handleDownload = (url: string, name: string) => {
@@ -272,7 +282,8 @@ export const MessageBubble = memo(function MessageBubble({
       .map(([emoji, uids]) => ({
         emoji,
         count: uids.length,
-        hasReacted: user ? uids.includes(user.uid) : false
+        hasReacted: user ? uids.includes(user.uid) : false,
+        uids
       }));
   }, [message.reactions, user]);
 
@@ -466,13 +477,21 @@ export const MessageBubble = memo(function MessageBubble({
               {/* Reactions Badges */}
               {reactionsData.length > 0 && (
                 <div className={cn("flex flex-wrap gap-1 mt-2 -mb-1", isMe ? "justify-end" : "justify-start")}>
-                  {reactionsData.map(({ emoji, count, hasReacted }) => (
+                  {reactionsData.map(({ emoji, count, hasReacted, uids }) => (
                     <motion.button
                       key={emoji}
                       initial={{ scale: 0.8, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
                       whileTap={{ scale: 0.9 }}
-                      onClick={(e) => { e.stopPropagation(); handleToggleReaction(emoji); }}
+                      onClick={(e) => { 
+                        e.stopPropagation(); 
+                        if (e.shiftKey || count > 1) setReactionDetails({ emoji, uids });
+                        else handleToggleReaction(emoji); 
+                      }}
+                      onContextMenu={(e) => {
+                        e.preventDefault();
+                        setReactionDetails({ emoji, uids });
+                      } }
                       className={cn(
                         "flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-black transition-all border shadow-sm",
                         hasReacted 
@@ -512,6 +531,36 @@ export const MessageBubble = memo(function MessageBubble({
                     {emoji}
                   </button>
                 ))}
+                
+                <div className="w-[1px] h-4 bg-border/50 mx-1" />
+                
+                <Popover open={isFullPickerOpen} onOpenChange={setIsFullPickerOpen}>
+                  <PopoverTrigger asChild>
+                    <button className="h-8 w-8 flex items-center justify-center text-muted-foreground hover:bg-primary/10 hover:text-primary rounded-full transition-all active:scale-90">
+                      <Plus className="h-4 w-4" />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent side="top" align="center" className="w-80 p-0 overflow-hidden bg-popover border-none shadow-2xl rounded-2xl">
+                    <Tabs defaultValue="smileys" className="w-full">
+                      <TabsList className="w-full justify-start rounded-none border-b bg-muted/50 p-0 h-10">
+                        {EMOJI_CATEGORIES.map((cat) => (
+                          <TabsTrigger key={cat.id} value={cat.id} className="flex-1 rounded-none data-[state=active]:bg-background">{cat.icon}</TabsTrigger>
+                        ))}
+                      </TabsList>
+                      {EMOJI_CATEGORIES.map((cat) => (
+                        <TabsContent key={cat.id} value={cat.id} className="m-0">
+                          <ScrollArea className="h-64 p-2">
+                            <div className="grid grid-cols-8 gap-1">
+                              {cat.emojis.map((emoji, idx) => (
+                                <button key={idx} type="button" onClick={() => handleToggleReaction(emoji)} className="text-xl hover:bg-muted rounded aspect-square flex items-center justify-center transition-transform active:scale-125">{emoji}</button>
+                              ))}
+                            </div>
+                          </ScrollArea>
+                        </TabsContent>
+                      ))}
+                    </Tabs>
+                  </PopoverContent>
+                </Popover>
               </PopoverContent>
             </Popover>
             <button onClick={(e) => { e.stopPropagation(); setIsForwardOpen(true); }} className="h-7 w-7 rounded-full hover:bg-muted/60 flex items-center justify-center text-muted-foreground transition-colors active:scale-90"><Forward className="h-3.5 w-3.5" /></button>
@@ -538,6 +587,13 @@ export const MessageBubble = memo(function MessageBubble({
       {!isActuallyDeleted && <ForwardDialog open={isForwardOpen} onOpenChange={setIsForwardOpen} messagesToForward={[message]} />}
       {!isActuallyDeleted && <DeleteOptionsDialog open={isDeleteDialogOpen} onOpenChange={(val) => { setIsDeleteDialogOpen(val); if (!val && selectionMode) { onSelect?.(""); } }} onDeleteForMe={() => { if (!db || !messagePath || !user) return; updateDocumentNonBlocking(doc(db, messagePath), { deletedFor: arrayUnion(user.uid) }); toast({ title: "Removed Locally" }); }} onDeleteForEveryone={() => { if (!db || !messagePath) return; updateDocumentNonBlocking(doc(db, messagePath), { isDeleted: true, content: "This message was deleted", audioUrl: deleteField(), videoUrl: deleteField(), imageUrl: deleteField(), fileUrl: deleteField(), type: "text" }); toast({ title: "Wiped" }); }} isSender={isMe} />}
       
+      <ReactionDetailsDialog 
+        open={!!reactionDetails} 
+        onOpenChange={(open) => !open && setReactionDetails(null)} 
+        emoji={reactionDetails?.emoji || ""} 
+        uids={reactionDetails?.uids || []} 
+      />
+
       <Dialog open={isImageZoomOpen} onOpenChange={setIsImageZoomOpen}>
         <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 border-none bg-transparent shadow-none flex flex-col items-center justify-center overflow-hidden">
           <DialogHeader className="sr-only">
@@ -604,3 +660,80 @@ export const MessageBubble = memo(function MessageBubble({
          prev.message.viewerExpireAt === next.message.viewerExpireAt &&
          JSON.stringify(prev.message.reactions) === JSON.stringify(next.message.reactions);
 });
+
+function ReactionDetailsDialog({ open, onOpenChange, emoji, uids }: { open: boolean; onOpenChange: (open: boolean) => void; emoji: string; uids: string[] }) {
+  const db = useFirestore();
+  const [users, setUsers] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (open && uids.length > 0) {
+      const fetchUsers = async () => {
+        setIsLoading(true);
+        try {
+          const q = query(collection(db, "users"), where(documentId(), "in", uids.slice(0, 10)));
+          const snap = await getDocs(q);
+          setUsers(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+        } catch (e) {
+          console.error("Failed to fetch reaction users", e);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      fetchUsers();
+    } else if (!open) {
+      setUsers([]);
+    }
+  }, [open, uids, db]);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[350px] rounded-[2rem] border-none shadow-2xl p-0 overflow-hidden bg-background">
+        <DialogHeader className="p-6 bg-gradient-to-b from-primary/5 to-transparent border-b">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="text-3xl animate-bounce [animation-duration:2s]">{emoji}</div>
+              <div className="flex flex-col">
+                <DialogTitle className="text-xl font-black uppercase tracking-tight">Reactions</DialogTitle>
+                <DialogDescription className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{uids.length} Participants</DialogDescription>
+              </div>
+            </div>
+            <Users className="h-5 w-5 text-primary/40" />
+          </div>
+        </DialogHeader>
+        
+        <ScrollArea className="max-h-[300px] p-2">
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center py-12 gap-2 opacity-30">
+              <Plus className="h-6 w-6 animate-spin text-primary" />
+              <span className="text-[10px] font-black uppercase tracking-widest">Identifying...</span>
+            </div>
+          ) : (
+            <div className="space-y-1">
+              {users.map((u) => (
+                <div key={u.id} className="flex items-center gap-3 p-3 rounded-2xl hover:bg-muted/50 transition-colors">
+                  <Avatar className="h-10 w-10 border border-border shadow-sm">
+                    <AvatarImage src={u.photoURL} />
+                    <AvatarFallback className="bg-primary text-white font-black text-xs">{u.username?.[0]?.toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-sm font-black uppercase tracking-tight truncate">@{u.username}</span>
+                    <span className="text-[9px] text-muted-foreground font-medium truncate italic">{u.bio || "Member of the Verse"}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </ScrollArea>
+
+        <div className="p-4 bg-muted/20 border-t flex items-center justify-center">
+          <div className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.3em] text-muted-foreground/40">
+            <span>Identified by Duniya</span>
+            <div className="h-1 w-1 rounded-full bg-primary/40" />
+            <span>Aniruddha ❤️</span>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
