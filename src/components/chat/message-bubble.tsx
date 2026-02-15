@@ -203,9 +203,9 @@ export const MessageBubble = memo(function MessageBubble({
   return (
     <div 
       className={cn(
-        "flex w-full py-0.5 group items-end relative transition-colors duration-200 rounded-2xl select-none", 
+        "flex w-full py-0.5 group items-end relative transition-colors duration-100 rounded-2xl select-none", 
         isMe ? "flex-row-reverse" : "flex-row",
-        isSelected && "bg-primary/10 shadow-inner"
+        isSelected && "bg-primary/10"
       )}
       onMouseDown={handleStart}
       onMouseMove={handleMove}
@@ -222,15 +222,15 @@ export const MessageBubble = memo(function MessageBubble({
       }}
     >
       <div className={cn(
-        "shrink-0 flex items-center justify-center transition-all duration-200 overflow-hidden",
+        "shrink-0 flex items-center justify-center transition-all duration-150 overflow-hidden",
         selectionMode ? "w-10 opacity-100" : "w-0 opacity-0",
         isMe ? "ml-1" : "mr-1"
       )}>
         <motion.div 
-          animate={isSelected ? { scale: 1.1 } : { scale: 1 }}
+          animate={isSelected ? { scale: 1.05 } : { scale: 1 }}
           transition={{ duration: 0.1, ease: "easeOut" }}
           className={cn(
-            "h-5 w-5 rounded-full border-2 flex items-center justify-center transition-all duration-150",
+            "h-5 w-5 rounded-full border-2 flex items-center justify-center transition-all duration-100",
             isSelected ? "bg-primary border-primary text-white" : "border-muted-foreground/20"
           )}
         >
@@ -254,7 +254,7 @@ export const MessageBubble = memo(function MessageBubble({
 
       {!isMe && !selectionMode && (
         <UserProfilePopover userId={message.senderId}>
-          <button className="h-8 w-8 mb-0.5 mr-2 shrink-0 transition-transform active:scale-90">
+          <button className="h-8 w-8 mb-0.5 mr-2 shrink-0 transition-transform active:scale-95">
             <Avatar className="h-full w-full border border-border shadow-sm">
               <AvatarImage src={sender?.photoURL} />
               <AvatarFallback className="text-[9px] font-black bg-primary text-white">{sender?.username?.[0]?.toUpperCase() || "?"}</AvatarFallback>
@@ -265,9 +265,9 @@ export const MessageBubble = memo(function MessageBubble({
       
       <motion.div 
         layout
-        className={cn("flex flex-col max-w-[75%] relative transition-all duration-200 ease-out", isMe ? "items-end" : "items-start")} 
+        className={cn("flex flex-col max-w-[75%] relative transition-all duration-150 ease-out", isMe ? "items-end" : "items-start")} 
         style={{ x: dragX }}
-        transition={{ duration: 0.2, ease: "easeOut" }}
+        transition={{ duration: 0.15, ease: "easeOut" }}
       >
         {isActuallyDeleted ? (
           <div className={cn(
@@ -286,9 +286,9 @@ export const MessageBubble = memo(function MessageBubble({
             )}
             
             <div className={cn(
-              "px-3 py-2 rounded-[1.25rem] shadow-sm transition-all duration-200 relative group/bubble",
+              "px-3 py-2 rounded-[1.25rem] shadow-sm transition-all duration-100 relative group/bubble",
               isMe ? "bg-primary text-white rounded-br-none shadow-primary/10" : "bg-card text-foreground rounded-bl-none border border-border shadow-black/5",
-              selectionMode && "cursor-pointer active:scale-[0.98]"
+              selectionMode && "cursor-pointer active:scale-[0.99]"
             )}>
               {message.isForwarded && (
                 <div className={cn("flex flex-col mb-1.5 opacity-80", isMe ? "items-end" : "items-start")}>
