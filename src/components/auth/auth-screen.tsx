@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { Logo } from "@/components/logo";
 import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 export function AuthScreen() {
   const auth = useAuth();
@@ -27,6 +27,9 @@ export function AuthScreen() {
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  
+  // State for toggling between Ani and Sanu signature
+  const [signatureType, setSignatureType] = useState<"ani" | "sanu">("ani");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,32 +107,70 @@ export function AuthScreen() {
                 <Logo size={36} />
               </div>
               
-              {/* Animated Handwriting Signature */}
-              <div className="h-10 w-24 flex items-center justify-center -mt-1 -mb-1">
-                <motion.svg
-                  width="80"
-                  height="36"
-                  viewBox="0 0 80 36"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="text-primary"
-                >
-                  <motion.path
-                    d="M15,28 C20,5 30,5 35,28 M22,20 L38,20 M45,28 L45,16 C45,10 55,10 55,16 L55,28 M65,16 L65,28 M65,8 L65,10"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    initial={{ pathLength: 0, opacity: 0 }}
-                    animate={{ pathLength: 1, opacity: 1 }}
-                    transition={{ 
-                      duration: 2.5, 
-                      ease: "easeInOut",
-                      delay: 0.5
-                    }}
-                  />
-                </motion.svg>
-              </div>
+              {/* Animated Interactive Handwriting Signature */}
+              <button 
+                type="button"
+                onClick={() => setSignatureType(prev => prev === "ani" ? "sanu" : "ani")}
+                className="h-10 w-32 flex items-center justify-center -mt-1 -mb-1 outline-none group cursor-pointer"
+              >
+                <AnimatePresence mode="wait">
+                  {signatureType === "ani" ? (
+                    <motion.svg
+                      key="ani-sig"
+                      width="80"
+                      height="36"
+                      viewBox="0 0 80 36"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="text-primary transition-transform group-hover:scale-110"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                    >
+                      <motion.path
+                        d="M15,28 C20,5 30,5 35,28 M22,20 L38,20 M45,28 L45,16 C45,10 55,10 55,16 L55,28 M65,16 L65,28 M65,8 L65,10"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        initial={{ pathLength: 0 }}
+                        animate={{ pathLength: 1 }}
+                        transition={{ 
+                          duration: 2, 
+                          ease: "easeInOut",
+                        }}
+                      />
+                    </motion.svg>
+                  ) : (
+                    <motion.svg
+                      key="sanu-sig"
+                      width="100"
+                      height="36"
+                      viewBox="0 0 100 36"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="text-primary transition-transform group-hover:scale-110"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                    >
+                      <motion.path
+                        d="M15,25 C15,10 35,10 35,18 C35,25 15,25 15,32 C15,40 35,40 35,32 M45,32 C45,25 55,25 55,32 L55,35 M55,28 L55,35 M62,35 L62,28 C62,24 72,24 72,28 L72,35 M78,28 L78,32 C78,36 88,36 88,32 L88,28 M88,28 L88,35"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        initial={{ pathLength: 0 }}
+                        animate={{ pathLength: 1 }}
+                        transition={{ 
+                          duration: 2.2, 
+                          ease: "easeInOut",
+                        }}
+                      />
+                    </motion.svg>
+                  )}
+                </AnimatePresence>
+              </button>
             </div>
             
             <CardTitle className="text-2xl font-black tracking-tighter text-foreground uppercase">Duniya</CardTitle>
