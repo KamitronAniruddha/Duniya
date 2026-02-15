@@ -260,6 +260,9 @@ export const MessageBubble = memo(function MessageBubble({
 
   const isActuallyDeleted = message.isDeleted || isDisappeared || message.fullyDeleted;
 
+  // Root of the genealogy is the first hop in the chain
+  const rootHop = message.forwardingChain && message.forwardingChain.length > 0 ? message.forwardingChain[0] : null;
+
   return (
     <div 
       className={cn(
@@ -326,7 +329,7 @@ export const MessageBubble = memo(function MessageBubble({
               message.disappearingEnabled && "ring-1 ring-primary/30",
               isMe ? "bg-primary text-white rounded-br-none" : "bg-card text-foreground rounded-bl-none border border-border"
             )}>
-              {(message.isForwarded || message.forwardingChain) && (
+              {message.isForwarded && (
                 <div className={cn("flex flex-col mb-1.5 opacity-70", isMe ? "items-end" : "items-start")}>
                   <button 
                     onClick={(e) => {
@@ -342,15 +345,10 @@ export const MessageBubble = memo(function MessageBubble({
                     Forwarded
                     <History className="h-2 w-2 ml-1 opacity-0 group-hover/forward:opacity-100 transition-opacity" />
                   </button>
-                  {(message.forwardingChain && message.forwardingChain.length > 0) ? (
+                  {rootHop && (
                     <div className={cn("flex items-center gap-1 text-[8px] font-bold tracking-tight mt-0.5", isMe ? "text-white/60" : "text-primary/70")}>
                       <Landmark className="h-2 w-2" />
-                      <span>from {message.forwardingChain[0].communityName}</span>
-                    </div>
-                  ) : message.forwardedFrom && (
-                    <div className={cn("flex items-center gap-1 text-[8px] font-bold tracking-tight mt-0.5", isMe ? "text-white/60" : "text-primary/70")}>
-                      <Landmark className="h-2 w-2" />
-                      <span>from {message.forwardedFrom.communityName}</span>
+                      <span>from {rootHop.communityName}</span>
                     </div>
                   )}
                 </div>
@@ -445,7 +443,6 @@ export const MessageBubble = memo(function MessageBubble({
     </div>
   );
 }, (prev, next) => {
-  // custom compare for performance
   return (
     prev.isSelected === next.isSelected &&
     prev.selectionMode === next.selectionMode &&

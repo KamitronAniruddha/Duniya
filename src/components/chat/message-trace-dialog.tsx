@@ -24,19 +24,19 @@ interface MessageTraceDialogProps {
 export function MessageTraceDialog({ open, onOpenChange, chain }: MessageTraceDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl bg-background">
-        <DialogHeader className="p-8 pb-4 bg-gradient-to-b from-primary/10 to-transparent">
+      <DialogContent className="sm:max-w-[425px] w-[95vw] rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl bg-background max-h-[90vh] flex flex-col">
+        <DialogHeader className="p-8 pb-4 bg-gradient-to-b from-primary/10 to-transparent shrink-0">
           <DialogTitle className="text-3xl font-black tracking-tighter flex items-center gap-3 text-foreground">
             <History className="h-8 w-8 text-primary" />
-            Message Genealogy
+            Genealogy
           </DialogTitle>
           <DialogDescription className="font-medium text-muted-foreground">
             The journey of this message through the Verse.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="px-8 pb-10">
-          <ScrollArea className="max-h-[60vh] pr-4">
+        <div className="flex-1 min-h-0 overflow-hidden px-8">
+          <ScrollArea className="h-full pr-4">
             <div className="relative space-y-8 py-4">
               {/* Vertical line connector */}
               <div className="absolute left-[15px] top-6 bottom-6 w-[2px] bg-gradient-to-b from-primary/40 via-muted to-muted/20" />
@@ -97,7 +97,7 @@ export function MessageTraceDialog({ open, onOpenChange, chain }: MessageTraceDi
           </ScrollArea>
         </div>
 
-        <div className="p-4 bg-muted/20 border-t flex items-center justify-center">
+        <div className="p-4 bg-muted/20 border-t flex items-center justify-center shrink-0">
            <div className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.3em] text-muted-foreground/40">
             <span>Trace Verified by Duniya</span>
             <div className="h-1 w-1 rounded-full bg-primary/40" />
