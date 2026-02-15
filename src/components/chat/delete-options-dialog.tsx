@@ -1,7 +1,7 @@
 
 "use client";
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogOverlay } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Trash2, User, Users, X, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -25,7 +25,7 @@ export function DeleteOptionsDialog({
 }: DeleteOptionsDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[400px] rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl bg-background">
+      <DialogContent className="sm:max-w-[400px] rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl bg-background animate-in zoom-in-95 duration-200">
         <DialogHeader className="p-8 pb-4 bg-gradient-to-b from-destructive/10 to-transparent">
           <div className="h-12 w-12 bg-destructive/20 rounded-2xl flex items-center justify-center mb-4 text-destructive">
             <Trash2 className="h-6 w-6" />

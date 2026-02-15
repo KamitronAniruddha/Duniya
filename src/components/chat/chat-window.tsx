@@ -164,6 +164,11 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
     });
   };
 
+  const handleCancelSelection = () => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  };
+
   const enterSelectionMode = (id: string) => {
     setSelectionMode(true);
     setSelectedIds(new Set([id]));
@@ -198,23 +203,24 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
         selectionMode ? "bg-primary text-white" : "bg-background/80 backdrop-blur-md"
       )}>
         {selectionMode ? (
-          <div className="flex items-center gap-4 w-full">
-            <Button variant="ghost" size="icon" className="text-white hover:bg-white/10" onClick={() => {
-              setSelectionMode(false);
-              setSelectedIds(new Set());
-            }}>
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }} 
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-center gap-4 w-full"
+          >
+            <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full" onClick={handleCancelSelection}>
               <X className="h-5 w-5" />
             </Button>
             <span className="font-black text-lg flex-1 tracking-tight">{selectedIds.size} SELECTED</span>
             <div className="flex items-center gap-1">
-              <Button variant="ghost" size="icon" className="text-white hover:bg-white/10" onClick={() => setIsForwardOpen(true)}>
+              <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full" onClick={() => setIsForwardOpen(true)}>
                 <Forward className="h-5 w-5" />
               </Button>
-              <Button variant="ghost" size="icon" className="text-white hover:bg-white/10" onClick={() => setIsDeleteDialogOpen(true)}>
+              <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full" onClick={() => setIsDeleteDialogOpen(true)}>
                 <Trash2 className="h-5 w-5" />
               </Button>
             </div>
-          </div>
+          </motion.div>
         ) : (
           <>
             <div className="flex items-center gap-3">
@@ -329,8 +335,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
         onOpenChange={(val) => {
           setIsForwardOpen(val);
           if (!val) {
-            setSelectionMode(false);
-            setSelectedIds(new Set());
+            handleCancelSelection();
           }
         }} 
         messagesToForward={selectedMessages}
@@ -338,14 +343,14 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
       />
 
       <AlertDialog open={isClearChatDialogOpen} onOpenChange={setIsClearChatDialogOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-[2rem] border-none shadow-2xl">
           <AlertDialogHeader>
-            <AlertDialogTitle>Clear Chat?</AlertDialogTitle>
-            <AlertDialogDescription>This will hide all current messages from your view.</AlertDialogDescription>
+            <AlertDialogTitle className="text-xl font-black">Clear Chat?</AlertDialogTitle>
+            <AlertDialogDescription className="font-medium text-muted-foreground">This will hide all current messages from your view in the Verse.</AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleClearChat}>Clear Everything</AlertDialogAction>
+          <AlertDialogFooter className="gap-2">
+            <AlertDialogCancel className="rounded-xl font-bold">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleClearChat} className="rounded-xl font-black bg-destructive hover:bg-destructive/90">Clear Everything</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

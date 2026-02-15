@@ -144,6 +144,7 @@ export const MessageBubble = memo(function MessageBubble({
   }, [message.disappearingEnabled, message.senderExpireAt, message.viewerExpireAt, user?.uid, isMe]);
 
   const handleStart = (e: React.TouchEvent | React.MouseEvent) => {
+    if (selectionMode) return;
     const clientX = 'touches' in e ? (e as React.TouchEvent).touches[0].clientX : (e as React.MouseEvent).clientX;
     const clientY = 'touches' in e ? (e as React.TouchEvent).touches[0].clientY : (e as React.MouseEvent).clientY;
     
@@ -161,7 +162,7 @@ export const MessageBubble = memo(function MessageBubble({
   };
 
   const handleMove = (e: React.TouchEvent | React.MouseEvent) => {
-    if (!isDragging) return;
+    if (!isDragging || selectionMode) return;
     const clientX = 'touches' in e ? (e as React.TouchEvent).touches[0].clientX : (e as React.MouseEvent).clientX;
     const clientY = 'touches' in e ? (e as React.TouchEvent).touches[0].clientY : (e as React.MouseEvent).clientY;
     
@@ -245,7 +246,12 @@ export const MessageBubble = memo(function MessageBubble({
       onTouchStart={handleStart}
       onTouchMove={handleMove}
       onTouchEnd={handleEnd}
-      onClick={() => selectionMode && onSelect?.(message.id)}
+      onClick={(e) => {
+        if (selectionMode) {
+          e.stopPropagation();
+          onSelect?.(message.id);
+        }
+      }}
     >
       <div className={cn(
         "shrink-0 flex items-center justify-center transition-all duration-300 overflow-hidden",
@@ -303,7 +309,8 @@ export const MessageBubble = memo(function MessageBubble({
             
             <div className={cn(
               "px-3.5 py-2.5 rounded-2xl shadow-sm transition-all relative",
-              isMe ? "bg-primary text-white rounded-br-none" : "bg-card text-foreground rounded-bl-none border border-border"
+              isMe ? "bg-primary text-white rounded-br-none" : "bg-card text-foreground rounded-bl-none border border-border",
+              selectionMode && "cursor-pointer"
             )}>
               {message.isForwarded && (
                 <div className={cn("flex flex-col mb-1.5 opacity-70", isMe ? "items-end" : "items-start")}>
@@ -332,7 +339,7 @@ export const MessageBubble = memo(function MessageBubble({
               {message.type === 'media' && message.audioUrl ? (
                 <div className="flex items-center gap-3 py-1 min-w-[220px]">
                   <audio ref={audioRef} src={message.audioUrl} onTimeUpdate={() => audioRef.current && (setCurrentTime(audioRef.current.currentTime), setProgress((audioRef.current.currentTime / audioRef.current.duration) * 100))} onLoadedMetadata={() => audioRef.current && setDuration(audioRef.current.duration)} />
-                  <Button variant="ghost" size="icon" className={cn("h-10 w-10 rounded-full", isMe ? "text-white hover:bg-white/10" : "text-primary hover:bg-primary/10")} onClick={togglePlay}>
+                  <Button variant="ghost" size="icon" className={cn("h-10 w-10 rounded-full", isMe ? "text-white hover:bg-white/10" : "text-primary hover:bg-primary/10")} onClick={(e) => { e.stopPropagation(); togglePlay(); }}>
                     {isPlaying ? <Pause className="h-5 w-5 fill-current" /> : <Play className="h-5 w-5 fill-current ml-0.5" />}
                   </Button>
                   <div className="flex-1 space-y-1.5">
@@ -343,7 +350,7 @@ export const MessageBubble = memo(function MessageBubble({
                 </div>
               ) : message.type === 'media' && message.videoUrl ? (
                 <div className="relative group/video overflow-hidden rounded-xl aspect-square w-64 md:w-80 bg-black/90">
-                  <video ref={videoRef} src={message.videoUrl} className="w-full h-full object-cover" loop muted={!isVideoPlaying} autoPlay playsInline onClick={() => setIsVideoPlaying(!isVideoPlaying)} />
+                  <video ref={videoRef} src={message.videoUrl} className="w-full h-full object-cover" loop muted={!isVideoPlaying} autoPlay playsInline onClick={(e) => { e.stopPropagation(); setIsVideoPlaying(!isVideoPlaying); }} />
                 </div>
               ) : (
                 <p className="whitespace-pre-wrap break-words leading-relaxed text-sm tracking-tight">{message.content}</p>
