@@ -124,8 +124,9 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 800000) {
-      toast({ variant: "destructive", title: "File too large", description: "Limit: 800KB for the Verse" });
+    // Increased limit to 10MB (10 * 1024 * 1024)
+    if (file.size > 10485760) {
+      toast({ variant: "destructive", title: "File too large", description: "Limit: 10MB for high-fidelity sharing" });
       return;
     }
     setIsProcessing(true);
