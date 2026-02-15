@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, SendHorizontal, Smile, History, Ghost, X, CornerDownRight, Mic, Square, Trash2, Video, Timer, Clock } from "lucide-react";
+import { Plus, SendHorizontal, Smile, History, Ghost, X, CornerDownRight, Mic, Square, Trash2, Video, Timer, Clock, Image as ImageIcon, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -13,10 +13,10 @@ import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface MessageInputProps {
-  onSendMessage: (content: string, audioUrl?: string, videoUrl?: string, replySenderName?: string, disappearing?: DisappearingConfig) => void;
+  onSendMessage: (content: string, audioUrl?: string, videoUrl?: string, replySenderName?: string, disappearing?: DisappearingConfig, imageUrl?: string) => void;
   inputRef?: React.RefObject<HTMLInputElement>;
   replyingTo?: any | null;
   onCancelReply?: () => void;
@@ -56,12 +56,15 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
   const [isRecording, setIsRecording] = useState(false);
   const [isRecordingVideo, setIsRecordingVideo] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isProcessingImage, setIsProcessingImage] = useState(false);
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const replyUserRef = useMemoFirebase(() => (replyingTo ? doc(db, "users", replyingTo.senderId) : null), [db, replyingTo?.senderId]);
   const { data: replyUser } = useDoc(replyUserRef);
@@ -79,14 +82,37 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (text.trim()) {
+    if (text.trim() || imagePreview) {
       const duration = disappearDuration === -1 ? (parseInt(customSeconds) || 10) * 1000 : disappearDuration;
       onSendMessage(text, undefined, undefined, replyUser?.username, {
         enabled: disappearingEnabled,
         duration: duration
-      });
+      }, imagePreview || undefined);
       setText("");
+      setImagePreview(null);
     }
+  };
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 800000) { // Keep it under Firestore limit roughly
+      toast({ variant: "destructive", title: "Image too large", description: "Please select an image smaller than 800KB." });
+      return;
+    }
+
+    setIsProcessingImage(true);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string);
+      setIsProcessingImage(false);
+    };
+    reader.onerror = () => {
+      toast({ variant: "destructive", title: "Error", description: "Failed to process image." });
+      setIsProcessingImage(false);
+    };
+    reader.readAsDataURL(file);
   };
 
   const addEmoji = (emoji: string) => {
@@ -193,6 +219,20 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
           <button onClick={onCancelReply} className="h-6 w-6 rounded-full hover:bg-muted flex items-center justify-center transition-colors">
             <X className="h-3 w-3" />
           </button>
+        </div>
+      )}
+
+      {imagePreview && (
+        <div className="px-4 py-3 bg-muted/20 border-t flex flex-col gap-2 animate-in slide-in-from-bottom-4 duration-200">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-black uppercase text-primary tracking-widest">Image Preview</span>
+            <button onClick={() => setImagePreview(null)} className="h-6 w-6 rounded-full bg-background/50 hover:bg-background flex items-center justify-center transition-colors shadow-sm">
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <div className="relative w-24 h-24 rounded-xl overflow-hidden border-2 border-primary/20 shadow-lg">
+            <img src={imagePreview} className="w-full h-full object-cover" alt="Preview" />
+          </div>
         </div>
       )}
 
@@ -314,12 +354,16 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
               </div>
 
               <div className="flex items-center gap-1.5">
-                {text.trim() ? (
+                {(text.trim() || imagePreview) ? (
                   <Button type="submit" size="icon" className="rounded-xl h-10 w-10 shrink-0 bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-transform active:scale-90">
                     <SendHorizontal className="h-4 w-4" />
                   </Button>
                 ) : (
                   <>
+                    <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageSelect} />
+                    <Button type="button" variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} className="rounded-xl h-10 w-10 shrink-0 text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all">
+                      {isProcessingImage ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-5 w-5" />}
+                    </Button>
                     <Button type="button" variant="ghost" size="icon" onClick={startVideoRecording} className="rounded-xl h-10 w-10 shrink-0 text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all"><Video className="h-5 w-5" /></Button>
                     <Button type="button" size="icon" onClick={startRecording} className="rounded-xl h-10 w-10 shrink-0 bg-muted text-muted-foreground hover:bg-primary hover:text-primary-foreground transition-all shadow-sm active:scale-95"><Mic className="h-5 w-5" /></Button>
                   </>

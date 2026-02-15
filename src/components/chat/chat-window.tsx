@@ -68,10 +68,17 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
     return rawMessages.filter(msg => !msg.fullyDeleted && !msg.deletedFor?.includes(user.uid));
   }, [rawMessages, user?.uid]);
 
-  const handleSendMessage = useCallback(async (text: string, audioUrl?: string, videoUrl?: string, replySenderName?: string, disappearing?: { enabled: boolean; duration: number }) => {
+  const handleSendMessage = useCallback(async (text: string, audioUrl?: string, videoUrl?: string, replySenderName?: string, disappearing?: { enabled: boolean; duration: number }, imageUrl?: string) => {
     if (!db || !basePath || !user) return;
     const messageRef = doc(collection(db, basePath, "messages"));
     const sentAt = new Date();
+    
+    // Type detection logic
+    let messageType = "text";
+    if (videoUrl) messageType = "media";
+    else if (audioUrl) messageType = "media";
+    else if (imageUrl) messageType = "media";
+
     const data: any = {
       id: messageRef.id,
       channelId: channelId,
@@ -79,10 +86,11 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
       senderName: user.displayName || "User",
       senderPhotoURL: user.photoURL || "",
       content: text,
-      type: videoUrl ? "media" : (audioUrl ? "media" : "text"),
+      type: messageType,
       sentAt: sentAt.toISOString(),
       audioUrl: audioUrl || null,
       videoUrl: videoUrl || null,
+      imageUrl: imageUrl || null,
       disappearingEnabled: disappearing?.enabled || false,
       disappearDuration: disappearing?.duration || 0,
       fullyDeleted: false,
@@ -103,7 +111,14 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
     selectedMessages.forEach(msg => {
       const msgRef = doc(db, basePath, "messages", msg.id);
       if (type === "everyone" && msg.senderId === user.uid) {
-        batch.update(msgRef, { isDeleted: true, content: "This message was deleted", audioUrl: deleteField(), videoUrl: deleteField(), type: "text" });
+        batch.update(msgRef, { 
+          isDeleted: true, 
+          content: "This message was deleted", 
+          audioUrl: deleteField(), 
+          videoUrl: deleteField(), 
+          imageUrl: deleteField(),
+          type: "text" 
+        });
       } else {
         batch.update(msgRef, { deletedFor: arrayUnion(user.uid) });
       }

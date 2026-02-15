@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { memo, useState, useRef, useEffect, useMemo } from "react";
@@ -7,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useFirestore, useUser, useDoc, useMemoFirebase } from "@/firebase";
 import { doc, arrayUnion, deleteField } from "firebase/firestore";
 import { UserProfilePopover } from "@/components/profile/user-profile-popover";
-import { Reply, CornerDownRight, Play, Pause, MoreHorizontal, Trash2, Ban, Copy, Timer, Check, CheckCheck, Forward, Landmark, Mic } from "lucide-react";
+import { Reply, CornerDownRight, Play, Pause, MoreHorizontal, Trash2, Ban, Copy, Timer, Check, CheckCheck, Forward, Landmark, Mic, Maximize2, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
@@ -15,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { MessageTraceDialog } from "./message-trace-dialog";
 import { ForwardDialog } from "./forward-dialog";
 import { DeleteOptionsDialog } from "./delete-options-dialog";
+import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogDescription } from "@/components/ui/dialog";
 import { motion, AnimatePresence } from "framer-motion";
 
 export interface ForwardHop {
@@ -37,6 +37,7 @@ interface MessageBubbleProps {
     type?: string;
     audioUrl?: string;
     videoUrl?: string;
+    imageUrl?: string;
     sentAt: any;
     isDeleted?: boolean;
     replyTo?: {
@@ -85,6 +86,7 @@ export const MessageBubble = memo(function MessageBubble({
   const [isTraceOpen, setIsTraceOpen] = useState(false);
   const [isForwardOpen, setIsForwardOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isImageZoomOpen, setIsImageZoomOpen] = useState(false);
 
   const [dragX, setDragX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -97,8 +99,8 @@ export const MessageBubble = memo(function MessageBubble({
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [isDisappeared, setIsDisappeared] = useState(false);
 
-  // Optimized waveform heights calculation to prevent layout thrashing
-  const waveformHeights = useMemo(() => [...Array(20)].map(() => Math.random() * 16 + 4), []);
+  // Pre-calculated waveform heights for performance
+  const waveformHeights = useMemo(() => [8, 12, 16, 10, 14, 18, 6, 12, 15, 9, 13, 17, 7, 11, 14, 10, 16, 12, 8, 10], []);
 
   const formattedTime = useMemo(() => {
     if (!message.sentAt) return "";
@@ -267,10 +269,11 @@ export const MessageBubble = memo(function MessageBubble({
             <div className={cn(
               "px-3 py-2 rounded-[1.25rem] shadow-sm transition-all duration-150 relative group/bubble",
               isMe ? "bg-primary text-primary-foreground rounded-br-none shadow-primary/10" : "bg-card text-foreground rounded-bl-none border border-border shadow-black/5",
-              selectionMode && !isActuallyDeleted && "cursor-pointer active:scale-[0.98]"
+              selectionMode && !isActuallyDeleted && "cursor-pointer active:scale-[0.98]",
+              message.imageUrl && "p-1 pb-2"
             )}>
               {message.isForwarded && (
-                <div className={cn("flex flex-col mb-1.5 opacity-80", isMe ? "items-end" : "items-start")}>
+                <div className={cn("flex flex-col mb-1.5 opacity-80 px-2 pt-1", isMe ? "items-end" : "items-start")}>
                   <button onClick={(e) => { e.stopPropagation(); setIsTraceOpen(true); }} className={cn("flex items-center gap-1 italic text-[8px] font-black uppercase tracking-widest transition-all", isMe ? "text-primary-foreground/90" : "text-muted-foreground")}>
                     <Forward className="h-2 w-2" /> Forwarded
                   </button>
@@ -284,7 +287,7 @@ export const MessageBubble = memo(function MessageBubble({
               )}
 
               {message.replyTo && (
-                <button className={cn("w-full text-left mb-2 p-2 rounded-xl border-l-2 text-[11px] bg-black/5 flex flex-col gap-0.5 backdrop-blur-sm transition-colors", isMe ? "border-primary-foreground/40" : "border-primary/50")}>
+                <button className={cn("w-full text-left mb-2 p-2 rounded-xl border-l-2 text-[11px] bg-black/5 flex flex-col gap-0.5 backdrop-blur-sm transition-colors mx-auto max-w-[calc(100%-8px)]", isMe ? "border-primary-foreground/40" : "border-primary/50")}>
                   <span className={cn("font-black text-[9px] flex items-center gap-1 uppercase tracking-wider", isMe ? "text-primary-foreground" : "text-primary")}>
                     <CornerDownRight className="h-3 w-3" />{(message.replyTo as any).senderName}
                   </span>
@@ -293,13 +296,13 @@ export const MessageBubble = memo(function MessageBubble({
               )}
 
               {message.type === 'media' && message.audioUrl ? (
-                <div className="flex items-center gap-3 py-2 min-w-[220px] max-w-full">
+                <div className="flex items-center gap-3 py-2 min-w-[220px] max-w-full px-2">
                   <audio ref={audioRef} src={message.audioUrl} onTimeUpdate={() => { if (audioRef.current && audioRef.current.duration) setProgress((audioRef.current.currentTime / audioRef.current.duration) * 100); }} onEnded={() => { setIsPlaying(false); setProgress(0); }} />
                   <Button variant="ghost" size="icon" className={cn("h-10 w-10 rounded-full shadow-lg shrink-0 transition-transform active:scale-95", isMe ? "bg-primary-foreground text-primary" : "bg-primary text-primary-foreground")} onClick={(e) => { e.stopPropagation(); togglePlay(); }}>
                     {isPlaying ? <Pause className="h-5 w-5 fill-current" /> : <Play className="h-5 w-5 fill-current ml-0.5" />}
                   </Button>
                   <div className="flex-1 flex flex-col gap-1.5 min-w-0">
-                    <div className="flex items-end gap-0.5 h-6 overflow-hidden items-center">
+                    <div className="flex items-center gap-0.5 h-6 items-center">
                       {waveformHeights.map((h, i) => (
                         <div key={i} className={cn("w-1 rounded-full shrink-0 transition-all duration-300", isMe ? (progress > (i * 5) ? "bg-primary-foreground" : "bg-primary-foreground/30") : (progress > (i * 5) ? "bg-primary" : "bg-primary/20"), isPlaying ? "animate-pulse" : "h-1")} style={{ height: isPlaying ? `${h}px` : '4px' }} />
                       ))}
@@ -311,14 +314,27 @@ export const MessageBubble = memo(function MessageBubble({
                   </div>
                 </div>
               ) : message.type === 'media' && message.videoUrl ? (
-                <div className="relative group/video overflow-hidden rounded-2xl aspect-square w-56 md:w-64 bg-black shadow-xl">
+                <div className="relative group/video overflow-hidden rounded-2xl aspect-square w-56 md:w-64 bg-black shadow-xl mx-auto">
                   <video ref={videoRef} src={message.videoUrl} className="w-full h-full object-cover" loop muted={!isVideoPlaying} autoPlay playsInline onClick={(e) => { e.stopPropagation(); setIsVideoPlaying(!isVideoPlaying); }} />
                 </div>
+              ) : message.type === 'media' && message.imageUrl ? (
+                <div className="relative group/image overflow-hidden rounded-2xl w-56 md:w-64 bg-muted/20 shadow-xl mx-auto cursor-pointer" onClick={(e) => { e.stopPropagation(); setIsImageZoomOpen(true); }}>
+                  <img src={message.imageUrl} className="w-full h-auto object-cover max-h-80" alt="Sent image" />
+                  <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <div className="p-3 bg-background/20 backdrop-blur-md rounded-full">
+                      <Maximize2 className="h-6 w-6 text-white" />
+                    </div>
+                  </div>
+                </div>
               ) : (
-                <p className="whitespace-pre-wrap break-words leading-snug text-sm font-medium tracking-tight selection:bg-white/30">{message.content}</p>
+                <p className="whitespace-pre-wrap break-words leading-snug text-sm font-medium tracking-tight selection:bg-white/30 px-2">{message.content}</p>
               )}
 
-              <div className="flex items-center justify-between gap-3 mt-1.5">
+              {message.imageUrl && message.content && (
+                <p className="mt-2 px-2 whitespace-pre-wrap break-words leading-snug text-sm font-medium tracking-tight selection:bg-white/30">{message.content}</p>
+              )}
+
+              <div className="flex items-center justify-between gap-3 mt-1.5 px-2">
                 {message.disappearingEnabled && (
                   <div className={cn("flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-tighter border shadow-sm", isMe ? "bg-primary-foreground/10 border-primary-foreground/20 text-primary-foreground" : "bg-primary/10 border-primary/20 text-primary")}>
                     <Timer className="h-2.5 w-2.5 animate-pulse" />
@@ -354,7 +370,25 @@ export const MessageBubble = memo(function MessageBubble({
 
       {message.forwardingChain && <MessageTraceDialog open={isTraceOpen} onOpenChange={setIsTraceOpen} chain={message.forwardingChain} />}
       {!isActuallyDeleted && <ForwardDialog open={isForwardOpen} onOpenChange={setIsForwardOpen} messagesToForward={[message]} />}
-      {!isActuallyDeleted && <DeleteOptionsDialog open={isDeleteDialogOpen} onOpenChange={(val) => { setIsDeleteDialogOpen(val); if (!val && selectionMode) { onSelect?.(""); } }} onDeleteForMe={() => { if (!db || !messagePath || !user) return; updateDocumentNonBlocking(doc(db, messagePath), { deletedFor: arrayUnion(user.uid) }); toast({ title: "Removed Locally" }); }} onDeleteForEveryone={() => { if (!db || !messagePath) return; updateDocumentNonBlocking(doc(db, messagePath), { isDeleted: true, content: "This message was deleted", audioUrl: deleteField(), videoUrl: deleteField(), type: "text" }); toast({ title: "Wiped" }); }} isSender={isMe} />}
+      {!isActuallyDeleted && <DeleteOptionsDialog open={isDeleteDialogOpen} onOpenChange={(val) => { setIsDeleteDialogOpen(val); if (!val && selectionMode) { onSelect?.(""); } }} onDeleteForMe={() => { if (!db || !messagePath || !user) return; updateDocumentNonBlocking(doc(db, messagePath), { deletedFor: arrayUnion(user.uid) }); toast({ title: "Removed Locally" }); }} onDeleteForEveryone={() => { if (!db || !messagePath) return; updateDocumentNonBlocking(doc(db, messagePath), { isDeleted: true, content: "This message was deleted", audioUrl: deleteField(), videoUrl: deleteField(), imageUrl: deleteField(), type: "text" }); toast({ title: "Wiped" }); }} isSender={isMe} />}
+      
+      <Dialog open={isImageZoomOpen} onOpenChange={setIsImageZoomOpen}>
+        <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 border-none bg-transparent shadow-none flex items-center justify-center overflow-hidden">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Image View</DialogTitle>
+            <DialogDescription>Full-sized view of the sent image.</DialogDescription>
+          </DialogHeader>
+          <div className="relative w-full h-full flex items-center justify-center">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.2, ease: "easeOut" }} className="relative group">
+              <img src={message.imageUrl} className="max-w-full max-h-[90vh] rounded-2xl shadow-2xl object-contain" alt="Zoomed view" />
+              <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-2 bg-background/80 backdrop-blur-md rounded-full border border-border shadow-xl">
+                <span className="text-[10px] font-black uppercase tracking-widest text-primary">Shared in Verse</span>
+                <Heart className="h-3 w-3 text-red-500 fill-red-500 animate-pulse" />
+              </div>
+            </motion.div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }, (prev, next) => {
