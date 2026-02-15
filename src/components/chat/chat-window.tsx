@@ -313,6 +313,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
               onCancelReply={handleCancelReply} 
               whisperingTo={whisperingTo}
               onCancelWhisper={handleCancelWhisper}
+              onTriggerWhisper={handleWhisper}
             />
           </div>
         </div>

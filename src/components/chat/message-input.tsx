@@ -8,7 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDoc, useFirestore, useMemoFirebase } from "@/firebase";
-import { doc } from "firebase/firestore";
+import { doc, collection, query, where, getDocs, limit } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
@@ -31,6 +31,7 @@ interface MessageInputProps {
   onCancelReply?: () => void;
   whisperingTo?: { id: string; username: string } | null;
   onCancelWhisper?: () => void;
+  onTriggerWhisper?: (user: { id: string; username: string }) => void;
 }
 
 interface DisappearingConfig {
@@ -51,10 +52,10 @@ const DISAPPEAR_OPTIONS = [
 const EMOJI_CATEGORIES = [
   { id: "recent", icon: <History className="h-4 w-4" />, label: "Recent", emojis: [] },
   { id: "smileys", icon: <Smile className="h-4 w-4" />, label: "Smileys", emojis: ["😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣", "😊", "😇", "🙂", "🙃", "😉", "😌", "😍", "🥰", "😘", "😗", "😙", "😚", "😋", "😛", "😝", "😜", "🤪", "🤨", "🧐", "🤓", "😎", "🤩", "🥳", "😏", "😒", "😞", "😔", "😟", "😕", "🙁", "☹️", "😮", "😯", "😲", "😳", "🥺", "😦", "😧", "😨", "😰", "😥", "😢", "😭", "😱", "😖", "😣", "😞", "😓", "😩", "😫", "🥱", "😤", "😡", "😠", "🤬", "😈", "👿", "💀", "☠️", "💩", "🤡", "👹", "👺", "👻", "👽", "👾", "🤖"] },
-  { id: "animals", icon: <Ghost className="h-4 w-4" />, label: "Animals", emojis: ["🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯", "🦁", "🐮", "🐷", "🐽", "🐸", "🐵", "🙈", "🙉", "🙊", "🐒", "🐔", "🐧", "🐦", "🐤", "🐣", "🐥", "🦆", "🦅", "🦉", "🦇", "🐺", "🐗", "🐴", "🦄", "🐝", "🐛", "🦋", "🐌", "🐞", "🐜", "🦟", "🦗", "🕷", "🕸", "🐢", "🐍", "🦎", "🐙", "🦑", "🦐", "🦞", "🦀", "🐡", "🐠", "🐟", "🐬", "🐳", "🐋", "🦈", "🐊", "🐅", "🦓", "🦍", "🦧", "🐘", "🦛", "🦏", "🐪", "🐫", "🦒", "🦘", "🐃", "🐂", "🐄", "🐎", "🐖", "🐏", "🐑", "🐐", "🦌", "🐕", "🐩", "🦮", "🐈", "🐓", "🦃", "🦚", "🦜", "🦢", "🦩", "🕊", "🐇", "🦝", "🦨", "🦡", "🦦", "🦥", "🐁", "🐀", "🐿", "🦔"] }
+  { id: "animals", icon: <Ghost className="h-4 w-4" />, label: "Animals", emojis: ["🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯", "🦁", "🐮", "🐷", "🐽", "🐸", "🐵", "🙈", "🙉", "🙊", "🐒", "🐔", "🐧", "🐦", "🐤", "🐣", "🐥", "🦆", "🦅", "🦉", "🦇", "🐺", "🐗", "🐴", "🦄", "🐝", "🐛", "🦋", "🐌", "🐞", "🐜", "🦟", "🦗", "🕷", "🕸", "🐙", "🦑", "🦐", "🦞", "🦀", "🐡", "🐠", "🐟", "🐬", "🐳", "🐋", "🦈", "🐊", "🐅", "🦓", "🦍", "🦧", "🐘", "🦛", "🦏", "🐪", "🐫", "🦒", "🦘", "🐃", "🐂", "🐄", "🐎", "🐖", "🐏", "🐑", "🐐", "🦌", "🐕", "🐩", "🦮", "🐈", "🐓", "🦃", "🦚", "🦜", "🦢", "🦩", "🕊", "🐇", "🦝", "🦨", "🦡", "🦦", "🦥", "🐁", "🐀", "🐿", "🦔"] }
 ];
 
-export function MessageInput({ onSendMessage, inputRef: externalInputRef, replyingTo, onCancelReply, whisperingTo, onCancelWhisper }: MessageInputProps) {
+export function MessageInput({ onSendMessage, inputRef: externalInputRef, replyingTo, onCancelReply, whisperingTo, onCancelWhisper, onTriggerWhisper }: MessageInputProps) {
   const db = useFirestore();
   const { toast } = useToast();
   const [text, setText] = useState("");
@@ -95,6 +96,38 @@ export function MessageInput({ onSendMessage, inputRef: externalInputRef, replyi
       }
     }
   }, []);
+
+  // Intelligent Whisper Command Parser
+  useEffect(() => {
+    const detectWhisperCommand = async () => {
+      if (text.startsWith("@whisper @")) {
+        const parts = text.split(" ");
+        if (parts.length >= 2) {
+          const usernameWithAt = parts[1];
+          const username = usernameWithAt.startsWith("@") ? usernameWithAt.substring(1) : usernameWithAt;
+          
+          if (parts.length > 2) {
+            // User finished the command and pressed space
+            try {
+              const q = query(collection(db, "users"), where("username", "==", username.toLowerCase()), limit(1));
+              const snap = await getDocs(q);
+              if (!snap.empty) {
+                const targetUser = { id: snap.docs[0].id, username: snap.docs[0].data().username };
+                onTriggerWhisper?.(targetUser);
+                // Clear the command from input
+                const remainingText = parts.slice(2).join(" ");
+                setText(remainingText);
+              }
+            } catch (e) {
+              console.error("Whisper resolution failed", e);
+            }
+          }
+        }
+      }
+    };
+
+    detectWhisperCommand();
+  }, [text, db, onTriggerWhisper]);
 
   const applyFormatting = (prefix: string, suffix: string) => {
     if (!inputRef.current) return;
@@ -149,7 +182,7 @@ export function MessageInput({ onSendMessage, inputRef: externalInputRef, replyi
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 10485760) {
-      toast({ variant: "destructive", title: "File too large", description: "Limit: 10MB for high-fidelity sharing" });
+      toast({ variant: "destructive", title: "File too large", description: "Limit: 10MB" });
       return;
     }
     setIsProcessing(true);
@@ -279,7 +312,7 @@ export function MessageInput({ onSendMessage, inputRef: externalInputRef, replyi
           </div>
           <div className="flex-1 min-w-0 flex flex-col">
             <span className="text-[10px] font-black text-indigo-500 uppercase tracking-wider">Whispering to @{whisperingTo.username}</span>
-            <p className="text-xs text-muted-foreground truncate italic font-medium">Only they can see this message.</p>
+            <p className="text-xs text-muted-foreground truncate italic font-medium">This message is invisible to others.</p>
           </div>
           <button onClick={onCancelWhisper} className="h-6 w-6 rounded-full hover:bg-indigo-500/10 flex items-center justify-center transition-colors">
             <X className="h-3 w-3 text-indigo-500" />

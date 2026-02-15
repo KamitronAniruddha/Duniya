@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useFirestore, useUser, useDoc, useMemoFirebase } from "@/firebase";
 import { doc, arrayUnion, deleteField } from "firebase/firestore";
 import { UserProfilePopover } from "@/components/profile/user-profile-popover";
-import { Reply, CornerDownRight, Play, Pause, MoreHorizontal, Trash2, Ban, Copy, Timer, Check, CheckCheck, Forward, Landmark, Mic, Maximize2, Heart, Download, FileText, File, Eye, Ghost } from "lucide-react";
+import { Reply, CornerDownRight, Play, Pause, MoreHorizontal, Trash2, Ban, Copy, Timer, Check, CheckCheck, Forward, Landmark, Mic, Maximize2, Heart, Download, FileText, File, Eye, Ghost, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
@@ -175,7 +175,8 @@ export const MessageBubble = memo(function MessageBubble({
             rel="noopener noreferrer" 
             className={cn(
               "underline font-bold decoration-2 underline-offset-2 hover:opacity-70 transition-all break-all", 
-              isMe ? "text-white" : "text-primary"
+              isMe ? "text-white" : "text-primary",
+              message.whisperTo && "text-indigo-200"
             )}
             onClick={(e) => e.stopPropagation()}
           >
@@ -318,13 +319,13 @@ export const MessageBubble = memo(function MessageBubble({
             <div className={cn(
               "px-3 py-2 rounded-[1.25rem] shadow-sm transition-all duration-150 relative group/bubble",
               isMe ? "bg-primary text-primary-foreground rounded-br-none shadow-primary/10" : "bg-card text-foreground rounded-bl-none border border-border shadow-black/5",
-              message.whisperTo && (isMe ? "bg-indigo-600 shadow-indigo-500/20" : "bg-indigo-50 dark:bg-indigo-950/30 border-indigo-200 dark:border-indigo-800"),
+              message.whisperTo && (isMe ? "bg-gradient-to-br from-indigo-600 to-indigo-800 shadow-indigo-500/20 text-white" : "bg-indigo-50 dark:bg-indigo-950/40 border-indigo-200 dark:border-indigo-800 backdrop-blur-md"),
               selectionMode && !isActuallyDeleted && "cursor-pointer active:scale-[0.98]",
               (message.imageUrl || message.type === 'file') && "p-1 pb-2"
             )}>
               {message.whisperTo && (
-                <div className={cn("flex items-center gap-1.5 mb-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest w-fit border", isMe ? "bg-indigo-500/20 border-indigo-400 text-white" : "bg-indigo-100 dark:bg-indigo-900 border-indigo-300 text-indigo-600 dark:text-indigo-300")}>
-                  <Ghost className="h-2.5 w-2.5" /> Whisper {isMe ? `to @${message.whisperToUsername}` : "to You"}
+                <div className={cn("flex items-center gap-1.5 mb-1.5 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-[0.2em] w-fit border border-white/20", isMe ? "bg-white/10 text-white" : "bg-indigo-500 text-white")}>
+                  <Lock className="h-2.5 w-2.5" /> PRIVATE WHISPER {isMe ? `@${message.whisperToUsername}` : "TO YOU"}
                 </div>
               )}
 
@@ -403,13 +404,19 @@ export const MessageBubble = memo(function MessageBubble({
                   </div>
                 </div>
               ) : (
-                <div className="whitespace-pre-wrap break-words leading-snug text-sm font-medium tracking-tight selection:bg-white/30 px-2">
+                <div className={cn(
+                  "whitespace-pre-wrap break-words leading-snug text-sm font-medium tracking-tight px-2",
+                  message.whisperTo && "font-mono text-xs opacity-90"
+                )}>
                   {renderContent(message.content)}
                 </div>
               )}
 
               {(message.imageUrl || message.type === 'file' || message.fileUrl) && message.content && (
-                <div className="mt-2 px-2 whitespace-pre-wrap break-words leading-snug text-sm font-medium tracking-tight selection:bg-white/30">
+                <div className={cn(
+                  "mt-2 px-2 whitespace-pre-wrap break-words leading-snug text-sm font-medium tracking-tight",
+                  message.whisperTo && "font-mono text-xs opacity-90"
+                )}>
                   {renderContent(message.content)}
                 </div>
               )}
