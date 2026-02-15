@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useRef, useEffect, useState, useMemo, useCallback } from "react";
@@ -68,16 +69,22 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
     return rawMessages.filter(msg => !msg.fullyDeleted && !msg.deletedFor?.includes(user.uid));
   }, [rawMessages, user?.uid]);
 
-  const handleSendMessage = useCallback(async (text: string, audioUrl?: string, videoUrl?: string, replySenderName?: string, disappearing?: { enabled: boolean; duration: number }, imageUrl?: string) => {
+  const handleSendMessage = useCallback(async (
+    text: string, 
+    audioUrl?: string, 
+    videoUrl?: string, 
+    replySenderName?: string, 
+    disappearing?: { enabled: boolean; duration: number }, 
+    imageUrl?: string,
+    file?: { url: string; name: string; type: string }
+  ) => {
     if (!db || !basePath || !user) return;
     const messageRef = doc(collection(db, basePath, "messages"));
     const sentAt = new Date();
     
-    // Type detection logic
     let messageType = "text";
-    if (videoUrl) messageType = "media";
-    else if (audioUrl) messageType = "media";
-    else if (imageUrl) messageType = "media";
+    if (videoUrl || audioUrl || imageUrl) messageType = "media";
+    if (file) messageType = "file";
 
     const data: any = {
       id: messageRef.id,
@@ -91,6 +98,9 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
       audioUrl: audioUrl || null,
       videoUrl: videoUrl || null,
       imageUrl: imageUrl || null,
+      fileUrl: file?.url || null,
+      fileName: file?.name || null,
+      fileType: file?.type || null,
       disappearingEnabled: disappearing?.enabled || false,
       disappearDuration: disappearing?.duration || 0,
       fullyDeleted: false,
@@ -117,6 +127,9 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
           audioUrl: deleteField(), 
           videoUrl: deleteField(), 
           imageUrl: deleteField(),
+          fileUrl: deleteField(),
+          fileName: deleteField(),
+          fileType: deleteField(),
           type: "text" 
         });
       } else {

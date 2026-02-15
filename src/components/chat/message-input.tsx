@@ -1,8 +1,9 @@
+
 "use client";
 
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, SendHorizontal, Smile, History, Ghost, X, CornerDownRight, Mic, Square, Trash2, Video, Timer, Clock, Image as ImageIcon, Loader2 } from "lucide-react";
+import { Plus, SendHorizontal, Smile, History, Ghost, X, CornerDownRight, Mic, Square, Trash2, Video, Timer, Clock, Image as ImageIcon, Loader2, Paperclip, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -16,7 +17,15 @@ import { Label } from "@/components/ui/label";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface MessageInputProps {
-  onSendMessage: (content: string, audioUrl?: string, videoUrl?: string, replySenderName?: string, disappearing?: DisappearingConfig, imageUrl?: string) => void;
+  onSendMessage: (
+    content: string, 
+    audioUrl?: string, 
+    videoUrl?: string, 
+    replySenderName?: string, 
+    disappearing?: DisappearingConfig, 
+    imageUrl?: string,
+    file?: { url: string; name: string; type: string }
+  ) => void;
   inputRef?: React.RefObject<HTMLInputElement>;
   replyingTo?: any | null;
   onCancelReply?: () => void;
@@ -57,13 +66,15 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
   const [isRecordingVideo, setIsRecordingVideo] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [isProcessingImage, setIsProcessingImage] = useState(false);
+  const [filePreview, setFilePreview] = useState<{ url: string; name: string; type: string } | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const replyUserRef = useMemoFirebase(() => (replyingTo ? doc(db, "users", replyingTo.senderId) : null), [db, replyingTo?.senderId]);
@@ -82,35 +93,50 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (text.trim() || imagePreview) {
+    if (text.trim() || imagePreview || filePreview) {
       const duration = disappearDuration === -1 ? (parseInt(customSeconds) || 10) * 1000 : disappearDuration;
       onSendMessage(text, undefined, undefined, replyUser?.username, {
         enabled: disappearingEnabled,
         duration: duration
-      }, imagePreview || undefined);
+      }, imagePreview || undefined, filePreview || undefined);
       setText("");
       setImagePreview(null);
+      setFilePreview(null);
     }
   };
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    if (file.size > 800000) { // Keep it under Firestore limit roughly
-      toast({ variant: "destructive", title: "Image too large", description: "Please select an image smaller than 800KB." });
+    if (file.size > 800000) {
+      toast({ variant: "destructive", title: "Image too large", description: "Limit: 800KB" });
       return;
     }
-
-    setIsProcessingImage(true);
+    setIsProcessing(true);
     const reader = new FileReader();
     reader.onloadend = () => {
       setImagePreview(reader.result as string);
-      setIsProcessingImage(false);
+      setIsProcessing(false);
     };
-    reader.onerror = () => {
-      toast({ variant: "destructive", title: "Error", description: "Failed to process image." });
-      setIsProcessingImage(false);
+    reader.readAsDataURL(file);
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 800000) {
+      toast({ variant: "destructive", title: "File too large", description: "Limit: 800KB for the Verse" });
+      return;
+    }
+    setIsProcessing(true);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setFilePreview({
+        url: reader.result as string,
+        name: file.name,
+        type: file.type
+      });
+      setIsProcessing(false);
     };
     reader.readAsDataURL(file);
   };
@@ -147,7 +173,7 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
       setRecordingTime(0);
       timerRef.current = setInterval(() => setRecordingTime(prev => prev + 1), 1000);
     } catch (err) {
-      toast({ variant: "destructive", title: "Microphone Error", description: "Could not access microphone." });
+      toast({ variant: "destructive", title: "Microphone Error", description: "Access denied." });
     }
   };
 
@@ -175,7 +201,7 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
       setRecordingTime(0);
       timerRef.current = setInterval(() => setRecordingTime(prev => prev + 1), 1000);
     } catch (err) {
-      toast({ variant: "destructive", title: "Camera Error", description: "Could not access camera." });
+      toast({ variant: "destructive", title: "Camera Error", description: "Access denied." });
     }
   };
 
@@ -232,6 +258,26 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
           </div>
           <div className="relative w-24 h-24 rounded-xl overflow-hidden border-2 border-primary/20 shadow-lg">
             <img src={imagePreview} className="w-full h-full object-cover" alt="Preview" />
+          </div>
+        </div>
+      )}
+
+      {filePreview && (
+        <div className="px-4 py-3 bg-muted/20 border-t flex flex-col gap-2 animate-in slide-in-from-bottom-4 duration-200">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-black uppercase text-primary tracking-widest">Document Selected</span>
+            <button onClick={() => setFilePreview(null)} className="h-6 w-6 rounded-full bg-background/50 hover:bg-background flex items-center justify-center transition-colors shadow-sm">
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <div className="flex items-center gap-3 p-3 bg-background rounded-xl border-2 border-primary/20 shadow-lg w-fit max-w-full">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              {filePreview.type.includes('pdf') ? <FileText className="h-5 w-5 text-primary" /> : <Paperclip className="h-5 w-5 text-primary" />}
+            </div>
+            <div className="flex flex-col">
+              <span className="text-xs font-bold truncate max-w-[200px]">{filePreview.name}</span>
+              <span className="text-[9px] font-black text-muted-foreground uppercase">{filePreview.type.split('/')[1] || 'FILE'}</span>
+            </div>
           </div>
         </div>
       )}
@@ -354,15 +400,19 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
               </div>
 
               <div className="flex items-center gap-1.5">
-                {(text.trim() || imagePreview) ? (
+                {(text.trim() || imagePreview || filePreview) ? (
                   <Button type="submit" size="icon" className="rounded-xl h-10 w-10 shrink-0 bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-transform active:scale-90">
                     <SendHorizontal className="h-4 w-4" />
                   </Button>
                 ) : (
                   <>
-                    <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageSelect} />
+                    <input type="file" ref={imageInputRef} className="hidden" accept="image/*" onChange={handleImageSelect} />
+                    <input type="file" ref={fileInputRef} className="hidden" accept=".pdf,.doc,.docx,.txt" onChange={handleFileSelect} />
+                    <Button type="button" variant="ghost" size="icon" onClick={() => imageInputRef.current?.click()} className="rounded-xl h-10 w-10 shrink-0 text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all">
+                      {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-5 w-5" />}
+                    </Button>
                     <Button type="button" variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} className="rounded-xl h-10 w-10 shrink-0 text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all">
-                      {isProcessingImage ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-5 w-5" />}
+                      <Paperclip className="h-5 w-5" />
                     </Button>
                     <Button type="button" variant="ghost" size="icon" onClick={startVideoRecording} className="rounded-xl h-10 w-10 shrink-0 text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all"><Video className="h-5 w-5" /></Button>
                     <Button type="button" size="icon" onClick={startRecording} className="rounded-xl h-10 w-10 shrink-0 bg-muted text-muted-foreground hover:bg-primary hover:text-primary-foreground transition-all shadow-sm active:scale-95"><Mic className="h-5 w-5" /></Button>

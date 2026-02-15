@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { memo, useState, useRef, useEffect, useMemo } from "react";
@@ -6,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useFirestore, useUser, useDoc, useMemoFirebase } from "@/firebase";
 import { doc, arrayUnion, deleteField } from "firebase/firestore";
 import { UserProfilePopover } from "@/components/profile/user-profile-popover";
-import { Reply, CornerDownRight, Play, Pause, MoreHorizontal, Trash2, Ban, Copy, Timer, Check, CheckCheck, Forward, Landmark, Mic, Maximize2, Heart } from "lucide-react";
+import { Reply, CornerDownRight, Play, Pause, MoreHorizontal, Trash2, Ban, Copy, Timer, Check, CheckCheck, Forward, Landmark, Mic, Maximize2, Heart, Download, FileText, File } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
@@ -38,6 +39,9 @@ interface MessageBubbleProps {
     audioUrl?: string;
     videoUrl?: string;
     imageUrl?: string;
+    fileUrl?: string;
+    fileName?: string;
+    fileType?: string;
     sentAt: any;
     isDeleted?: boolean;
     replyTo?: {
@@ -99,7 +103,6 @@ export const MessageBubble = memo(function MessageBubble({
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [isDisappeared, setIsDisappeared] = useState(false);
 
-  // Pre-calculated waveform heights for performance
   const waveformHeights = useMemo(() => [8, 12, 16, 10, 14, 18, 6, 12, 15, 9, 13, 17, 7, 11, 14, 10, 16, 12, 8, 10], []);
 
   const formattedTime = useMemo(() => {
@@ -141,6 +144,16 @@ export const MessageBubble = memo(function MessageBubble({
   }, [message.disappearingEnabled, message.senderExpireAt, message.viewerExpireAt, user?.uid, isMe]);
 
   const isActuallyDeleted = message.isDeleted || isDisappeared || message.fullyDeleted;
+
+  const handleDownload = (url: string, name: string) => {
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = name;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast({ title: "Starting Download", description: name });
+  };
 
   const handleStart = (e: React.TouchEvent | React.MouseEvent) => {
     if (selectionMode || isActuallyDeleted) return;
@@ -270,7 +283,7 @@ export const MessageBubble = memo(function MessageBubble({
               "px-3 py-2 rounded-[1.25rem] shadow-sm transition-all duration-150 relative group/bubble",
               isMe ? "bg-primary text-primary-foreground rounded-br-none shadow-primary/10" : "bg-card text-foreground rounded-bl-none border border-border shadow-black/5",
               selectionMode && !isActuallyDeleted && "cursor-pointer active:scale-[0.98]",
-              message.imageUrl && "p-1 pb-2"
+              (message.imageUrl || message.type === 'file') && "p-1 pb-2"
             )}>
               {message.isForwarded && (
                 <div className={cn("flex flex-col mb-1.5 opacity-80 px-2 pt-1", isMe ? "items-end" : "items-start")}>
@@ -326,11 +339,24 @@ export const MessageBubble = memo(function MessageBubble({
                     </div>
                   </div>
                 </div>
+              ) : message.type === 'file' && message.fileUrl ? (
+                <div className="flex items-center gap-3 p-3 bg-black/5 rounded-2xl border border-black/10 min-w-[200px] max-w-full">
+                  <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center shadow-sm shrink-0", isMe ? "bg-primary-foreground text-primary" : "bg-primary text-primary-foreground")}>
+                    {message.fileType?.includes('pdf') ? <FileText className="h-5 w-5" /> : <File className="h-5 w-5" />}
+                  </div>
+                  <div className="flex-1 min-w-0 flex flex-col">
+                    <span className={cn("text-xs font-bold truncate", isMe ? "text-primary-foreground" : "text-foreground")}>{message.fileName || "Document"}</span>
+                    <span className={cn("text-[8px] font-black uppercase opacity-60", isMe ? "text-primary-foreground" : "text-muted-foreground")}>{message.fileType?.split('/')[1]?.toUpperCase() || "FILE"}</span>
+                  </div>
+                  <Button variant="ghost" size="icon" className={cn("h-8 w-8 rounded-full hover:bg-black/10 transition-colors", isMe ? "text-primary-foreground" : "text-primary")} onClick={(e) => { e.stopPropagation(); handleDownload(message.fileUrl!, message.fileName!); }}>
+                    <Download className="h-4 w-4" />
+                  </Button>
+                </div>
               ) : (
                 <p className="whitespace-pre-wrap break-words leading-snug text-sm font-medium tracking-tight selection:bg-white/30 px-2">{message.content}</p>
               )}
 
-              {message.imageUrl && message.content && (
+              {(message.imageUrl || message.type === 'file') && message.content && (
                 <p className="mt-2 px-2 whitespace-pre-wrap break-words leading-snug text-sm font-medium tracking-tight selection:bg-white/30">{message.content}</p>
               )}
 
@@ -360,6 +386,8 @@ export const MessageBubble = memo(function MessageBubble({
             </DropdownMenuTrigger>
             <DropdownMenuContent align={isMe ? "end" : "start"} className="rounded-xl font-black uppercase text-[9px] tracking-widest p-1 border-none shadow-xl bg-popover/95 backdrop-blur-md">
               <DropdownMenuItem onClick={() => onReply?.()} className="gap-2 p-2 rounded-lg"><Reply className="h-3 w-3 text-primary" /> Reply</DropdownMenuItem>
+              {message.imageUrl && <DropdownMenuItem onClick={() => handleDownload(message.imageUrl!, message.fileName || "image.jpg")} className="gap-2 p-2 rounded-lg"><Download className="h-3 w-3 text-primary" /> Download</DropdownMenuItem>}
+              {message.fileUrl && <DropdownMenuItem onClick={() => handleDownload(message.fileUrl!, message.fileName || "file")} className="gap-2 p-2 rounded-lg"><Download className="h-3 w-3 text-primary" /> Download</DropdownMenuItem>}
               <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(message.content); toast({ title: "Copied" }); }} className="gap-2 p-2 rounded-lg"><Copy className="h-3 w-3 text-primary" /> Copy</DropdownMenuItem>
               <DropdownMenuItem onClick={() => setIsForwardOpen(true)} className="gap-2 p-2 rounded-lg"><Forward className="h-3 w-3 text-primary" /> Forward</DropdownMenuItem>
               <DropdownMenuItem onClick={() => setIsDeleteDialogOpen(true)} className="text-destructive gap-2 p-2 rounded-lg"><Trash2 className="h-3 w-3" /> Delete</DropdownMenuItem>
@@ -370,20 +398,26 @@ export const MessageBubble = memo(function MessageBubble({
 
       {message.forwardingChain && <MessageTraceDialog open={isTraceOpen} onOpenChange={setIsTraceOpen} chain={message.forwardingChain} />}
       {!isActuallyDeleted && <ForwardDialog open={isForwardOpen} onOpenChange={setIsForwardOpen} messagesToForward={[message]} />}
-      {!isActuallyDeleted && <DeleteOptionsDialog open={isDeleteDialogOpen} onOpenChange={(val) => { setIsDeleteDialogOpen(val); if (!val && selectionMode) { onSelect?.(""); } }} onDeleteForMe={() => { if (!db || !messagePath || !user) return; updateDocumentNonBlocking(doc(db, messagePath), { deletedFor: arrayUnion(user.uid) }); toast({ title: "Removed Locally" }); }} onDeleteForEveryone={() => { if (!db || !messagePath) return; updateDocumentNonBlocking(doc(db, messagePath), { isDeleted: true, content: "This message was deleted", audioUrl: deleteField(), videoUrl: deleteField(), imageUrl: deleteField(), type: "text" }); toast({ title: "Wiped" }); }} isSender={isMe} />}
+      {!isActuallyDeleted && <DeleteOptionsDialog open={isDeleteDialogOpen} onOpenChange={(val) => { setIsDeleteDialogOpen(val); if (!val && selectionMode) { onSelect?.(""); } }} onDeleteForMe={() => { if (!db || !messagePath || !user) return; updateDocumentNonBlocking(doc(db, messagePath), { deletedFor: arrayUnion(user.uid) }); toast({ title: "Removed Locally" }); }} onDeleteForEveryone={() => { if (!db || !messagePath) return; updateDocumentNonBlocking(doc(db, messagePath), { isDeleted: true, content: "This message was deleted", audioUrl: deleteField(), videoUrl: deleteField(), imageUrl: deleteField(), fileUrl: deleteField(), type: "text" }); toast({ title: "Wiped" }); }} isSender={isMe} />}
       
       <Dialog open={isImageZoomOpen} onOpenChange={setIsImageZoomOpen}>
-        <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 border-none bg-transparent shadow-none flex items-center justify-center overflow-hidden">
+        <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 border-none bg-transparent shadow-none flex flex-col items-center justify-center overflow-hidden">
           <DialogHeader className="sr-only">
             <DialogTitle>Image View</DialogTitle>
             <DialogDescription>Full-sized view of the sent image.</DialogDescription>
           </DialogHeader>
-          <div className="relative w-full h-full flex items-center justify-center">
+          <div className="relative w-full h-full flex flex-col items-center justify-center">
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.2, ease: "easeOut" }} className="relative group">
-              <img src={message.imageUrl} className="max-w-full max-h-[90vh] rounded-2xl shadow-2xl object-contain" alt="Zoomed view" />
-              <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-2 bg-background/80 backdrop-blur-md rounded-full border border-border shadow-xl">
-                <span className="text-[10px] font-black uppercase tracking-widest text-primary">Shared in Verse</span>
-                <Heart className="h-3 w-3 text-red-500 fill-red-500 animate-pulse" />
+              <img src={message.imageUrl} className="max-w-full max-h-[85vh] rounded-2xl shadow-2xl object-contain" alt="Zoomed view" />
+              <div className="absolute -bottom-16 left-1/2 -translate-x-1/2 flex items-center gap-4 px-6 py-3 bg-background/80 backdrop-blur-md rounded-full border border-border shadow-2xl">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-black uppercase tracking-widest text-primary">Verse Media</span>
+                  <Heart className="h-3 w-3 text-red-500 fill-red-500 animate-pulse" />
+                </div>
+                <div className="w-[1px] h-4 bg-border" />
+                <button onClick={() => handleDownload(message.imageUrl!, message.fileName || "image.jpg")} className="flex items-center gap-2 text-[10px] font-black uppercase text-foreground hover:text-primary transition-colors">
+                  <Download className="h-3.5 w-3.5" /> Save to Device
+                </button>
               </div>
             </motion.div>
           </div>

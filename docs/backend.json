@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "User": {
@@ -71,6 +72,9 @@
         "audioUrl": { "type": "string" },
         "videoUrl": { "type": "string" },
         "imageUrl": { "type": "string" },
+        "fileUrl": { "type": "string" },
+        "fileName": { "type": "string" },
+        "fileType": { "type": "string" },
         "disappearingEnabled": { "type": "boolean" },
         "disappearDuration": { "type": "number" },
         "seenBy": { "type": "array", "items": { "type": "string" } },
