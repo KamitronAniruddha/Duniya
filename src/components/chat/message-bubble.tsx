@@ -119,7 +119,7 @@ export const MessageBubble = memo(function MessageBubble({
       }
       updateDocumentNonBlocking(msgRef, updateData);
     }
-  }, [message.id, user?.uid, isMe, messagePath, message.disappearingEnabled, message.seenBy]);
+  }, [message.id, user?.uid, isMe, messagePath, message.disappearingEnabled]);
 
   useEffect(() => {
     if (!message.disappearingEnabled || !user || message.isDeleted || message.fullyDeleted) return;
@@ -246,7 +246,7 @@ export const MessageBubble = memo(function MessageBubble({
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
-            transition={{ duration: 0.15, ease: "easeOut" }}
+            transition={{ duration: 0.1, ease: "easeOut" }}
             className="absolute left-6 top-1/2 -translate-y-1/2 bg-primary/20 rounded-full h-8 w-8 flex items-center justify-center pointer-events-none z-10 backdrop-blur-sm shadow-lg"
           >
             <Reply className="h-4 w-4 text-primary" />
@@ -265,11 +265,9 @@ export const MessageBubble = memo(function MessageBubble({
         </UserProfilePopover>
       )}
       
-      <motion.div 
-        layout
+      <div 
         className={cn("flex flex-col max-w-[75%] relative transition-all duration-150 ease-out", isMe ? "items-end" : "items-start")} 
-        style={{ x: dragX }}
-        transition={{ duration: 0.15, ease: "easeOut" }}
+        style={{ transform: `translateX(${dragX}px)` }}
       >
         {isActuallyDeleted ? (
           <div className={cn(
@@ -323,7 +321,11 @@ export const MessageBubble = memo(function MessageBubble({
 
               {message.type === 'media' && message.audioUrl ? (
                 <div className="flex items-center gap-3 py-2 min-w-[220px] max-w-full">
-                  <audio ref={audioRef} src={message.audioUrl} onTimeUpdate={() => audioRef.current && setProgress((audioRef.current.currentTime / audioRef.current.duration) * 100)} onEnded={() => { setIsPlaying(false); setProgress(0); }} />
+                  <audio ref={audioRef} src={message.audioUrl} onTimeUpdate={() => {
+                    if (audioRef.current && audioRef.current.duration) {
+                      setProgress((audioRef.current.currentTime / audioRef.current.duration) * 100);
+                    }
+                  }} onEnded={() => { setIsPlaying(false); setProgress(0); }} />
                   <Button 
                     variant="ghost" 
                     size="icon" 
@@ -338,16 +340,16 @@ export const MessageBubble = memo(function MessageBubble({
                   <div className="flex-1 flex flex-col gap-1.5 min-w-0">
                     <div className="flex items-end gap-0.5 h-6 overflow-hidden items-center">
                       {[...Array(20)].map((_, i) => (
-                        <motion.div 
+                        <div 
                           key={i} 
-                          animate={isPlaying ? { height: [4, Math.random() * 16 + 4, 4] } : { height: 4 }}
-                          transition={{ repeat: Infinity, duration: 0.5, delay: i * 0.05 }}
                           className={cn(
-                            "w-1 rounded-full shrink-0",
+                            "w-1 rounded-full shrink-0 transition-all duration-300",
                             isMe 
                               ? (progress > (i * 5) ? "bg-white" : "bg-white/30") 
-                              : (progress > (i * 5) ? "bg-primary" : "bg-primary/20")
+                              : (progress > (i * 5) ? "bg-primary" : "bg-primary/20"),
+                            isPlaying ? "animate-pulse" : "h-1"
                           )} 
+                          style={{ height: isPlaying ? `${Math.random() * 16 + 4}px` : '4px' }}
                         />
                       ))}
                     </div>
@@ -390,7 +392,7 @@ export const MessageBubble = memo(function MessageBubble({
             </div>
           </>
         )}
-      </motion.div>
+      </div>
 
       {!selectionMode && !isActuallyDeleted && (
         <div className={cn("mb-1 mx-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-center gap-1", isMe ? "mr-1 flex-row-reverse" : "ml-1 flex-row")}>

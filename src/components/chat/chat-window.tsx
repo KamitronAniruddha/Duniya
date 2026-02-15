@@ -138,7 +138,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
       }
     });
 
-    await batch.commit();
+    batch.commit();
     toast({ title: `Removed ${selectedIds.size} message(s)` });
     setSelectionMode(false);
     setSelectedIds(new Set());
@@ -156,7 +156,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
       });
     });
 
-    await batch.commit();
+    batch.commit();
     toast({ title: "Chat Cleared" });
     setIsClearChatDialogOpen(false);
   }, [db, basePath, user, messages, toast]);
@@ -194,31 +194,20 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
     return (
       <div className="flex-1 flex flex-col items-center justify-center bg-background h-full p-6 text-center overflow-hidden">
         <motion.div 
-          initial={{ opacity: 0, scale: 0.95, y: 30 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.15, ease: "easeOut" }}
           className="flex flex-col items-center"
         >
           <div className="relative mb-12">
             <motion.div
-              animate={{ 
-                scale: [1, 1.05, 1],
-                rotate: [0, 2, -2, 0]
-              }}
-              transition={{ 
-                duration: 3, 
-                repeat: Infinity,
-                ease: "easeInOut"
-              }}
+              animate={{ scale: [1, 1.05, 1] }}
+              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
               className="p-12 bg-primary/5 rounded-[3.5rem] relative z-10"
             >
               <MessageCircle className="h-24 w-24 text-primary" />
             </motion.div>
-            <motion.div 
-              animate={{ scale: [1, 1.2, 1], opacity: [0.1, 0.3, 0.1] }}
-              transition={{ duration: 2, repeat: Infinity }}
-              className="absolute inset-0 bg-primary/20 blur-3xl rounded-full"
-            />
+            <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full opacity-30" />
           </div>
           
           <div className="space-y-6 max-w-lg">
@@ -251,9 +240,9 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
           {selectionMode ? (
             <motion.div 
               key="selection-header"
-              initial={{ opacity: 0, y: -20 }} 
+              initial={{ opacity: 0, y: -10 }} 
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
+              exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.1, ease: "easeOut" }}
               className="flex items-center gap-4 w-full h-full"
             >
@@ -348,32 +337,19 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
               </div>
             ) : (
               <div className="flex flex-col justify-end min-h-full">
-                <AnimatePresence mode="popLayout" initial={false}>
-                  {messages.map((msg) => (
-                    <motion.div
-                      key={msg.id}
-                      layout
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ 
-                        opacity: 0, 
-                        transition: { duration: 0.1, ease: "easeOut" } 
-                      }}
-                      transition={{ duration: 0.1, ease: "easeOut" }}
-                    >
-                      <MessageBubble 
-                        message={msg}
-                        messagePath={`${basePath}/messages/${msg.id}`}
-                        isMe={msg.senderId === user?.uid}
-                        isSelected={selectedIds.has(msg.id)}
-                        selectionMode={selectionMode}
-                        onLongPress={enterSelectionMode}
-                        onSelect={toggleMessageSelection}
-                        onReply={() => setReplyingTo(msg)}
-                      />
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
+                {messages.map((msg) => (
+                  <MessageBubble 
+                    key={msg.id}
+                    message={msg}
+                    messagePath={`${basePath}/messages/${msg.id}`}
+                    isMe={msg.senderId === user?.uid}
+                    isSelected={selectedIds.has(msg.id)}
+                    selectionMode={selectionMode}
+                    onLongPress={enterSelectionMode}
+                    onSelect={toggleMessageSelection}
+                    onReply={() => setReplyingTo(msg)}
+                  />
+                ))}
               </div>
             )}
           </div>

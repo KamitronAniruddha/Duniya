@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { ServerSidebar } from "@/components/sidebar/server-sidebar";
 import { ChannelSidebar } from "@/components/sidebar/channel-sidebar";
 import { ChatWindow } from "@/components/chat/chat-window";
@@ -37,7 +37,6 @@ export default function DuniyaApp() {
   const { data: channels } = useCollection(channelsQuery);
 
   useEffect(() => {
-    // If we have a community but no channel selected, or if we just switched communities, select the first channel
     if (activeCommunityId && channels && channels.length > 0) {
       const currentChannelExistsInNewList = channels.find(c => c.id === activeChannelId);
       if (!activeChannelId || !currentChannelExistsInNewList) {
@@ -46,24 +45,30 @@ export default function DuniyaApp() {
     }
   }, [activeCommunityId, channels, activeChannelId]);
 
-  // Robust Status Syncing
+  // USE REF FOR PRIVACY TO PREVENT LOOP: If updateStatus depends on userData, it loops
+  const privacySettingsRef = useRef({ showOnlineStatus: true });
+  useEffect(() => {
+    if (userData) {
+      privacySettingsRef.current.showOnlineStatus = userData.showOnlineStatus !== false;
+    }
+  }, [userData?.showOnlineStatus]);
+
   const updateStatus = useCallback((status: "online" | "idle" | "offline") => {
     if (!user || !db || !auth.currentUser) return;
     
-    // Respect privacy setting
-    const finalStatus = userData?.showOnlineStatus === false ? "offline" : status;
+    // Respect privacy setting via ref to keep function identity stable
+    const finalStatus = privacySettingsRef.current.showOnlineStatus === false ? "offline" : status;
     const userRef = doc(db, "users", user.uid);
     
     updateDocumentNonBlocking(userRef, {
       onlineStatus: finalStatus,
       lastOnlineAt: new Date().toISOString()
     });
-  }, [user, db, auth, userData?.showOnlineStatus]);
+  }, [user, db, auth]);
 
   useEffect(() => {
     if (!user || !db || !auth.currentUser) return;
 
-    // Set online immediately on load
     updateStatus("online");
 
     const handleVisibility = () => {
@@ -71,7 +76,6 @@ export default function DuniyaApp() {
     };
 
     const handleUnload = () => {
-      // Direct update for faster offline marking
       updateStatus("offline");
     };
 
