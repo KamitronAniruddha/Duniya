@@ -31,12 +31,12 @@ service cloud.firestore {
         match /messages/{messageId} {
           allow create: if isSignedIn();
           
-          // Read rule matching the visibleTo query logic: 
+          // Read rule perfectly aligned with the visibleTo query logic: 
           // where("visibleTo", "array-contains-any", ["all", user.uid])
           allow read: if isSignedIn() && (
-            !('visibleTo' in resource.data) || 
-            (resource.data.visibleTo is list && resource.data.visibleTo.hasAny(['all', request.auth.uid])) ||
-            resource.data.visibleTo == 'all'
+            resource.data.get('visibleTo', ['all']).hasAny(['all', request.auth.uid]) ||
+            resource.data.senderId == request.auth.uid ||
+            !('visibleTo' in resource.data)
           );
 
           // Allow updates:
