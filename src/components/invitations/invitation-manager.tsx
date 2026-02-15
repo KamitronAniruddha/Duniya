@@ -74,6 +74,10 @@ export function InvitationManager() {
       {activeInvite && (
         <Dialog open={!!activeInvite} onOpenChange={() => {}}>
           <DialogContent className="sm:max-w-[400px] rounded-[2.5rem] border-none shadow-[0_32px_64px_rgba(0,0,0,0.2)] p-0 overflow-hidden bg-background">
+            <DialogHeader className="sr-only">
+              <DialogTitle>Community Invitation</DialogTitle>
+              <DialogDescription>You have been invited to join {activeInvite.communityName}.</DialogDescription>
+            </DialogHeader>
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
