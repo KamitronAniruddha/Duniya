@@ -82,7 +82,6 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
     const file = e.target.files?.[0];
     if (!file) return;
     
-    // REDUCED LIMIT: 200KB to prevent "long path" errors and ensure WhatsApp-fast performance
     if (file.size > 200 * 1024) { 
       toast({ variant: "destructive", title: "Image too large", description: "Limit: 200KB. Please use a URL for high-res images." });
       return;
@@ -108,9 +107,11 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
     setIsLoading(true);
 
     try {
+      // CRITICAL FIX: Removed photoURL from Firebase Auth update.
+      // Firebase Auth photoURL has a strict character limit (~2000 chars) that 
+      // Base64 strings frequently exceed. Storing it ONLY in Firestore solves the "URL too long" error.
       await updateProfile(user, {
-        displayName: username.trim(),
-        photoURL: photoURL.trim() || null
+        displayName: username.trim()
       });
 
       const userRef = doc(db, "users", user.uid);
