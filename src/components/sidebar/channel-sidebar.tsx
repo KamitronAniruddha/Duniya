@@ -1,9 +1,10 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
 import { useCollection, useFirestore, useUser, useDoc, useMemoFirebase, useAuth } from "@/firebase";
 import { collection, query, doc } from "firebase/firestore";
-import { Hash, Settings, ChevronDown, LogOut, Loader2, Plus, Timer, Globe, Mail, Info } from "lucide-react";
+import { Hash, Settings, ChevronDown, LogOut, Loader2, Plus, Timer, Globe, Mail, Info, Share2, Copy, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,7 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
   const [newChannelName, setNewChannelName] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const [now, setNow] = useState(Date.now());
+  const [hasCopied, setHasCopied] = useState(false);
 
   const userDocRef = useMemoFirebase(() => (user ? doc(db, "users", user.uid) : null), [db, user?.uid]);
   const { data: userData } = useDoc(userDocRef);
@@ -53,7 +55,6 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
 
   const { data: channels, isLoading } = useCollection(channelsQuery);
 
-  // Sync internal 'now' for freshness check
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 30000);
     return () => clearInterval(timer);
@@ -64,6 +65,15 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
 
   const handleLogout = () => {
     auth.signOut();
+  };
+
+  const copyInviteLink = () => {
+    if (!serverId) return;
+    const link = `${window.location.origin}/invite/${serverId}`;
+    navigator.clipboard.writeText(link);
+    setHasCopied(true);
+    toast({ title: "Invite Link Copied", description: "Share this link to invite others to the Verse." });
+    setTimeout(() => setHasCopied(false), 2000);
   };
 
   const handleCreateChannel = () => {
@@ -127,6 +137,10 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
             <DropdownMenuContent className="w-64 font-black uppercase text-[10px] tracking-widest p-1 border-none shadow-2xl bg-popover/95 backdrop-blur-md" align="start">
               <DropdownMenuItem onClick={() => setCommunityProfileOpen(true)} className="gap-2 p-3 rounded-xl hover:bg-primary/10">
                 <Info className="h-4 w-4 text-primary" /> Group Profile
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={copyInviteLink} className="gap-2 p-3 rounded-xl hover:bg-primary/10">
+                {hasCopied ? <Check className="h-4 w-4 text-green-500" /> : <Share2 className="h-4 w-4 text-primary" />}
+                Invite Link
               </DropdownMenuItem>
               {isAdmin && (
                 <>

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -137,6 +138,12 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive }
     toast({ title: "Code Copied", description: "Invite code copied to clipboard." });
   };
 
+  const copyInviteLink = (id: string) => {
+    const link = `${window.location.origin}/invite/${id}`;
+    navigator.clipboard.writeText(link);
+    toast({ title: "Invite Link Copied", description: "Share this link to invite others." });
+  };
+
   return (
     <aside className="w-[72px] bg-sidebar flex flex-col items-center py-4 gap-4 shrink-0 h-full overflow-y-auto custom-scrollbar border-r border-sidebar-border z-30">
       <TooltipProvider delayDuration={0}>
@@ -197,6 +204,9 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive }
                   </ContextMenuItem>
                   <ContextMenuItem onClick={() => setViewingProfileId(s.id)} className="gap-2 p-3 rounded-xl transition-all hover:bg-primary/10">
                     <Info className="h-4 w-4" /> View Profile
+                  </ContextMenuItem>
+                  <ContextMenuItem onClick={() => copyInviteLink(s.id)} className="gap-2 p-3 rounded-xl transition-all hover:bg-primary/10">
+                    <Share2 className="h-4 w-4" /> Copy Invite Link
                   </ContextMenuItem>
                   {isAdmin && (
                     <ContextMenuItem onClick={() => setEditingServerId(s.id)} className="gap-2 p-3 rounded-xl transition-all hover:bg-primary/10">
