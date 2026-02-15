@@ -1,12 +1,13 @@
+
 "use client";
 
-import React, { memo, useState, useRef, useEffect, useMemo } from "react";
+import React, { memo, useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useFirestore, useUser, useDoc, useMemoFirebase } from "@/firebase";
-import { doc, arrayUnion, deleteField } from "firebase/firestore";
+import { doc, arrayUnion, arrayRemove, deleteField } from "firebase/firestore";
 import { UserProfilePopover } from "@/components/profile/user-profile-popover";
-import { Reply, CornerDownRight, Play, Pause, MoreHorizontal, Trash2, Ban, Copy, Timer, Check, CheckCheck, Forward, Landmark, Mic, Maximize2, Heart, Download, FileText, File, Eye, Ghost, Lock } from "lucide-react";
+import { Reply, CornerDownRight, Play, Pause, MoreHorizontal, Trash2, Ban, Copy, Timer, Check, CheckCheck, Forward, Landmark, Mic, Maximize2, Heart, Download, FileText, File, Eye, Ghost, Lock, Smile } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
@@ -16,6 +17,7 @@ import { ForwardDialog } from "./forward-dialog";
 import { DeleteOptionsDialog } from "./delete-options-dialog";
 import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogDescription } from "@/components/ui/dialog";
 import { motion, AnimatePresence } from "framer-motion";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 export interface ForwardHop {
   communityName: string;
@@ -26,6 +28,8 @@ export interface ForwardHop {
   timestamp: string;
   isInitial?: boolean;
 }
+
+const QUICK_REACTIONS = ["❤️", "😂", "😮", "😢", "🙏", "👍"];
 
 interface MessageBubbleProps {
   message: {
@@ -59,6 +63,7 @@ interface MessageBubbleProps {
     isForwarded?: boolean;
     forwardingChain?: ForwardHop[];
     deletedFor?: string[];
+    reactions?: Record<string, string[]>;
   };
   messagePath: string;
   isMe: boolean;
@@ -95,6 +100,7 @@ export const MessageBubble = memo(function MessageBubble({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isImageZoomOpen, setIsImageZoomOpen] = useState(false);
   const [isPDFViewOpen, setIsPDFViewOpen] = useState(false);
+  const [isReactionPickerOpen, setIsReactionPickerOpen] = useState(false);
 
   const [dragX, setDragX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -148,6 +154,18 @@ export const MessageBubble = memo(function MessageBubble({
   }, [message.disappearingEnabled, message.senderExpireAt, message.viewerExpireAt, user?.uid, isMe, message.isDeleted, message.fullyDeleted]);
 
   const isActuallyDeleted = message.isDeleted || isDisappeared || message.fullyDeleted;
+
+  const handleToggleReaction = useCallback((emoji: string) => {
+    if (!user || !messagePath || isActuallyDeleted) return;
+    const msgRef = doc(db, messagePath);
+    const existingReactionUsers = message.reactions?.[emoji] || [];
+    const hasReacted = existingReactionUsers.includes(user.uid);
+
+    updateDocumentNonBlocking(msgRef, {
+      [`reactions.${emoji}`]: hasReacted ? arrayRemove(user.uid) : arrayUnion(user.uid)
+    });
+    setIsReactionPickerOpen(false);
+  }, [user, messagePath, message.reactions, isActuallyDeleted, db]);
 
   const handleDownload = (url: string, name: string) => {
     const link = document.createElement("a");
@@ -246,6 +264,17 @@ export const MessageBubble = memo(function MessageBubble({
   };
 
   const latestHop = message.forwardingChain?.[message.forwardingChain.length - 1];
+
+  const reactionsData = useMemo(() => {
+    if (!message.reactions) return [];
+    return Object.entries(message.reactions)
+      .filter(([_, uids]) => uids && uids.length > 0)
+      .map(([emoji, uids]) => ({
+        emoji,
+        count: uids.length,
+        hasReacted: user ? uids.includes(user.uid) : false
+      }));
+  }, [message.reactions, user]);
 
   return (
     <div 
@@ -433,6 +462,30 @@ export const MessageBubble = memo(function MessageBubble({
                   {isMe && <div className="flex items-center">{message.seenBy && message.seenBy.length > 0 ? <CheckCheck className="h-3 w-3 text-cyan-400" /> : <Check className="h-3 w-3 text-primary-foreground/40" />}</div>}
                 </div>
               </div>
+
+              {/* Reactions Badges */}
+              {reactionsData.length > 0 && (
+                <div className={cn("flex flex-wrap gap-1 mt-2 -mb-1", isMe ? "justify-end" : "justify-start")}>
+                  {reactionsData.map(({ emoji, count, hasReacted }) => (
+                    <motion.button
+                      key={emoji}
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={(e) => { e.stopPropagation(); handleToggleReaction(emoji); }}
+                      className={cn(
+                        "flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-black transition-all border shadow-sm",
+                        hasReacted 
+                          ? "bg-primary/20 border-primary text-primary" 
+                          : "bg-background/50 border-border text-foreground/70 hover:bg-muted"
+                      )}
+                    >
+                      <span>{emoji}</span>
+                      {count > 1 && <span>{count}</span>}
+                    </motion.button>
+                  ))}
+                </div>
+              )}
             </div>
           </>
         )}
@@ -440,22 +493,44 @@ export const MessageBubble = memo(function MessageBubble({
 
       {!selectionMode && !isActuallyDeleted && (
         <div className={cn("mb-1 mx-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-center gap-1", isMe ? "mr-1 flex-row-reverse" : "ml-1 flex-row")}>
-          <button onClick={(e) => { e.stopPropagation(); setIsForwardOpen(true); }} className="h-7 w-7 rounded-full bg-muted/30 hover:bg-primary hover:text-primary-foreground flex items-center justify-center text-muted-foreground transition-colors active:scale-90"><Forward className="h-3.5 w-3.5" /></button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="h-7 w-7 rounded-full bg-muted/30 hover:bg-muted/60 flex items-center justify-center text-muted-foreground transition-colors active:scale-90"><MoreHorizontal className="h-3.5 w-3.5" /></button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align={isMe ? "end" : "start"} className="rounded-xl font-black uppercase text-[9px] tracking-widest p-1 border-none shadow-xl bg-popover/95 backdrop-blur-md">
-              <DropdownMenuItem onClick={() => onReply?.()} className="gap-2 p-2 rounded-lg"><Reply className="h-3 w-3 text-primary" /> Reply</DropdownMenuItem>
-              {!isMe && <DropdownMenuItem onClick={() => onWhisper?.(message.senderId, message.senderName || "User")} className="gap-2 p-2 rounded-lg"><Ghost className="h-3 w-3 text-indigo-500" /> Whisper</DropdownMenuItem>}
-              {message.fileType?.includes('pdf') && <DropdownMenuItem onClick={() => setIsPDFViewOpen(true)} className="gap-2 p-2 rounded-lg"><Eye className="h-3 w-3 text-primary" /> View PDF</DropdownMenuItem>}
-              {message.imageUrl && <DropdownMenuItem onClick={() => handleDownload(message.imageUrl!, message.fileName || "image.jpg")} className="gap-2 p-2 rounded-lg"><Download className="h-3 w-3 text-primary" /> Download</DropdownMenuItem>}
-              {message.fileUrl && <DropdownMenuItem onClick={() => handleDownload(message.fileUrl!, message.fileName || "file")} className="gap-2 p-2 rounded-lg"><Download className="h-3 w-3 text-primary" /> Download</DropdownMenuItem>}
-              <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(message.content); toast({ title: "Copied" }); }} className="gap-2 p-2 rounded-lg"><Copy className="h-3 w-3 text-primary" /> Copy</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setIsForwardOpen(true)} className="gap-2 p-2 rounded-lg"><Forward className="h-3 w-3 text-primary" /> Forward</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setIsDeleteDialogOpen(true)} className="text-destructive gap-2 p-2 rounded-lg"><Trash2 className="h-3 w-3" /> Delete</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          
+          {/* Reaction Trigger Bar (WhatsApp Style) */}
+          <div className="flex items-center gap-0.5 bg-background/80 backdrop-blur-md rounded-full border border-border p-0.5 shadow-sm">
+            <Popover open={isReactionPickerOpen} onOpenChange={setIsReactionPickerOpen}>
+              <PopoverTrigger asChild>
+                <button className="h-7 w-7 rounded-full hover:bg-muted/60 flex items-center justify-center text-muted-foreground transition-colors active:scale-90">
+                  <Smile className="h-3.5 w-3.5" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent side="top" align={isMe ? "end" : "start"} className="w-fit p-1.5 rounded-full border-none shadow-2xl bg-popover/95 backdrop-blur-xl flex items-center gap-1">
+                {QUICK_REACTIONS.map((emoji) => (
+                  <button
+                    key={emoji}
+                    onClick={() => handleToggleReaction(emoji)}
+                    className="h-8 w-8 flex items-center justify-center text-lg hover:bg-muted rounded-full transition-all hover:scale-125 active:scale-90"
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </PopoverContent>
+            </Popover>
+            <button onClick={(e) => { e.stopPropagation(); setIsForwardOpen(true); }} className="h-7 w-7 rounded-full hover:bg-muted/60 flex items-center justify-center text-muted-foreground transition-colors active:scale-90"><Forward className="h-3.5 w-3.5" /></button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="h-7 w-7 rounded-full hover:bg-muted/60 flex items-center justify-center text-muted-foreground transition-colors active:scale-90"><MoreHorizontal className="h-3.5 w-3.5" /></button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align={isMe ? "end" : "start"} className="rounded-xl font-black uppercase text-[9px] tracking-widest p-1 border-none shadow-xl bg-popover/95 backdrop-blur-md">
+                <DropdownMenuItem onClick={() => onReply?.()} className="gap-2 p-2 rounded-lg"><Reply className="h-3 w-3 text-primary" /> Reply</DropdownMenuItem>
+                {!isMe && <DropdownMenuItem onClick={() => onWhisper?.(message.senderId, message.senderName || "User")} className="gap-2 p-2 rounded-lg"><Ghost className="h-3 w-3 text-indigo-500" /> Whisper</DropdownMenuItem>}
+                {message.fileType?.includes('pdf') && <DropdownMenuItem onClick={() => setIsPDFViewOpen(true)} className="gap-2 p-2 rounded-lg"><Eye className="h-3 w-3 text-primary" /> View PDF</DropdownMenuItem>}
+                {message.imageUrl && <DropdownMenuItem onClick={() => handleDownload(message.imageUrl!, message.fileName || "image.jpg")} className="gap-2 p-2 rounded-lg"><Download className="h-3 w-3 text-primary" /> Download</DropdownMenuItem>}
+                {message.fileUrl && <DropdownMenuItem onClick={() => handleDownload(message.fileUrl!, message.fileName || "file")} className="gap-2 p-2 rounded-lg"><Download className="h-3 w-3 text-primary" /> Download</DropdownMenuItem>}
+                <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(message.content); toast({ title: "Copied" }); }} className="gap-2 p-2 rounded-lg"><Copy className="h-3 w-3 text-primary" /> Copy</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setIsForwardOpen(true)} className="gap-2 p-2 rounded-lg"><Forward className="h-3 w-3 text-primary" /> Forward</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setIsDeleteDialogOpen(true)} className="text-destructive gap-2 p-2 rounded-lg"><Trash2 className="h-3 w-3" /> Delete</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       )}
 
@@ -526,5 +601,6 @@ export const MessageBubble = memo(function MessageBubble({
          prev.isSelected === next.isSelected &&
          prev.selectionMode === next.selectionMode &&
          prev.message.senderExpireAt === next.message.senderExpireAt &&
-         prev.message.viewerExpireAt === next.message.viewerExpireAt;
+         prev.message.viewerExpireAt === next.message.viewerExpireAt &&
+         JSON.stringify(prev.message.reactions) === JSON.stringify(next.message.reactions);
 });

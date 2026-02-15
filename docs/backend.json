@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "User": {
@@ -82,7 +83,8 @@
         "forwardingChain": { "type": "array" },
         "replyTo": { "type": "object" },
         "deletedFor": { "type": "array", "items": { "type": "string" } },
-        "fullyDeleted": { "type": "boolean" }
+        "fullyDeleted": { "type": "boolean" },
+        "reactions": { "type": "object", "description": "Map of emoji to array of user IDs." }
       },
       "required": ["id", "senderId", "sentAt"]
     }
