@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -32,17 +31,19 @@ export default function DuniyaApp() {
   const userRef = useMemoFirebase(() => (user ? doc(db, "users", user.uid) : null), [db, user?.uid]);
   const { data: userData } = useDoc(userRef);
 
-  // Presence logic - using setDocumentNonBlocking with merge: true to avoid "not found" errors for new users
+  // Presence logic - using setDocumentNonBlocking with merge: true
   useEffect(() => {
     if (!user || !db || !auth.currentUser) return;
 
     const userRef = doc(db, "users", user.uid);
     const updateStatus = (status: "online" | "idle" | "offline") => {
       if (!auth.currentUser) return;
-      // Using setDocumentNonBlocking with merge: true is safer than updateDocumentNonBlocking
-      // because it will create the document if it doesn't exist yet (common right after signup)
+      
+      // Respect Privacy Settings: If showOnlineStatus is false, always report as offline
+      const finalStatus = userData?.showOnlineStatus === false ? "offline" : status;
+      
       setDocumentNonBlocking(userRef, {
-        onlineStatus: status,
+        onlineStatus: finalStatus,
         lastOnlineAt: new Date().toISOString()
       }, { merge: true });
     };
@@ -58,7 +59,7 @@ export default function DuniyaApp() {
       window.removeEventListener('visibilitychange', handleVisibility);
       window.removeEventListener('beforeunload', handleUnload);
     };
-  }, [user, db, auth]);
+  }, [user, db, auth, userData?.showOnlineStatus]);
 
   if (isUserLoading) {
     return (
@@ -107,7 +108,7 @@ export default function DuniyaApp() {
         )}
       </div>
 
-      <main className="flex-1 flex flex-col min-w-0 h-full relative overflow-hidden">
+      <main className="flex-1 flex flex-col min-0 h-full relative overflow-hidden">
         <div className="md:hidden p-2 border-b flex items-center gap-2 bg-background shrink-0">
           <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
             <SheetTrigger asChild>

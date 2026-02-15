@@ -5,7 +5,7 @@ import { useCollection, useFirestore, useDoc, useMemoFirebase, useUser } from "@
 import { collection, query, where, doc, getDocs, arrayUnion, arrayRemove, limit, deleteDoc } from "firebase/firestore";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ShieldCheck, Loader2, UserPlus, Check, AlertCircle, UserMinus, Shield, Search, X } from "lucide-react";
+import { ShieldCheck, Loader2, UserPlus, Check, AlertCircle, UserMinus, Shield, Search, X, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -59,12 +59,16 @@ export function MembersPanel({ serverId }: MembersPanelProps) {
           collection(db, "users"),
           where("username", ">=", cleanQuery),
           where("username", "<=", cleanQuery + "\uf8ff"),
-          limit(5)
+          limit(10)
         );
         const snapshot = await getDocs(q);
         const users = snapshot.docs
           .map(doc => ({ ...doc.data(), id: doc.id }))
-          .filter(u => !u.serverIds?.includes(serverId));
+          .filter(u => {
+            const isNotAlreadyInServer = !u.serverIds?.includes(serverId);
+            const allowsInvites = u.allowGroupInvites !== false;
+            return isNotAlreadyInServer && allowsInvites;
+          });
         
         setSearchResults(users);
       } catch (e) {
@@ -83,8 +87,9 @@ export function MembersPanel({ serverId }: MembersPanelProps) {
   const isOwner = server.ownerId === currentUser?.uid;
   const serverAdmins = server.admins || [];
   
-  const onlineMembers = members?.filter(m => m.onlineStatus === "online") || [];
-  const offlineMembers = members?.filter(m => m.onlineStatus !== "online") || [];
+  // Logic to respect Online Status Privacy
+  const onlineMembers = members?.filter(m => m.onlineStatus === "online" && m.showOnlineStatus !== false) || [];
+  const offlineMembers = members?.filter(m => m.onlineStatus !== "online" || m.showOnlineStatus === false) || [];
 
   const handleInvite = async () => {
     if (selectedUsers.length === 0 || !db || !serverRef) return;
@@ -138,19 +143,13 @@ export function MembersPanel({ serverId }: MembersPanelProps) {
     if (!db || !server || !serverRef) return;
 
     try {
-      // 1. Update the community document to remove from members and admins array
       updateDocumentNonBlocking(serverRef, {
         members: arrayRemove(targetUserId),
         admins: arrayRemove(targetUserId)
       });
 
-      // 2. Delete the member document in the subcollection
       const memberDocRef = doc(db, "communities", serverId, "members", targetUserId);
       deleteDocumentNonBlocking(memberDocRef);
-
-      // NOTE: We do NOT update the target user's private "users" document because 
-      // community admins don't have permission to write to other users' profiles.
-      // The community's "members" array is the source of truth.
 
       toast({ 
         title: "Member Removed", 
@@ -269,7 +268,7 @@ export function MembersPanel({ serverId }: MembersPanelProps) {
           <DialogHeader>
             <DialogTitle>Invite Members</DialogTitle>
             <DialogDescription>
-              Search for users by username and add them to your community.
+              Search for users by username. Only users who allow group invites will appear.
             </DialogDescription>
           </DialogHeader>
           
@@ -318,7 +317,7 @@ export function MembersPanel({ serverId }: MembersPanelProps) {
                 </div>
               ) : searchResults.length === 0 ? (
                 <div className="flex items-center justify-center py-8 opacity-30">
-                  <p className="text-xs text-foreground">No users found.</p>
+                  <p className="text-xs text-foreground">No users found or available.</p>
                 </div>
               ) : (
                 <div className="space-y-1">
@@ -381,6 +380,8 @@ function MemberItem({
   onRemove: () => void;
   onToggleAdmin: () => void;
 }) {
+  const isOnline = member.onlineStatus === "online" && member.showOnlineStatus !== false;
+
   return (
     <div className="flex items-center gap-2 p-2 rounded-md hover:bg-muted transition-colors group cursor-default relative">
       <UserProfilePopover userId={member.id}>
@@ -391,10 +392,9 @@ function MemberItem({
               {member.username?.[0]?.toUpperCase() || "?"}
             </AvatarFallback>
           </Avatar>
-          <div className={cn(
-            "absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-background",
-            member.onlineStatus === "online" ? "bg-green-500" : "bg-muted-foreground/40"
-          )} />
+          {isOnline && (
+            <div className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-background bg-green-500 shadow-[0_0_4px_rgba(34,197,94,0.6)]" />
+          )}
         </button>
       </UserProfilePopover>
       
@@ -403,7 +403,7 @@ function MemberItem({
           <button className="flex items-center gap-1 min-w-0 w-full text-left">
             <span className={cn(
               "text-xs font-bold truncate leading-none hover:text-primary transition-colors",
-              member.onlineStatus === "online" ? "text-foreground" : "text-muted-foreground"
+              isOnline ? "text-foreground" : "text-muted-foreground"
             )}>
               {member.username}
             </span>
