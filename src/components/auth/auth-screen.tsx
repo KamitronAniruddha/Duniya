@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { Logo } from "@/components/logo";
 import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 
 export function AuthScreen() {
   const auth = useAuth();
@@ -98,10 +99,23 @@ export function AuthScreen() {
       <div className="min-h-svh w-full flex flex-col items-center p-4 py-8 md:py-12">
         <Card className="w-full max-w-md shadow-2xl border-none bg-card animate-in fade-in zoom-in-95 duration-500 my-auto">
           <CardHeader className="space-y-1 text-center pb-2 pt-6">
-            <div className="flex justify-center mb-2">
+            <div className="flex flex-col items-center mb-2">
               <div className="p-2.5 bg-primary/10 rounded-[1.25rem] shadow-inner animate-bounce [animation-duration:4s]">
                 <Logo size={36} />
               </div>
+              <motion.div
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6, duration: 0.8 }}
+              >
+                <motion.span 
+                  animate={{ scale: [1, 1.05, 1] }}
+                  transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                  className="font-['Playfair_Display'] italic text-primary text-sm font-black mt-1 block"
+                >
+                  ~ Ani
+                </motion.span>
+              </motion.div>
             </div>
             <CardTitle className="text-2xl font-black tracking-tighter text-foreground uppercase">Duniya</CardTitle>
             <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
