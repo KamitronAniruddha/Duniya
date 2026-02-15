@@ -41,7 +41,7 @@ export function ChatWindow({ channelId, serverId, conversationId, mode, showMemb
   const [isClearChatDialogOpen, setIsClearChatDialogOpen] = useState(false);
   const [isForwardDialogOpen, setIsForwardDialogOpen] = useState(false);
 
-  // Path resolution
+  // Path resolution for current view
   const basePath = useMemo(() => {
     if (mode === "channel" && serverId && channelId) {
       return `communities/${serverId}/channels/${channelId}`;
@@ -379,9 +379,7 @@ export function ChatWindow({ channelId, serverId, conversationId, mode, showMemb
                   <div key={msg.id} ref={(el) => { messageRefs.current[msg.id] = el; }}>
                     <MessageBubble 
                       message={msg}
-                      channelId={channelId || "dm"}
-                      serverId={serverId || "dm"}
-                      conversationId={conversationId}
+                      messagePath={`${basePath}/messages/${msg.id}`}
                       sender={memberMap[msg.senderId]}
                       isMe={msg.senderId === user?.uid}
                       isSelected={selectedIds.has(msg.id)}
