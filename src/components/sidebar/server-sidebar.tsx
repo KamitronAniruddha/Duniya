@@ -7,7 +7,7 @@ import { collection, query, where, doc, arrayUnion, getDocs, limit, writeBatch }
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Plus, Compass, Hash, Globe, Shield, Heart, Loader2, Share2, Check, MessageSquare } from "lucide-react";
+import { Plus, Compass, Globe, Heart, Loader2, Share2, Check, MessageSquare } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,12 +17,11 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 
 interface ServerSidebarProps {
   activeServerId: string | null;
-  onSelectServer: (id: string | "duniya" | "admin" | "dm") => void;
+  onSelectServer: (id: string | "duniya" | "dm") => void;
   isDuniyaActive?: boolean;
-  isAdminActive?: boolean;
 }
 
-export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive, isAdminActive }: ServerSidebarProps) {
+export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive }: ServerSidebarProps) {
   const db = useFirestore();
   const { user } = useUser();
   const { toast } = useToast();
@@ -31,8 +30,6 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive, 
   const [name, setName] = useState("");
   const [joinId, setJoinId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-
-  const isAdminUser = user?.email === "aniruddha@duniya.app";
 
   const communitiesQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
@@ -168,8 +165,8 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive, 
         <Tooltip>
           <TooltipTrigger asChild>
             <button onClick={() => onSelectServer(null as any)} className="group relative flex items-center justify-center h-12 w-full mb-1">
-              <div className={cn("absolute left-0 w-1 bg-white rounded-r-full transition-all duration-300", (!activeServerId && !isDuniyaActive && !isAdminActive) ? "h-8 opacity-100" : "h-0 opacity-0 group-hover:h-4 group-hover:opacity-100")} />
-              <div className={cn("w-12 h-12 flex items-center justify-center transition-all duration-300 shadow-lg rounded-[24px] group-hover:rounded-[12px] bg-sidebar-accent text-white group-hover:bg-primary group-hover:scale-105", (!activeServerId && !isDuniyaActive && !isAdminActive) && "rounded-[12px] bg-primary")}>
+              <div className={cn("absolute left-0 w-1 bg-white rounded-r-full transition-all duration-300", (!activeServerId && !isDuniyaActive) ? "h-8 opacity-100" : "h-0 opacity-0 group-hover:h-4 group-hover:opacity-100")} />
+              <div className={cn("w-12 h-12 flex items-center justify-center transition-all duration-300 shadow-lg rounded-[24px] group-hover:rounded-[12px] bg-sidebar-accent text-white group-hover:bg-primary group-hover:scale-105", (!activeServerId && !isDuniyaActive) && "rounded-[12px] bg-primary")}>
                 <span className="font-black text-xl tracking-tighter italic">D</span>
               </div>
             </button>
@@ -202,20 +199,6 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive, 
           </TooltipTrigger>
           <TooltipContent side="right" className="font-bold text-accent">Public Directory</TooltipContent>
         </Tooltip>
-
-        {isAdminUser && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button onClick={() => onSelectServer("admin")} className="group relative flex items-center justify-center h-12 w-full">
-                <div className={cn("absolute left-0 w-1 bg-white rounded-r-full transition-all duration-300", isAdminActive ? "h-8 opacity-100" : "h-0 opacity-0 group-hover:h-4 group-hover:opacity-100")} />
-                <div className={cn("w-12 h-12 flex items-center justify-center transition-all duration-300 shadow-lg rounded-[24px] group-hover:rounded-[12px] bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white group-hover:scale-105", isAdminActive && "rounded-[12px] bg-primary text-white")}>
-                  <Shield className="h-6 w-6" />
-                </div>
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="right" className="font-bold text-primary">Admin Dashboard</TooltipContent>
-          </Tooltip>
-        )}
 
         <div className="w-8 h-[1px] bg-sidebar-accent/30 rounded-full shrink-0" />
 
@@ -285,7 +268,7 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive, 
                 <div className="space-y-2">
                   <Label>5-Digit Join Code</Label>
                   <div className="relative">
-                    <Hash className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <span className="absolute left-3 top-3 h-4 w-4 text-muted-foreground">#</span>
                     <Input className="pl-9" value={joinId} onChange={(e) => setJoinId(e.target.value)} placeholder="e.g. 12345" />
                   </div>
                 </div>

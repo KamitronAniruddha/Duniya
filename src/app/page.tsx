@@ -8,7 +8,6 @@ import { DMSidebar } from "@/components/sidebar/dm-sidebar";
 import { ChatWindow } from "@/components/chat/chat-window";
 import { AuthScreen } from "@/components/auth/auth-screen";
 import { DuniyaPanel } from "@/components/duniya/duniya-panel";
-import { AdminDashboard } from "@/components/admin/admin-dashboard";
 import { useUser, useFirestore, useMemoFirebase, useAuth, useDoc } from "@/firebase";
 import { doc } from "firebase/firestore";
 import { Loader2, Menu, Heart } from "lucide-react";
@@ -24,7 +23,7 @@ export default function DuniyaApp() {
   const [activeCommunityId, setActiveCommunityId] = useState<string | null>(null);
   const [activeChannelId, setActiveChannelId] = useState<string | null>(null);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
-  const [view, setView] = useState<"chat" | "duniya" | "admin" | "dm">("chat");
+  const [view, setView] = useState<"chat" | "duniya" | "dm">("chat");
   const [showMembers, setShowMembers] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -79,15 +78,9 @@ export default function DuniyaApp() {
         <ServerSidebar 
           activeServerId={view === "chat" ? activeCommunityId : view} 
           isDuniyaActive={view === "duniya"}
-          isAdminActive={view === "admin"}
           onSelectServer={(id) => {
             if (id === "duniya") {
               setView("duniya");
-              setActiveCommunityId(null);
-              setActiveChannelId(null);
-              setActiveConversationId(null);
-            } else if (id === "admin") {
-              setView("admin");
               setActiveCommunityId(null);
               setActiveChannelId(null);
               setActiveConversationId(null);
@@ -135,15 +128,9 @@ export default function DuniyaApp() {
                 <ServerSidebar 
                   activeServerId={view === "chat" ? activeCommunityId : view} 
                   isDuniyaActive={view === "duniya"}
-                  isAdminActive={view === "admin"}
                   onSelectServer={(id) => {
                     if (id === "duniya") {
                       setView("duniya");
-                      setActiveCommunityId(null);
-                      setActiveChannelId(null);
-                      setActiveConversationId(null);
-                    } else if (id === "admin") {
-                      setView("admin");
                       setActiveCommunityId(null);
                       setActiveChannelId(null);
                       setActiveConversationId(null);
@@ -191,8 +178,6 @@ export default function DuniyaApp() {
               setView("chat");
               setActiveCommunityId(id);
             }} />
-          ) : view === "admin" ? (
-            <AdminDashboard />
           ) : view === "dm" ? (
             <ChatWindow 
               conversationId={activeConversationId}

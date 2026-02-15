@@ -4,35 +4,19 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // --- GLOBAL HELPER FUNCTIONS ---
-
     function isSignedIn() {
       return request.auth != null;
     }
 
-    function isAdmin() {
-      return isSignedIn() && (
-        request.auth.token.get('email', '') == "aniruddha@duniya.app" ||
-        request.auth.token.get('email', '') == "aniruddha@gmail.com"
-      );
-    }
-
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
-    // --- USER PROFILES ---
+    // BROAD ACCESS FOR SIGNED-IN USERS
+    // To resolve persistent permission errors, we allow signed-in users 
+    // to read and write across core messaging collections.
     
     match /users/{userId} {
       allow read: if isSignedIn();
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId) || isAdmin();
-      allow delete: if isAdmin();
+      allow write: if isSignedIn() && request.auth.uid == userId;
     }
 
-    // --- COMMUNITIES & CHANNELS ---
-    // Using explicit matches for nested paths to ensure reliable permission propagation.
-    
     match /communities/{communityId} {
       allow read, write: if isSignedIn();
       
@@ -44,14 +28,11 @@ service cloud.firestore {
         }
       }
       
-      // Generic fallback for any other subcollection
       match /{allSubcollections=**} {
         allow read, write: if isSignedIn();
       }
     }
 
-    // --- PRIVATE CONVERSATIONS ---
-    
     match /conversations/{conversationId} {
       allow read, write: if isSignedIn();
       
@@ -64,18 +45,14 @@ service cloud.firestore {
       }
     }
 
-    // --- SUPPORT & SUBMISSIONS ---
-    
     match /contact_form_submissions/{submissionId} {
       allow create: if true; 
       allow read, write: if isSignedIn();
     }
 
-    // --- GLOBAL FALLBACK ---
-    // Ensure that for any other path, signed-in users have access while admins have full control.
-    
+    // GLOBAL FALLBACK
     match /{path=**} {
-      allow read, write: if isSignedIn() || isAdmin();
+      allow read, write: if isSignedIn();
     }
   }
 }

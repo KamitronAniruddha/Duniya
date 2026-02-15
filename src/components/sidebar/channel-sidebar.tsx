@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { useCollection, useFirestore, useUser, useDoc, useMemoFirebase, useAuth } from "@/firebase";
 import { collection, query, doc } from "firebase/firestore";
-import { Hash, Settings, ChevronDown, LogOut, Loader2, Plus, Timer, Globe, Mail, Shield } from "lucide-react";
+import { Hash, Settings, ChevronDown, LogOut, Loader2, Plus, Timer, Globe, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -52,7 +52,7 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
   const { data: channels, isLoading } = useCollection(channelsQuery);
 
   const isOwner = community?.ownerId === user?.uid;
-  const isAdmin = isOwner || community?.admins?.includes(user?.uid) || user?.email === "aniruddha@duniya.app";
+  const isAdmin = isOwner || community?.admins?.includes(user?.uid);
 
   const handleLogout = () => {
     auth.signOut();

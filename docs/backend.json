@@ -38,13 +38,9 @@
           "description": "Timestamp indicating the last time the user was actively online.",
           "format": "date-time"
         },
-        "isAdmin": {
-          "type": "boolean",
-          "description": "Boolean flag indicating if the user has administrative privileges within the application. This is used to grant admin dashboard access."
-        },
         "isBlocked": {
           "type": "boolean",
-          "description": "Boolean flag indicating if the user's account is currently blocked by an administrator for moderation purposes."
+          "description": "Boolean flag indicating if the user's account is currently blocked for moderation purposes."
         },
         "createdAt": {
           "type": "string",
@@ -61,7 +57,6 @@
         "id",
         "displayName",
         "email",
-        "isAdmin",
         "createdAt"
       ]
     },

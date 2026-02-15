@@ -64,7 +64,6 @@ export function AuthScreen() {
 
         // 4. Create Firestore user document with all required schema fields
         const userRef = doc(db, "users", user.uid);
-        const isAdmin = cleanEmail === "aniruddha@duniya.app" || cleanEmail === "aniruddha@gmail.com";
         
         const userData = {
           id: user.uid,
@@ -78,7 +77,6 @@ export function AuthScreen() {
           updatedAt: new Date().toISOString(),
           onlineStatus: "online",
           lastOnlineAt: new Date().toISOString(),
-          isAdmin: isAdmin,
           isBlocked: false,
           serverIds: [],
           allowGroupInvites: true,
