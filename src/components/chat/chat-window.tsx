@@ -41,7 +41,7 @@ export function ChatWindow({ channelId, serverId, conversationId, mode, showMemb
   const [isClearChatDialogOpen, setIsClearChatDialogOpen] = useState(false);
   const [isForwardDialogOpen, setIsForwardDialogOpen] = useState(false);
 
-  // Path resolution for current view
+  // Absolute path resolution for current view
   const basePath = useMemo(() => {
     if (mode === "channel" && serverId && channelId) {
       return `communities/${serverId}/channels/${channelId}`;
@@ -69,7 +69,7 @@ export function ChatWindow({ channelId, serverId, conversationId, mode, showMemb
   const otherUserRef = useMemoFirebase(() => (otherUserId ? doc(db, "users", otherUserId) : null), [db, otherUserId]);
   const { data: otherUser } = useDoc(otherUserRef);
 
-  // Member Lookup for Bubbles
+  // Member Lookup
   const membersQuery = useMemoFirebase(() => {
     if (!db || mode !== "channel" || !serverId) return null;
     return query(collection(db, "users"), where("serverIds", "array-contains", serverId));
@@ -224,9 +224,6 @@ export function ChatWindow({ channelId, serverId, conversationId, mode, showMemb
   const enterSelectionMode = (id: string) => {
     setSelectionMode(true);
     setSelectedIds(new Set([id]));
-    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
-      navigator.vibrate(20);
-    }
   };
 
   const handleJumpToMessage = (messageId: string) => {
@@ -241,19 +238,9 @@ export function ChatWindow({ channelId, serverId, conversationId, mode, showMemb
   const messagesToForward = useMemo(() => {
     return rawMessages?.filter(m => {
       if (!selectedIds.has(m.id)) return false;
-      const isActuallyDeleted = m.isDeleted || m.fullyDeleted;
-      let hasExpired = false;
-      if (m.disappearingEnabled && user) {
-        const expireAtStr = m.senderId === user.uid ? m.senderExpireAt : m.viewerExpireAt?.[user.uid];
-        if (expireAtStr && new Date(expireAtStr).getTime() < new Date().getTime()) {
-          hasExpired = true;
-        }
-      }
-      return !isActuallyDeleted && !hasExpired;
+      return !m.isDeleted && !m.fullyDeleted;
     }) || [];
-  }, [selectedIds, rawMessages, user?.uid]);
-
-  const canForward = messagesToForward.length > 0;
+  }, [selectedIds, rawMessages]);
 
   useEffect(() => {
     if (scrollRef.current && !selectionMode) {
@@ -263,21 +250,17 @@ export function ChatWindow({ channelId, serverId, conversationId, mode, showMemb
 
   if (!basePath) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center bg-background h-full p-6 text-center animate-in fade-in duration-700">
-        <div className="relative mb-8">
-          <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full" />
-          <MessageCircle className="h-20 w-20 text-primary relative animate-bounce duration-[3000ms]" />
-        </div>
-        <h2 className="text-4xl font-black mb-4 tracking-tighter text-foreground">Duniya Karo Chutiyapaa ❤️</h2>
-        <p className="text-muted-foreground text-sm max-w-sm font-medium leading-relaxed">
-          Select a {mode === "dm" ? "private chat" : "community"} to start messaging, or discover the Verse.
+      <div className="flex-1 flex flex-col items-center justify-center bg-background h-full p-6 text-center">
+        <MessageCircle className="h-16 w-16 text-primary/20 mb-4" />
+        <h2 className="text-2xl font-black mb-2 tracking-tight">Duniya Verse Chat</h2>
+        <p className="text-muted-foreground text-xs max-w-xs font-medium uppercase tracking-widest">
+          Select a conversation to start messaging.
         </p>
       </div>
     );
   }
 
   const headerTitle = mode === "channel" ? (channel?.name || "...") : (otherUser?.username || "...");
-  const headerSub = mode === "channel" ? (server?.name || "Community") : "Private Message";
 
   return (
     <div className="flex-1 flex flex-col h-full bg-background overflow-hidden relative">
@@ -298,9 +281,9 @@ export function ChatWindow({ channelId, serverId, conversationId, mode, showMemb
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="text-white hover:bg-white/10 disabled:opacity-40" 
+                className="text-white hover:bg-white/10" 
                 onClick={() => setIsForwardDialogOpen(true)}
-                disabled={!canForward}
+                disabled={messagesToForward.length === 0}
               >
                 <Forward className="h-5 w-5" />
               </Button>
@@ -313,9 +296,7 @@ export function ChatWindow({ channelId, serverId, conversationId, mode, showMemb
           <>
             <div className="flex items-center gap-3">
               {mode === "channel" ? (
-                <div className="p-1.5 bg-muted rounded-lg">
-                  <Hash className="h-4 w-4 text-muted-foreground" />
-                </div>
+                <Hash className="h-5 w-5 text-muted-foreground" />
               ) : (
                 <Avatar className="h-8 w-8 border">
                   <AvatarImage src={otherUser?.photoURL} />
@@ -324,7 +305,7 @@ export function ChatWindow({ channelId, serverId, conversationId, mode, showMemb
               )}
               <div className="flex flex-col">
                 <h2 className="font-black text-sm truncate leading-none mb-0.5 tracking-tight">@{headerTitle}</h2>
-                <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">{headerSub}</span>
+                <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">{mode === "dm" ? "Direct Message" : "Channel"}</span>
               </div>
             </div>
             
@@ -334,7 +315,7 @@ export function ChatWindow({ channelId, serverId, conversationId, mode, showMemb
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className={cn("h-9 w-9 rounded-xl transition-all", showMembers ? "bg-primary/10 text-primary shadow-inner" : "text-muted-foreground")} 
+                  className={cn("h-9 w-9 rounded-xl transition-all", showMembers ? "bg-primary/10 text-primary" : "text-muted-foreground")} 
                   onClick={onToggleMembers}
                 >
                   <Users className="h-5 w-5" />
@@ -366,12 +347,10 @@ export function ChatWindow({ channelId, serverId, conversationId, mode, showMemb
                 <p className="text-xs font-black uppercase tracking-widest">Syncing Chat</p>
               </div>
             ) : messages.length === 0 ? (
-              <div className="py-24 text-center opacity-30 animate-in fade-in duration-1000">
-                <div className="p-6 bg-muted rounded-full w-fit mx-auto mb-6">
-                  {mode === "channel" ? <Hash className="h-12 w-12" /> : <MessageSquare className="h-12 w-12" />}
-                </div>
+              <div className="py-24 text-center opacity-30">
+                <MessageSquare className="h-12 w-12 mx-auto mb-4" />
                 <h3 className="text-xl font-black mb-1">WELCOME TO {mode === "dm" ? "PRIVATE CHAT" : `#${channel?.name}`}</h3>
-                <p className="text-[10px] font-black uppercase tracking-widest">The Verse is listening.</p>
+                <p className="text-[10px] font-black uppercase tracking-widest">No messages yet.</p>
               </div>
             ) : (
               <div className="flex flex-col justify-end min-h-full">
@@ -409,7 +388,7 @@ export function ChatWindow({ channelId, serverId, conversationId, mode, showMemb
         </div>
 
         {showMembers && mode === "channel" && (
-          <div className="hidden lg:block animate-in slide-in-from-right duration-300 border-l shadow-2xl z-10">
+          <div className="hidden lg:block animate-in slide-in-from-right duration-300 border-l z-10 bg-background">
             <MembersPanel serverId={serverId!} />
           </div>
         )}
@@ -417,37 +396,23 @@ export function ChatWindow({ channelId, serverId, conversationId, mode, showMemb
       
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent className="rounded-[2.5rem] border-none shadow-2xl p-0 overflow-hidden max-w-[400px]">
-          <div className="bg-gradient-to-b from-primary/10 to-background p-8">
-            <AlertDialogHeader className="items-center text-center space-y-4">
-              <div className="h-16 w-16 bg-destructive/10 rounded-3xl flex items-center justify-center">
-                <Trash2 className="h-8 w-8 text-destructive" />
-              </div>
-              <div className="space-y-1">
-                <AlertDialogTitle className="text-3xl font-black tracking-tighter text-foreground">
-                  Delete {selectedIds.size} Messages?
-                </AlertDialogTitle>
-                <AlertDialogDescription className="text-sm font-medium text-muted-foreground px-4 leading-relaxed">
-                  Clear your history or remove messages for everyone.
-                </AlertDialogDescription>
-              </div>
-            </AlertDialogHeader>
+          <div className="bg-destructive/10 p-8 text-center">
+            <Trash2 className="h-12 w-12 text-destructive mx-auto mb-4" />
+            <AlertDialogTitle className="text-2xl font-black tracking-tight mb-2">Delete {selectedIds.size} Messages?</AlertDialogTitle>
+            <AlertDialogDescription>This action will remove the selected messages from your view.</AlertDialogDescription>
           </div>
-          
-          <div className="p-6 bg-background space-y-3">
+          <div className="p-6 bg-background flex flex-col gap-2">
             <AlertDialogAction 
               onClick={() => handleBatchDelete("me")}
-              className="w-full h-14 rounded-2xl font-black uppercase tracking-widest text-[11px] bg-muted text-foreground hover:bg-muted/80"
+              className="w-full h-12 rounded-xl font-black bg-destructive text-white hover:bg-destructive/90"
             >
               Delete for Me
             </AlertDialogAction>
-            <AlertDialogCancel 
-              onClick={() => {
-                setSelectionMode(false);
-                setSelectedIds(new Set());
-              }}
-              className="w-full h-12 border-none font-bold"
-            >
-              Wait, Cancel
+            <AlertDialogCancel className="w-full h-12 rounded-xl font-bold border-none" onClick={() => {
+              setSelectionMode(false);
+              setSelectedIds(new Set());
+            }}>
+              Cancel
             </AlertDialogCancel>
           </div>
         </AlertDialogContent>
@@ -455,29 +420,16 @@ export function ChatWindow({ channelId, serverId, conversationId, mode, showMemb
 
       <AlertDialog open={isClearChatDialogOpen} onOpenChange={setIsClearChatDialogOpen}>
         <AlertDialogContent className="rounded-[2.5rem] border-none shadow-2xl p-0 overflow-hidden max-w-[400px]">
-          <div className="bg-gradient-to-b from-orange-500/10 to-background p-8">
-            <AlertDialogHeader className="items-center text-center space-y-4">
-              <div className="h-16 w-16 bg-orange-500/10 rounded-3xl flex items-center justify-center">
-                <Eraser className="h-8 w-8 text-orange-500" />
-              </div>
-              <div className="space-y-1">
-                <AlertDialogTitle className="text-3xl font-black tracking-tighter text-foreground">
-                  Clear Chat?
-                </AlertDialogTitle>
-                <AlertDialogDescription className="text-sm font-medium text-muted-foreground px-4 leading-relaxed">
-                  Remove all messages from your view? This action is local to you.
-                </AlertDialogDescription>
-              </div>
-            </AlertDialogHeader>
+          <div className="p-8 text-center bg-muted/30">
+            <Eraser className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <AlertDialogTitle className="text-2xl font-black tracking-tight mb-2">Clear Chat?</AlertDialogTitle>
+            <AlertDialogDescription>All messages in this conversation will be hidden for you.</AlertDialogDescription>
           </div>
-          <div className="p-6 bg-background space-y-3">
-            <AlertDialogAction 
-              onClick={handleClearChat}
-              className="w-full h-14 rounded-2xl font-black uppercase tracking-widest text-[11px] bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
+          <div className="p-6 bg-background flex flex-col gap-2">
+            <AlertDialogAction onClick={handleClearChat} className="w-full h-12 rounded-xl font-black">
               Yes, Clear Everything
             </AlertDialogAction>
-            <AlertDialogCancel className="w-full h-12 border-none font-bold">Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="w-full h-12 rounded-xl font-bold border-none">Cancel</AlertDialogCancel>
           </div>
         </AlertDialogContent>
       </AlertDialog>
