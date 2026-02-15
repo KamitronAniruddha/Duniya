@@ -201,17 +201,17 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
   return (
     <div className="flex-1 flex flex-col h-full bg-background overflow-hidden relative">
       <header className={cn(
-        "h-14 border-b flex items-center justify-between px-4 shrink-0 transition-colors duration-300 z-20 overflow-hidden",
+        "h-14 border-b flex items-center justify-between px-4 shrink-0 transition-colors duration-200 z-20 overflow-hidden",
         selectionMode ? "bg-primary text-white" : "bg-background/80 backdrop-blur-md"
       )}>
         <AnimatePresence mode="wait">
           {selectionMode ? (
             <motion.div 
               key="selection-header"
-              initial={{ opacity: 0, y: -10 }} 
+              initial={{ opacity: 0, y: -20 }} 
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 10 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
+              exit={{ opacity: 0, y: 20 }}
+              transition={{ duration: 0.15, ease: "easeOut" }}
               className="flex items-center gap-4 w-full h-full"
             >
               <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full h-8 w-8" onClick={handleCancelSelection}>
@@ -233,10 +233,10 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
           ) : (
             <motion.div 
               key="normal-header"
-              initial={{ opacity: 0, y: 10 }} 
+              initial={{ opacity: 0, y: 20 }} 
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.15, ease: "easeOut" }}
               className="flex items-center justify-between w-full h-full"
             >
               <div className="flex items-center gap-3">
@@ -296,14 +296,14 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
                     <motion.div
                       key={msg.id}
                       layout
-                      initial={{ opacity: 0, scale: 0.98, y: 10 }}
+                      initial={{ opacity: 0, scale: 0.95, y: 15 }}
                       animate={{ opacity: 1, scale: 1, y: 0 }}
                       exit={{ 
                         opacity: 0, 
                         scale: 0.9, 
-                        transition: { duration: 0.2 } 
+                        transition: { duration: 0.15, ease: "easeIn" } 
                       }}
-                      transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                      transition={{ duration: 0.2, ease: "easeOut" }}
                     >
                       <MessageBubble 
                         message={msg}

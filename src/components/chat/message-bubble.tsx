@@ -87,7 +87,7 @@ export const MessageBubble = memo(function MessageBubble({
   const [isForwardOpen, setIsForwardOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
-  // Swipe & Long Press logic
+  // Interaction logic
   const [dragX, setDragX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const startX = useRef(0);
@@ -203,9 +203,9 @@ export const MessageBubble = memo(function MessageBubble({
   return (
     <div 
       className={cn(
-        "flex w-full py-0.5 group items-end relative transition-all duration-200 rounded-2xl select-none", 
+        "flex w-full py-0.5 group items-end relative transition-colors duration-200 rounded-2xl select-none", 
         isMe ? "flex-row-reverse" : "flex-row",
-        isSelected && "bg-primary/5 shadow-inner"
+        isSelected && "bg-primary/10 shadow-inner"
       )}
       onMouseDown={handleStart}
       onMouseMove={handleMove}
@@ -228,7 +228,7 @@ export const MessageBubble = memo(function MessageBubble({
       )}>
         <motion.div 
           animate={isSelected ? { scale: 1.1 } : { scale: 1 }}
-          transition={{ duration: 0.15 }}
+          transition={{ duration: 0.1, ease: "easeOut" }}
           className={cn(
             "h-5 w-5 rounded-full border-2 flex items-center justify-center transition-all duration-150",
             isSelected ? "bg-primary border-primary text-white" : "border-muted-foreground/20"
@@ -241,9 +241,10 @@ export const MessageBubble = memo(function MessageBubble({
       <AnimatePresence>
         {dragX >= 60 && !isActuallyDeleted && (
           <motion.div 
-            initial={{ opacity: 0, scale: 0 }}
-            animate={{ opacity: 1, scale: 1.1 }}
-            exit={{ opacity: 0, scale: 0 }}
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            transition={{ duration: 0.1, ease: "easeOut" }}
             className="absolute left-6 top-1/2 -translate-y-1/2 bg-primary/20 rounded-full h-8 w-8 flex items-center justify-center pointer-events-none z-10 backdrop-blur-sm shadow-lg"
           >
             <Reply className="h-4 w-4 text-primary" />
@@ -253,7 +254,7 @@ export const MessageBubble = memo(function MessageBubble({
 
       {!isMe && !selectionMode && (
         <UserProfilePopover userId={message.senderId}>
-          <button className="h-8 w-8 mb-0.5 mr-2 shrink-0 transition-transform hover:scale-105 active:scale-95">
+          <button className="h-8 w-8 mb-0.5 mr-2 shrink-0 transition-transform active:scale-90">
             <Avatar className="h-full w-full border border-border shadow-sm">
               <AvatarImage src={sender?.photoURL} />
               <AvatarFallback className="text-[9px] font-black bg-primary text-white">{sender?.username?.[0]?.toUpperCase() || "?"}</AvatarFallback>
@@ -266,6 +267,7 @@ export const MessageBubble = memo(function MessageBubble({
         layout
         className={cn("flex flex-col max-w-[75%] relative transition-all duration-200 ease-out", isMe ? "items-end" : "items-start")} 
         style={{ x: dragX }}
+        transition={{ duration: 0.2, ease: "easeOut" }}
       >
         {isActuallyDeleted ? (
           <div className={cn(
@@ -286,7 +288,7 @@ export const MessageBubble = memo(function MessageBubble({
             <div className={cn(
               "px-3 py-2 rounded-[1.25rem] shadow-sm transition-all duration-200 relative group/bubble",
               isMe ? "bg-primary text-white rounded-br-none shadow-primary/10" : "bg-card text-foreground rounded-bl-none border border-border shadow-black/5",
-              selectionMode && "cursor-pointer active:scale-[0.99]"
+              selectionMode && "cursor-pointer active:scale-[0.98]"
             )}>
               {message.isForwarded && (
                 <div className={cn("flex flex-col mb-1.5 opacity-80", isMe ? "items-end" : "items-start")}>
@@ -302,7 +304,7 @@ export const MessageBubble = memo(function MessageBubble({
                   {latestHop && (
                     <div className={cn("flex items-center gap-1 text-[7px] font-black tracking-tight mt-0.5 opacity-60", isMe ? "text-white" : "text-primary")}>
                       <Landmark className="h-2 w-2" />
-                      <span>{(latestHop.communityName || "Verse").toUpperCase()} {' > '} #{(latestHop.channelName || "General").toUpperCase()}</span>
+                      <span>{latestHop.communityName?.toUpperCase() || "VERSE"} {' > '} #{latestHop.channelName?.toUpperCase() || "GENERAL"}</span>
                     </div>
                   )}
                 </div>
@@ -363,7 +365,7 @@ export const MessageBubble = memo(function MessageBubble({
       </motion.div>
 
       {!selectionMode && !isActuallyDeleted && (
-        <div className={cn("mb-1 mx-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center gap-1", isMe ? "mr-1 flex-row-reverse" : "ml-1 flex-row")}>
+        <div className={cn("mb-1 mx-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-center gap-1", isMe ? "mr-1 flex-row-reverse" : "ml-1 flex-row")}>
           <button 
             onClick={(e) => { e.stopPropagation(); setIsForwardOpen(true); }} 
             className="h-7 w-7 rounded-full bg-muted/30 hover:bg-primary hover:text-white flex items-center justify-center text-muted-foreground transition-colors active:scale-90"
