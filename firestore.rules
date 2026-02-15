@@ -21,12 +21,6 @@ service cloud.firestore {
       );
     }
 
-    // Helper to check if user is a participant in a DM conversation
-    function isParticipantInConversation(conversationId) {
-      let conv = get(/databases/$(database)/documents/conversations/$(conversationId));
-      return isSignedIn() && (request.auth.uid in conv.data.participantIds);
-    }
-
     // --- USER PROFILES ---
 
     match /users/{userId} {
@@ -36,25 +30,22 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // --- DM CONVERSATIONS ---
+    // --- PRIVATE CONVERSATIONS (DMs) ---
 
     match /conversations/{conversationId} {
-      allow read: if isSignedIn() && request.auth.uid in resource.data.participantIds;
+      allow read, update: if isSignedIn() && (request.auth.uid in resource.data.participantIds || isAdmin());
       allow create: if isSignedIn() && request.auth.uid in request.resource.data.participantIds;
-      allow update: if isSignedIn() && request.auth.uid in resource.data.participantIds;
       allow delete: if isAdmin();
 
       match /messages/{messageId} {
-        allow read: if isParticipantInConversation(conversationId);
-        allow create: if isParticipantInConversation(conversationId);
-        // Allow updates for metadata: seenBy, deletedFor, disappearing timers, and soft-deletion
-        allow update: if isParticipantInConversation(conversationId) && (
+        allow read, create: if isSignedIn() && (request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds || isAdmin());
+        allow update: if isSignedIn() && (request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds || isAdmin()) && (
           request.resource.data.diff(resource.data).affectedKeys().hasAny([
             'seenBy', 'viewerExpireAt', 'deletedFor', 'isDeleted', 'content', 'type', 
             'audioUrl', 'videoUrl', 'senderExpireAt', 'fullyDeleted'
           ])
         );
-        allow delete: if isSignedIn() && (resource.data.senderId == request.auth.uid || isAdmin());
+        allow delete: if isAdmin() || (isSignedIn() && resource.data.senderId == request.auth.uid);
       }
     }
 
@@ -70,9 +61,7 @@ service cloud.firestore {
         allow read, write: if isSignedIn();
 
         match /messages/{messageId} {
-          allow read: if isSignedIn();
-          allow create: if isSignedIn();
-          // Allow updates for metadata and soft-deletion
+          allow read, create: if isSignedIn();
           allow update: if isSignedIn() && (
             isAdmin() || 
             resource.data.senderId == request.auth.uid ||
@@ -100,7 +89,6 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
     
-    // Fallback for legacy or other collections
     match /call_sessions/{callSessionId} {
       allow read, write: if isSignedIn();
     }
