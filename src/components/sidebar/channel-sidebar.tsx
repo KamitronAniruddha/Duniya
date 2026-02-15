@@ -90,7 +90,7 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
             <DropdownMenuTrigger asChild>
               <header className="h-16 px-4 border-b flex items-center justify-between hover:bg-muted/30 transition-all cursor-pointer shrink-0 group">
                 <div className="flex flex-col min-w-0 flex-1">
-                  <h2 className="font-black truncate text-sm text-foreground tracking-tighter uppercase group-hover:text-primary transition-colors">{community?.name || "..." }</h2>
+                  <h2 className="font-black truncate text-base text-foreground tracking-tighter uppercase group-hover:text-primary transition-colors">{community?.name || "..." }</h2>
                   <div className="flex items-center gap-1.5">
                     {community?.joinCode && <span className="text-[9px] text-primary font-black font-mono tracking-widest uppercase opacity-70">CODE: {community.joinCode}</span>}
                   </div>

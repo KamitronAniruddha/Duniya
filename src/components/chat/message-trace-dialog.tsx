@@ -65,11 +65,11 @@ export function MessageTraceDialog({ open, onOpenChange, chain }: MessageTraceDi
                       <div className="flex flex-col gap-0.5">
                         <h4 className="text-sm font-black text-foreground flex items-center gap-2">
                           <Landmark className="h-3.5 w-3.5 opacity-50" />
-                          {hop.communityName}
+                          {hop?.communityName || "Duniya Community"}
                         </h4>
                         <div className="flex items-center gap-1.5 text-[10px] font-black text-muted-foreground/60">
                           <Hash className="h-2.5 w-2.5" />
-                          <span>#{hop.channelName}</span>
+                          <span>#{hop?.channelName || "General"}</span>
                         </div>
                       </div>
 

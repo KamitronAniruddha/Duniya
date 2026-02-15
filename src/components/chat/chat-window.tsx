@@ -194,7 +194,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
     return (
       <div className="flex-1 flex flex-col items-center justify-center bg-background h-full p-6 text-center">
         <MessageCircle className="h-16 w-16 text-primary/20 mb-4" />
-        <h2 className="text-2xl font-black mb-2 tracking-tighter">DUNIYA VERSE</h2>
+        <h2 className="text-2xl font-black mb-2 tracking-tighter uppercase">DUNIYA VERSE</h2>
         <p className="text-muted-foreground text-[10px] max-w-xs font-black uppercase tracking-[0.2em]">
           Select a community to start your journey.
         </p>
@@ -258,8 +258,8 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
                   <Hash className="h-5 w-5 text-primary" />
                 </div>
                 <div className="flex flex-col min-w-0">
-                  <h2 className="font-black text-base truncate leading-none tracking-tighter text-foreground uppercase">#{headerTitle}</h2>
-                  <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mt-0.5">Community Channel</span>
+                  <h2 className="font-black text-lg truncate leading-none tracking-tighter text-foreground uppercase">#{headerTitle}</h2>
+                  <span className="text-[9px] text-muted-foreground font-black uppercase tracking-widest mt-0.5">Active Channel</span>
                 </div>
               </div>
               
@@ -395,7 +395,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
       <AlertDialog open={isClearChatDialogOpen} onOpenChange={setIsClearChatDialogOpen}>
         <AlertDialogContent className="rounded-[2.5rem] border-none shadow-2xl p-8">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-2xl font-black tracking-tighter">CLEAR CONVERSATION?</AlertDialogTitle>
+            <AlertDialogTitle className="text-2xl font-black tracking-tighter uppercase">CLEAR CONVERSATION?</AlertDialogTitle>
             <AlertDialogDescription className="font-medium text-muted-foreground">
               All messages will be hidden from your local view. This action is irreversible within the Verse.
             </AlertDialogDescription>
