@@ -348,7 +348,13 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
             >
               Delete for Me
             </AlertDialogAction>
-            <AlertDialogCancel className="w-full h-12 border-none font-bold text-muted-foreground/60 hover:text-foreground transition-colors">
+            <AlertDialogCancel 
+              onClick={() => {
+                setSelectionMode(false);
+                setSelectedIds(new Set());
+              }}
+              className="w-full h-12 border-none font-bold text-muted-foreground/60 hover:text-foreground transition-colors"
+            >
               Wait, Cancel
             </AlertDialogCancel>
           </div>
