@@ -95,15 +95,12 @@ export function AuthScreen() {
 
   return (
     <div className="fixed inset-0 w-full flex flex-col bg-background overflow-y-auto custom-scrollbar selection:bg-primary/30">
-      <div className={cn(
-        "min-h-full w-full flex flex-col items-center p-4 py-6 md:py-12 transition-all duration-300",
-        isLogin ? "justify-center" : "justify-start md:justify-center"
-      )}>
+      <div className="min-h-svh w-full flex flex-col items-center p-4 py-8 md:py-12">
         <Card className="w-full max-w-md shadow-2xl border-none bg-card animate-in fade-in zoom-in-95 duration-500 my-auto">
-          <CardHeader className="space-y-1 text-center pb-4 pt-6">
+          <CardHeader className="space-y-1 text-center pb-2 pt-6">
             <div className="flex justify-center mb-2">
-              <div className="p-3 bg-primary/10 rounded-[1.5rem] shadow-inner animate-bounce [animation-duration:4s]">
-                <Logo size={40} />
+              <div className="p-2.5 bg-primary/10 rounded-[1.25rem] shadow-inner animate-bounce [animation-duration:4s]">
+                <Logo size={36} />
               </div>
             </div>
             <CardTitle className="text-2xl font-black tracking-tighter text-foreground uppercase">Duniya</CardTitle>
@@ -112,7 +109,7 @@ export function AuthScreen() {
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleSubmit}>
-            <CardContent className="space-y-3 px-6 md:px-8">
+            <CardContent className="space-y-3 px-6 md:px-8 pt-4">
               {!isLogin && (
                 <div className="space-y-1">
                   <Label htmlFor="username" className="text-[9px] font-black uppercase tracking-wider text-muted-foreground/80 ml-1">Unique Username</Label>
@@ -183,7 +180,7 @@ export function AuthScreen() {
           </form>
         </Card>
         
-        <div className="flex flex-col items-center gap-3 mt-6 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-300">
+        <div className="flex flex-col items-center gap-3 mt-6 mb-4 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-300">
           <div className="flex items-center gap-2 px-4 py-1.5 bg-muted/40 backdrop-blur-md rounded-full border border-border shadow-sm">
             <span className="text-[8px] font-black uppercase tracking-[0.3em] text-muted-foreground/70">Made by Aniruddha with love</span>
             <Heart className="h-2.5 w-2.5 text-red-500 fill-red-500 animate-pulse" />
