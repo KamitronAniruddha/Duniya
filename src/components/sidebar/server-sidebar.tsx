@@ -7,13 +7,14 @@ import { collection, query, where, doc, arrayUnion, getDocs, limit, writeBatch }
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Plus, Compass, Globe, Heart, Loader2, Share2 } from "lucide-react";
+import { Plus, Compass, Globe, Heart, Loader2, Settings, Share2, Copy, Check } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from "@/components/ui/context-menu";
+import { ServerSettingsDialog } from "@/components/servers/server-settings-dialog";
 
 interface ServerSidebarProps {
   activeServerId: string | null;
@@ -30,6 +31,7 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive }
   const [name, setName] = useState("");
   const [joinId, setJoinId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [editingServerId, setEditingServerId] = useState<string | null>(null);
 
   const communitiesQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
@@ -129,14 +131,19 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive }
     }
   };
 
+  const copyJoinCode = (code: string) => {
+    navigator.clipboard.writeText(code);
+    toast({ title: "Code Copied", description: "Invite code copied to clipboard." });
+  };
+
   return (
     <aside className="w-[72px] bg-sidebar flex flex-col items-center py-4 gap-4 shrink-0 h-full overflow-y-auto custom-scrollbar border-r border-sidebar-border z-30">
       <TooltipProvider delayDuration={0}>
         <Tooltip>
           <TooltipTrigger asChild>
             <button onClick={() => onSelectServer(null as any)} className="group relative flex items-center justify-center h-12 w-full mb-1">
-              <div className={cn("absolute left-0 w-1 bg-white rounded-r-full transition-all duration-300", (!activeServerId && !isDuniyaActive) ? "h-8 opacity-100" : "h-0 opacity-0 group-hover:h-4 group-hover:opacity-100")} />
-              <div className={cn("w-12 h-12 flex items-center justify-center transition-all duration-300 shadow-lg rounded-[24px] group-hover:rounded-[12px] bg-sidebar-accent text-white group-hover:bg-primary group-hover:scale-105", (!activeServerId && !isDuniyaActive) && "rounded-[12px] bg-primary")}>
+              <div className={cn("absolute left-0 w-1 bg-white rounded-r-full transition-all duration-150", (!activeServerId && !isDuniyaActive) ? "h-8 opacity-100" : "h-0 opacity-0 group-hover:h-4 group-hover:opacity-100")} />
+              <div className={cn("w-12 h-12 flex items-center justify-center transition-all duration-150 shadow-lg rounded-[24px] group-hover:rounded-[12px] bg-sidebar-accent text-white group-hover:bg-primary group-hover:scale-105", (!activeServerId && !isDuniyaActive) && "rounded-[12px] bg-primary")}>
                 <span className="font-black text-xl tracking-tighter italic">D</span>
               </div>
             </button>
@@ -149,8 +156,8 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive }
         <Tooltip>
           <TooltipTrigger asChild>
             <button onClick={() => onSelectServer("duniya")} className="group relative flex items-center justify-center h-12 w-full">
-              <div className={cn("absolute left-0 w-1 bg-white rounded-r-full transition-all duration-300", isDuniyaActive ? "h-8 opacity-100" : "h-0 opacity-0 group-hover:h-4 group-hover:opacity-100")} />
-              <div className={cn("w-12 h-12 flex items-center justify-center transition-all duration-300 shadow-lg rounded-[24px] group-hover:rounded-[12px] bg-accent/10 text-accent group-hover:bg-accent group-hover:text-white group-hover:scale-105", isDuniyaActive && "rounded-[12px] bg-accent text-white")}>
+              <div className={cn("absolute left-0 w-1 bg-white rounded-r-full transition-all duration-150", isDuniyaActive ? "h-8 opacity-100" : "h-0 opacity-0 group-hover:h-4 group-hover:opacity-100")} />
+              <div className={cn("w-12 h-12 flex items-center justify-center transition-all duration-150 shadow-lg rounded-[24px] group-hover:rounded-[12px] bg-accent/10 text-accent group-hover:bg-accent group-hover:text-white group-hover:scale-105", isDuniyaActive && "rounded-[12px] bg-accent text-white")}>
                 <Globe className="h-6 w-6" />
               </div>
             </button>
@@ -161,50 +168,66 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive }
         <div className="w-8 h-[1px] bg-sidebar-accent/30 rounded-full shrink-0" />
 
         <div className="flex flex-col items-center gap-3">
-          {communities?.map(s => (
-            <Tooltip key={s.id}>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <TooltipTrigger asChild>
-                    <button onClick={() => onSelectServer(s.id)} className="group relative flex items-center justify-center h-12 w-full">
-                      <div className={cn("absolute left-0 w-1 bg-white rounded-r-full transition-all duration-300", activeServerId === s.id ? "h-8 opacity-100" : "h-0 opacity-0 group-hover:h-4 group-hover:opacity-100")} />
-                      <div className={cn("w-12 h-12 flex items-center justify-center transition-all duration-300 overflow-hidden shadow-lg rounded-[24px] group-hover:rounded-[12px] bg-sidebar-accent group-hover:scale-105", activeServerId === s.id && "rounded-[12px] ring-2 ring-primary ring-offset-2 ring-offset-sidebar")}>
-                        <Avatar className="w-full h-full rounded-none">
-                          <AvatarImage src={s.icon} />
-                          <AvatarFallback className="bg-primary text-white font-black text-lg">{s.name?.[0]?.toUpperCase()}</AvatarFallback>
-                        </Avatar>
-                      </div>
-                    </button>
-                  </TooltipTrigger>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent side="right" align="start" className="w-48">
-                  <DropdownMenuItem onClick={() => onSelectServer(s.id)}>Open Community</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              <TooltipContent side="right" className="font-bold">{s.name}</TooltipContent>
-            </Tooltip>
-          ))}
+          {communities?.map(s => {
+            const isOwner = s.ownerId === user?.uid;
+            const isAdmin = isOwner || s.admins?.includes(user?.uid);
+
+            return (
+              <ContextMenu key={s.id}>
+                <ContextMenuTrigger asChild>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button onClick={() => onSelectServer(s.id)} className="group relative flex items-center justify-center h-12 w-full">
+                        <div className={cn("absolute left-0 w-1 bg-white rounded-r-full transition-all duration-150", activeServerId === s.id ? "h-8 opacity-100" : "h-0 opacity-0 group-hover:h-4 group-hover:opacity-100")} />
+                        <div className={cn("w-12 h-12 flex items-center justify-center transition-all duration-150 overflow-hidden shadow-lg rounded-[24px] group-hover:rounded-[12px] bg-sidebar-accent group-hover:scale-105", activeServerId === s.id && "rounded-[12px] ring-2 ring-primary ring-offset-2 ring-offset-sidebar")}>
+                          <Avatar className="w-full h-full rounded-none">
+                            <AvatarImage src={s.icon} />
+                            <AvatarFallback className="bg-primary text-white font-black text-lg">{s.name?.[0]?.toUpperCase()}</AvatarFallback>
+                          </Avatar>
+                        </div>
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="font-bold">{s.name}</TooltipContent>
+                  </Tooltip>
+                </ContextMenuTrigger>
+                <ContextMenuContent className="w-56 font-black uppercase text-[10px] tracking-widest p-1 border-none shadow-2xl bg-popover/95 backdrop-blur-md">
+                  <ContextMenuItem onClick={() => onSelectServer(s.id)} className="gap-2 p-3 rounded-xl transition-all hover:bg-primary/10">
+                    <Globe className="h-4 w-4" /> Open Community
+                  </ContextMenuItem>
+                  {isAdmin && (
+                    <ContextMenuItem onClick={() => setEditingServerId(s.id)} className="gap-2 p-3 rounded-xl transition-all hover:bg-primary/10">
+                      <Settings className="h-4 w-4" /> Edit Community Info
+                    </ContextMenuItem>
+                  )}
+                  <ContextMenuSeparator />
+                  <ContextMenuItem onClick={() => copyJoinCode(s.joinCode)} className="gap-2 p-3 rounded-xl transition-all hover:bg-primary/10">
+                    <Copy className="h-4 w-4" /> Copy Join Code
+                  </ContextMenuItem>
+                </ContextMenuContent>
+              </ContextMenu>
+            );
+          })}
         </div>
 
         <div className="flex flex-col items-center gap-3 mt-auto mb-4">
           <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
             <DialogTrigger asChild>
-              <button className="w-12 h-12 flex items-center justify-center rounded-[24px] hover:rounded-[12px] bg-sidebar-accent hover:bg-green-600 text-green-500 hover:text-white transition-all duration-300 shadow-md group">
+              <button className="w-12 h-12 flex items-center justify-center rounded-[24px] hover:rounded-[12px] bg-sidebar-accent hover:bg-green-600 text-green-500 hover:text-white transition-all duration-150 shadow-md group">
                 <Plus className="h-6 w-6 group-hover:scale-110 transition-transform" />
               </button>
             </DialogTrigger>
-            <DialogContent>
-              <DialogHeader><DialogTitle>Create Community</DialogTitle></DialogHeader>
+            <DialogContent className="rounded-[2.5rem] border-none shadow-2xl">
+              <DialogHeader><DialogTitle className="text-xl font-black uppercase tracking-tighter">NEW COMMUNITY</DialogTitle></DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label>Community Name</Label>
-                  <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="My Awesome Group" disabled={isLoading} />
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Community Name</Label>
+                  <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="My Awesome Group" disabled={isLoading} className="bg-muted/40 border-none rounded-2xl h-12 font-bold" />
                 </div>
               </div>
-              <DialogFooter>
-                <Button variant="ghost" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-                <Button onClick={handleCreateServer} disabled={isLoading || !name.trim()}>
-                   {isLoading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              <DialogFooter className="gap-2">
+                <Button variant="ghost" className="rounded-xl font-bold" onClick={() => setIsModalOpen(false)}>Cancel</Button>
+                <Button onClick={handleCreateServer} className="rounded-xl font-black shadow-lg shadow-primary/20" disabled={isLoading || !name.trim()}>
+                   {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
                    Create
                 </Button>
               </DialogFooter>
@@ -213,21 +236,24 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive }
 
           <Dialog open={isJoinModalOpen} onOpenChange={setIsJoinModalOpen}>
             <DialogTrigger asChild>
-              <button className="w-12 h-12 flex items-center justify-center rounded-[24px] hover:rounded-[12px] bg-sidebar-accent hover:bg-primary text-primary hover:text-white transition-all duration-300 shadow-md group">
+              <button className="w-12 h-12 flex items-center justify-center rounded-[24px] hover:rounded-[12px] bg-sidebar-accent hover:bg-primary text-primary hover:text-white transition-all duration-150 shadow-md group">
                 <Compass className="h-6 w-6 group-hover:scale-110 transition-transform" />
               </button>
             </DialogTrigger>
-            <DialogContent>
-              <DialogHeader><DialogTitle>Join Community</DialogTitle></DialogHeader>
+            <DialogContent className="rounded-[2.5rem] border-none shadow-2xl">
+              <DialogHeader><DialogTitle className="text-xl font-black uppercase tracking-tighter">JOIN THE VERSE</DialogTitle></DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label>5-Digit Join Code</Label>
-                  <Input value={joinId} onChange={(e) => setJoinId(e.target.value)} placeholder="e.g. 12345" />
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">5-Digit Join Code</Label>
+                  <Input value={joinId} onChange={(e) => setJoinId(e.target.value)} placeholder="e.g. 12345" className="bg-muted/40 border-none rounded-2xl h-12 font-bold text-center tracking-[0.5em]" maxLength={5} />
                 </div>
               </div>
-              <DialogFooter>
-                <Button variant="ghost" onClick={() => setIsJoinModalOpen(false)}>Cancel</Button>
-                <Button onClick={handleJoinServer} disabled={isLoading || !joinId.trim()}>Join</Button>
+              <DialogFooter className="gap-2">
+                <Button variant="ghost" className="rounded-xl font-bold" onClick={() => setIsJoinModalOpen(false)}>Cancel</Button>
+                <Button onClick={handleJoinServer} className="rounded-xl font-black shadow-lg shadow-primary/20" disabled={isLoading || !joinId.trim()}>
+                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Compass className="h-4 w-4 mr-2" />}
+                  Join
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -238,6 +264,14 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive }
           </div>
         </div>
       </TooltipProvider>
+
+      {editingServerId && (
+        <ServerSettingsDialog 
+          open={!!editingServerId} 
+          onOpenChange={(open) => !open && setEditingServerId(null)} 
+          serverId={editingServerId} 
+        />
+      )}
     </aside>
   );
 }
