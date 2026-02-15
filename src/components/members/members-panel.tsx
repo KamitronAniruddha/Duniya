@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useCollection, useFirestore, useDoc, useMemoFirebase, useUser } from "@/firebase";
-import { collection, query, where, doc, getDocs, arrayUnion, arrayRemove, limit, deleteDoc } from "firebase/firestore";
+import { collection, query, where, doc, getDocs, arrayUnion, arrayRemove, limit } from "firebase/firestore";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ShieldCheck, Loader2, UserPlus, Check, AlertCircle, UserMinus, Shield, Search, X, EyeOff, Ghost } from "lucide-react";
@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { cn } from "@/lib/utils";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { UserProfilePopover } from "@/components/profile/user-profile-popover";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +34,7 @@ export function MembersPanel({ serverId, onWhisper }: MembersPanelProps) {
   const [isSearching, setIsSearching] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<any[]>([]);
   const [isInviting, setIsInviting] = useState(false);
+  const [now, setNow] = useState(Date.now());
 
   const serverRef = useMemoFirebase(() => (serverId && currentUser ? doc(db, "communities", serverId) : null), [db, serverId, currentUser?.uid]);
   const { data: server } = useDoc(serverRef);
@@ -44,6 +45,12 @@ export function MembersPanel({ serverId, onWhisper }: MembersPanelProps) {
   }, [db, serverId, currentUser?.uid]);
 
   const { data: members, isLoading: isMembersLoading } = useCollection(membersQuery);
+
+  // Update 'now' every 30s to re-calculate "Freshness" of online status
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     const searchUsers = async () => {
@@ -83,15 +90,32 @@ export function MembersPanel({ serverId, onWhisper }: MembersPanelProps) {
     return () => clearTimeout(timeoutId);
   }, [searchQuery, db, serverId, currentUser]);
 
+  const segmentedMembers = useMemo(() => {
+    if (!members) return { online: [], away: [], offline: [] };
+
+    const STALE_THRESHOLD = 3 * 60 * 1000; // 3 Minutes
+
+    return members.reduce((acc: any, m) => {
+      const lastSeen = m.lastOnlineAt ? new Date(m.lastOnlineAt).getTime() : 0;
+      const isFresh = (now - lastSeen) < STALE_THRESHOLD;
+      const isPublic = m.showOnlineStatus !== false;
+
+      // STALE CHECK: If last heartbeat is too old, they are offline regardless of state string.
+      if (!isFresh || !isPublic || m.onlineStatus === "offline") {
+        acc.offline.push(m);
+      } else if (m.onlineStatus === "idle") {
+        acc.away.push(m);
+      } else {
+        acc.online.push(m);
+      }
+      return acc;
+    }, { online: [], away: [], offline: [] });
+  }, [members, now]);
+
   if (!server) return null;
 
   const isOwner = server.ownerId === currentUser?.uid;
   const serverAdmins = server.admins || [];
-  
-  // High-Fidelity Presence Segmentation
-  const onlineMembers = members?.filter(m => m.onlineStatus === "online" && m.showOnlineStatus !== false) || [];
-  const awayMembers = members?.filter(m => m.onlineStatus === "idle" && m.showOnlineStatus !== false) || [];
-  const offlineMembers = members?.filter(m => (m.onlineStatus !== "online" && m.onlineStatus !== "idle") || m.showOnlineStatus === false) || [];
 
   const handleInvite = async () => {
     if (selectedUsers.length === 0 || !db || !serverRef) return;
@@ -164,23 +188,18 @@ export function MembersPanel({ serverId, onWhisper }: MembersPanelProps) {
           {isMembersLoading ? (
             <div className="flex flex-col items-center justify-center py-10 opacity-50">
               <Loader2 className="h-5 w-5 animate-spin mb-2" />
-              <p className="text-[10px] font-medium uppercase text-foreground">Loading Members</p>
-            </div>
-          ) : members?.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-10 text-center space-y-2 opacity-50">
-              <AlertCircle className="h-8 w-8 text-muted-foreground" />
-              <p className="text-xs text-muted-foreground">No members found</p>
+              <p className="text-[10px] font-medium uppercase text-foreground">Syncing Directory</p>
             </div>
           ) : (
             <>
-              {onlineMembers.length > 0 && (
+              {segmentedMembers.online.length > 0 && (
                 <div className="space-y-2">
                   <h4 className="text-[10px] font-bold uppercase tracking-wider text-green-500/80 px-2 flex items-center gap-2">
                     <div className="h-1.5 w-1.5 rounded-full bg-green-500 shadow-[0_0_4px_rgba(34,197,94,0.6)]" />
-                    Online — {onlineMembers.length}
+                    On Screen — {segmentedMembers.online.length}
                   </h4>
                   <div className="space-y-0.5">
-                    {onlineMembers.map((member) => (
+                    {segmentedMembers.online.map((member: any) => (
                       <MemberItem 
                         key={member.id} 
                         member={member} 
@@ -190,20 +209,21 @@ export function MembersPanel({ serverId, onWhisper }: MembersPanelProps) {
                         onRemove={() => handleRemoveMember(member.id, member.username)}
                         onToggleAdmin={() => handleToggleAdmin(member.id, serverAdmins.includes(member.id))}
                         onWhisper={onWhisper}
+                        now={now}
                       />
                     ))}
                   </div>
                 </div>
               )}
               
-              {awayMembers.length > 0 && (
+              {segmentedMembers.away.length > 0 && (
                 <div className="space-y-2">
                   <h4 className="text-[10px] font-bold uppercase tracking-wider text-amber-500/80 px-2 flex items-center gap-2">
                     <div className="h-1.5 w-1.5 rounded-full bg-amber-500 shadow-[0_0_4px_rgba(245,158,11,0.6)]" />
-                    Away — {awayMembers.length}
+                    Background — {segmentedMembers.away.length}
                   </h4>
                   <div className="space-y-0.5">
-                    {awayMembers.map((member) => (
+                    {segmentedMembers.away.map((member: any) => (
                       <MemberItem 
                         key={member.id} 
                         member={member} 
@@ -213,17 +233,18 @@ export function MembersPanel({ serverId, onWhisper }: MembersPanelProps) {
                         onRemove={() => handleRemoveMember(member.id, member.username)}
                         onToggleAdmin={() => handleToggleAdmin(member.id, serverAdmins.includes(member.id))}
                         onWhisper={onWhisper}
+                        now={now}
                       />
                     ))}
                   </div>
                 </div>
               )}
 
-              {offlineMembers.length > 0 && (
+              {segmentedMembers.offline.length > 0 && (
                 <div className="space-y-2">
-                  <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-2">Offline — {offlineMembers.length}</h4>
+                  <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-2">Offline — {segmentedMembers.offline.length}</h4>
                   <div className="space-y-0.5 opacity-60 grayscale-[0.5]">
-                    {offlineMembers.map((member) => (
+                    {segmentedMembers.offline.map((member: any) => (
                       <MemberItem 
                         key={member.id} 
                         member={member} 
@@ -233,6 +254,7 @@ export function MembersPanel({ serverId, onWhisper }: MembersPanelProps) {
                         onRemove={() => handleRemoveMember(member.id, member.username)}
                         onToggleAdmin={() => handleToggleAdmin(member.id, serverAdmins.includes(member.id))}
                         onWhisper={onWhisper}
+                        now={now}
                       />
                     ))}
                   </div>
@@ -270,7 +292,7 @@ export function MembersPanel({ serverId, onWhisper }: MembersPanelProps) {
             </div>
             <div className="space-y-2 min-h-[120px]">
               <h4 className="text-[10px] font-bold uppercase text-muted-foreground px-1">Results</h4>
-              {isSearching ? <div className="flex items-center justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground/30" /></div> : (searchQuery.trim().length < 2 ? <div className="flex items-center justify-center py-8 opacity-30"><p className="text-xs text-foreground">Type at least 2 characters...</p></div> : (searchResults.length === 0 ? <div className="flex items-center justify-center py-8 opacity-30"><p className="text-xs text-foreground">No users found or available.</p></div> : <div className="space-y-1">{searchResults.map((u) => { const isSelected = selectedUsers.some(sel => sel.id === u.id); return ( <button key={u.id} type="button" onClick={() => toggleUserSelection(u)} className={cn("w-full flex items-center gap-2 p-2 rounded-lg transition-colors text-left", isSelected ? "bg-primary/10 border border-primary/20" : "hover:bg-muted border border-transparent")}> <Avatar className="h-6 w-6"><AvatarImage src={u.photoURL} /><AvatarFallback className="text-[8px] bg-primary text-primary-foreground">{u.username?.[0]?.toUpperCase()}</AvatarFallback></Avatar> <span className="text-xs font-bold flex-1 text-foreground">@{u.username}</span> {isSelected && <Check className="h-3 w-3 text-primary" />} </button> ); })}</div>))}
+              {isSearching ? <div className="flex items-center justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground/30" /></div> : (searchQuery.trim().length < 2 ? <div className="flex items-center justify-center py-8 opacity-30"><p className="text-xs text-foreground">Type @handle to search...</p></div> : (searchResults.length === 0 ? <div className="flex items-center justify-center py-8 opacity-30"><p className="text-xs text-foreground">No users found.</p></div> : <div className="space-y-1">{searchResults.map((u) => { const isSelected = selectedUsers.some(sel => sel.id === u.id); return ( <button key={u.id} type="button" onClick={() => toggleUserSelection(u)} className={cn("w-full flex items-center gap-2 p-2 rounded-lg transition-colors text-left", isSelected ? "bg-primary/10 border border-primary/20" : "hover:bg-muted border border-transparent")}> <Avatar className="h-6 w-6"><AvatarImage src={u.photoURL} /><AvatarFallback className="text-[8px] bg-primary text-primary-foreground">{u.username?.[0]?.toUpperCase()}</AvatarFallback></Avatar> <span className="text-xs font-bold flex-1 text-foreground">@{u.username}</span> {isSelected && <Check className="h-3 w-3 text-primary" />} </button> ); })}</div>))}
             </div>
           </div>
           <DialogFooter>
@@ -290,7 +312,8 @@ function MemberItem({
   canManage, 
   onRemove,
   onToggleAdmin,
-  onWhisper
+  onWhisper,
+  now
 }: { 
   member: any; 
   isOwner: boolean; 
@@ -299,9 +322,15 @@ function MemberItem({
   onRemove: () => void;
   onToggleAdmin: () => void;
   onWhisper?: (userId: string, username: string) => void;
+  now: number;
 }) {
-  const isOnline = member.onlineStatus === "online" && member.showOnlineStatus !== false;
-  const isIdle = member.onlineStatus === "idle" && member.showOnlineStatus !== false;
+  const lastSeen = member.lastOnlineAt ? new Date(member.lastOnlineAt).getTime() : 0;
+  const isFresh = (now - lastSeen) < (3 * 60 * 1000);
+  const isPublic = member.showOnlineStatus !== false;
+
+  const isOnline = isFresh && isPublic && member.onlineStatus === "online";
+  const isIdle = isFresh && isPublic && member.onlineStatus === "idle";
+  
   const { user: currentUser } = useUser();
 
   return (
@@ -364,26 +393,13 @@ function MemberItem({
               </DropdownMenuItem>
               <DropdownMenuItem className="text-destructive font-medium" asChild>
                 <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <button className="w-full flex items-center gap-2 px-2 py-1.5 text-left">
-                      <UserMinus className="h-4 w-4" />
-                      Remove from Community
-                    </button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Remove Member</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Are you sure you want to remove <strong>@{member.username}</strong> from this community?
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={onRemove} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
-                        Remove Member
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
+                  <button className="w-full flex items-center gap-2 px-2 py-1.5 text-left" onClick={(e) => {
+                    e.stopPropagation();
+                    if (confirm(`Remove @${member.username} from community?`)) onRemove();
+                  }}>
+                    <UserMinus className="h-4 w-4" />
+                    Remove Member
+                  </button>
                 </AlertDialog>
               </DropdownMenuItem>
             </DropdownMenuContent>

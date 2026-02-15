@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -28,6 +27,7 @@ export function DMSidebar({ activeConversationId, onSelectConversation }: DMSide
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [now, setNow] = useState(Date.now());
 
   const convsQuery = useMemoFirebase(() => {
     if (!db || !currentUser) return null;
@@ -39,6 +39,11 @@ export function DMSidebar({ activeConversationId, onSelectConversation }: DMSide
   }, [db, currentUser?.uid]);
 
   const { data: conversations, isLoading: isConvsLoading } = useCollection(convsQuery);
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     const searchUsers = async () => {
@@ -129,6 +134,7 @@ export function DMSidebar({ activeConversationId, onSelectConversation }: DMSide
                   otherUserId={otherId}
                   isActive={activeConversationId === conv.id}
                   onClick={() => onSelectConversation(conv.id)}
+                  now={now}
                 />
               );
             })}
@@ -158,7 +164,7 @@ export function DMSidebar({ activeConversationId, onSelectConversation }: DMSide
                   <div className="flex justify-center py-10 opacity-20"><Loader2 className="h-5 w-5 animate-spin" /></div>
                 ) : searchResults.length === 0 ? (
                   <div className="py-10 text-center opacity-30 text-xs italic">
-                    {searchQuery.length < 2 ? "Type to search..." : "No users found"}
+                    {searchQuery.length < 2 ? "Type @handle..." : "No users found"}
                   </div>
                 ) : (
                   searchResults.map(u => (
@@ -189,10 +195,15 @@ export function DMSidebar({ activeConversationId, onSelectConversation }: DMSide
   );
 }
 
-function ConversationItem({ conversation, otherUserId, isActive, onClick }: any) {
+function ConversationItem({ conversation, otherUserId, isActive, onClick, now }: any) {
   const db = useFirestore();
   const otherUserRef = useMemoFirebase(() => doc(db, "users", otherUserId), [db, otherUserId]);
   const { data: otherUser } = useDoc(otherUserRef);
+
+  const lastSeen = otherUser?.lastOnlineAt ? new Date(otherUser.lastOnlineAt).getTime() : 0;
+  const isFresh = (now - lastSeen) < (3 * 60 * 1000);
+  const isPublic = otherUser?.showOnlineStatus !== false;
+  const isOnline = isFresh && isPublic && otherUser?.onlineStatus === "online";
 
   return (
     <button
@@ -210,7 +221,7 @@ function ConversationItem({ conversation, otherUserId, isActive, onClick }: any)
             {otherUser?.username?.[0]?.toUpperCase() || "?"}
           </AvatarFallback>
         </Avatar>
-        {otherUser?.onlineStatus === "online" && otherUser?.showOnlineStatus !== false && (
+        {isOnline && (
           <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-card bg-green-500 shadow-sm" />
         )}
       </div>

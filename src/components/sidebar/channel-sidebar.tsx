@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useCollection, useFirestore, useUser, useDoc, useMemoFirebase, useAuth } from "@/firebase";
 import { collection, query, doc } from "firebase/firestore";
 import { Hash, Settings, ChevronDown, LogOut, Loader2, Plus, Timer, Globe, Mail, Info } from "lucide-react";
@@ -38,6 +38,7 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
   const [createChannelOpen, setCreateChannelOpen] = useState(false);
   const [newChannelName, setNewChannelName] = useState("");
   const [isCreating, setIsCreating] = useState(false);
+  const [now, setNow] = useState(Date.now());
 
   const userDocRef = useMemoFirebase(() => (user ? doc(db, "users", user.uid) : null), [db, user?.uid]);
   const { data: userData } = useDoc(userDocRef);
@@ -51,6 +52,12 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
   }, [db, serverId, user?.uid]);
 
   const { data: channels, isLoading } = useCollection(channelsQuery);
+
+  // Sync internal 'now' for freshness check
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(timer);
+  }, []);
 
   const isOwner = community?.ownerId === user?.uid;
   const isAdmin = isOwner || community?.admins?.includes(user?.uid);
@@ -83,8 +90,12 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
     }
   };
 
-  const isOnline = userData?.onlineStatus === "online" && userData?.showOnlineStatus !== false;
-  const isIdle = userData?.onlineStatus === "idle" && userData?.showOnlineStatus !== false;
+  const lastSeen = userData?.lastOnlineAt ? new Date(userData.lastOnlineAt).getTime() : 0;
+  const isFresh = (now - lastSeen) < (3 * 60 * 1000);
+  const isPublic = userData?.showOnlineStatus !== false;
+
+  const isOnline = isFresh && isPublic && userData?.onlineStatus === "online";
+  const isIdle = isFresh && isPublic && userData?.onlineStatus === "idle";
 
   return (
     <aside className="w-64 bg-card border-r border-border flex flex-col h-full overflow-hidden shrink-0 z-20 shadow-inner">
@@ -197,7 +208,7 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
             </div>
             <div className="flex flex-col min-w-0">
               <span className="text-xs font-black truncate leading-none mb-1 uppercase tracking-tight">@{userData?.username || "..."}</span>
-              <span className="text-[9px] text-muted-foreground font-black uppercase tracking-widest">{userData?.onlineStatus || "offline"}</span>
+              <span className="text-[9px] text-muted-foreground font-black uppercase tracking-widest">{isOnline ? "online" : isIdle ? "away" : "offline"}</span>
             </div>
           </div>
           <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-destructive hover:bg-destructive/10" onClick={handleLogout}>

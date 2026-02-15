@@ -45,18 +45,17 @@ export default function DuniyaApp() {
 
   const lastSentStatusRef = useRef<string | null>(null);
 
-  // Core Presence Logic: Visibility and Focus
+  // Core Presence Logic: Heartbeat and Viewport Synchronization
   useEffect(() => {
     if (!user?.uid || !db || !auth.currentUser) return;
 
     const setPresence = (status: "online" | "idle" | "offline") => {
-      // Check privacy settings from current state or ref
       const showStatus = userData?.showOnlineStatus !== false;
       const finalStatus = showStatus ? status : "offline";
       
-      // CRITICAL STABILITY FIX: Only update Firestore if the status has physically changed.
-      // This prevents background write-loops that freeze the browser.
-      if (lastSentStatusRef.current !== finalStatus) {
+      // CRITICAL STABILITY: Only update if status or visibility policy changed.
+      // Updates lastOnlineAt timestamp to keep the session "fresh" for others.
+      if (lastSentStatusRef.current !== finalStatus || (finalStatus !== "offline" && Math.random() > 0.8)) {
         lastSentStatusRef.current = finalStatus;
         updateDocumentNonBlocking(doc(db, "users", user.uid), {
           onlineStatus: finalStatus,
@@ -80,12 +79,22 @@ export default function DuniyaApp() {
     window.addEventListener('blur', handleBlur);
     window.addEventListener('beforeunload', () => setPresence("offline"));
 
+    // HEARTBEAT: Industry standard for serverless presence.
+    // Refreshes the timestamp every 60s while active to prevent "stale" timeout.
+    const heartbeat = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        setPresence("online");
+      }
+    }, 60000);
+
     return () => {
       window.removeEventListener('visibilitychange', handleVisibility);
       window.removeEventListener('focus', handleFocus);
       window.removeEventListener('blur', handleBlur);
+      clearInterval(heartbeat);
+      setPresence("offline");
     };
-  }, [user?.uid, db, auth.currentUser, userData?.showOnlineStatus]); // Reactive to privacy changes
+  }, [user?.uid, db, auth.currentUser, userData?.showOnlineStatus]);
 
   const handleSelectServer = useCallback((id: string | "duniya") => {
     if (id === "duniya") {

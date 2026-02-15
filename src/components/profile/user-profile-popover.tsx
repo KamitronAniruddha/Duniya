@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useDoc, useFirestore, useMemoFirebase, useUser } from "@/firebase";
 import { doc } from "firebase/firestore";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -39,15 +39,25 @@ function UserProfileContent({ userId, onWhisper }: { userId: string; onWhisper?:
   const db = useFirestore();
   const { user: currentUser } = useUser();
   const [isZoomOpen, setIsZoomOpen] = useState(false);
+  const [now, setNow] = useState(Date.now());
   const userRef = useMemoFirebase(() => doc(db, "users", userId), [db, userId]);
   const { data: userData } = useDoc(userRef);
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(timer);
+  }, []);
 
   const joinDate = userData?.createdAt 
     ? new Date(userData.createdAt).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
     : "";
 
-  const isOnline = userData?.onlineStatus === "online" && userData?.showOnlineStatus !== false;
-  const isIdle = userData?.onlineStatus === "idle" && userData?.showOnlineStatus !== false;
+  const lastSeen = userData?.lastOnlineAt ? new Date(userData.lastOnlineAt).getTime() : 0;
+  const isFresh = (now - lastSeen) < (3 * 60 * 1000);
+  const isPublic = userData?.showOnlineStatus !== false;
+
+  const isOnline = isFresh && isPublic && userData?.onlineStatus === "online";
+  const isIdle = isFresh && isPublic && userData?.onlineStatus === "idle";
 
   return (
     <>
