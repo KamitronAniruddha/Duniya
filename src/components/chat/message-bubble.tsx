@@ -173,6 +173,7 @@ export const MessageBubble = memo(function MessageBubble({
     updateDocumentNonBlocking(msgRef, {
       [`reactions.${emoji}`]: hasReacted ? arrayRemove(user.uid) : arrayUnion(user.uid)
     });
+    // BUG FIX: Close pickers after reaction
     setIsReactionPickerOpen(false);
     setIsFullPickerOpen(false);
   }, [user, messagePath, message.reactions, isActuallyDeleted, db]);
@@ -424,7 +425,7 @@ export const MessageBubble = memo(function MessageBubble({
                 </div>
               ) : message.type === 'media' && message.videoUrl ? (
                 <div className="relative group/video overflow-hidden rounded-2xl aspect-square w-56 md:w-64 bg-black shadow-xl mx-auto">
-                  <video ref={videoRef} src={message.videoUrl} className="w-full h-full object-cover" loop muted={!isVideoPlaying} autoPlay playsInline onClick={(e) => { e.stopPropagation(); setIsVideoPlaying(!isVideoPlaying); }} />
+                  <video ref={videoRef} src={message.videoUrl} className="w-full h-full object-cover" border-none loop muted={!isVideoPlaying} autoPlay playsInline onClick={(e) => { e.stopPropagation(); setIsVideoPlaying(!isVideoPlaying); }} />
                 </div>
               ) : message.type === 'media' && message.imageUrl ? (
                 <div className="relative group/image overflow-hidden rounded-2xl w-56 md:w-64 bg-muted/20 shadow-xl mx-auto cursor-pointer" onClick={(e) => { e.stopPropagation(); setIsImageZoomOpen(true); }}>
@@ -681,6 +682,7 @@ function ReactionDetailsDialog({ open, onOpenChange, emoji, uids }: { open: bool
       const fetchUsers = async () => {
         setIsLoading(true);
         try {
+          // BUG FIX: Firestore 'in' queries are limited to 10 items.
           const q = query(collection(db, "users"), where(documentId(), "in", uids.slice(0, 10)));
           const snap = await getDocs(q);
           setUsers(snap.docs.map(d => ({ id: d.id, ...d.data() })));

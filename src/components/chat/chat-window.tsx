@@ -48,6 +48,14 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
     return null;
   }, [serverId, channelId]);
 
+  // BUG FIX: Clear selection mode and selected IDs when the channel or server changes
+  useEffect(() => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+    setReplyingTo(null);
+    setWhisperingTo(null);
+  }, [basePath]);
+
   const contextRef = useMemoFirebase(() => (basePath ? doc(db, basePath) : null), [db, basePath]);
   const { data: contextData } = useDoc(contextRef);
 

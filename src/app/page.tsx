@@ -55,6 +55,7 @@ export default function DuniyaApp() {
       const showStatus = userData?.showOnlineStatus !== false;
       const finalStatus = showStatus ? status : "offline";
       
+      // OPTIMIZATION: Only update Firestore if the status actually changed or during a random heartbeat
       if (lastSentStatusRef.current !== finalStatus || (finalStatus !== "offline" && Math.random() > 0.8)) {
         lastSentStatusRef.current = finalStatus;
         updateDocumentNonBlocking(doc(db, "users", user.uid), {

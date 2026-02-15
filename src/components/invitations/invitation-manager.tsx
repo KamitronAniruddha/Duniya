@@ -31,7 +31,8 @@ export function InvitationManager() {
 
   const { data: invites } = useCollection(invitesQuery);
 
-  // Show the most recent invitation that isn't from a muted community
+  // BUG FIX: Show only the most recent invitation that isn't from a muted community.
+  // This prevents dialog stacking if multiple invitations arrive at once.
   const activeInvite = useMemo(() => {
     if (!invites || invites.length === 0 || !userData) return null;
     
@@ -43,6 +44,7 @@ export function InvitationManager() {
     });
 
     if (filteredInvites.length === 0) return null;
+    // Show only the latest one
     return filteredInvites[filteredInvites.length - 1];
   }, [invites, userData]);
 
