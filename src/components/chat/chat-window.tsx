@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useRef, useEffect, useState, useMemo, useCallback } from "react";
@@ -6,7 +5,7 @@ import { useCollection, useFirestore, useUser, useDoc, useMemoFirebase } from "@
 import { collection, query, orderBy, limit, doc, arrayUnion, writeBatch, deleteField } from "firebase/firestore";
 import { MessageBubble } from "./message-bubble";
 import { MessageInput } from "./message-input";
-import { Hash, Users, Loader2, MessageCircle, X, Trash2, MoreVertical, Eraser, Forward } from "lucide-react";
+import { Hash, Users, Loader2, MessageCircle, X, Trash2, MoreVertical, Eraser, Forward, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { setDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { cn } from "@/lib/utils";
@@ -17,6 +16,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { DeleteOptionsDialog } from "./delete-options-dialog";
 import { ForwardDialog } from "./forward-dialog";
+import { ChannelSettingsDialog } from "@/components/channels/channel-settings-dialog";
 import { AnimatePresence, motion } from "framer-motion";
 
 interface ChatWindowProps {
@@ -38,6 +38,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isForwardOpen, setIsForwardOpen] = useState(false);
   const [isClearChatDialogOpen, setIsClearChatDialogOpen] = useState(false);
+  const [isChannelSettingsOpen, setIsChannelSettingsOpen] = useState(false);
 
   const basePath = useMemo(() => {
     if (serverId && channelId) {
@@ -51,6 +52,11 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
 
   const serverRef = useMemoFirebase(() => (serverId ? doc(db, "communities", serverId) : null), [db, serverId]);
   const { data: server } = useDoc(serverRef);
+
+  const isAdmin = useMemo(() => {
+    if (!user || !server) return false;
+    return server.ownerId === user.uid || server.admins?.includes(user.uid);
+  }, [user?.uid, server]);
 
   const messagesQuery = useMemoFirebase(() => {
     if (!db || !basePath || !user) return null;
@@ -202,7 +208,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
   return (
     <div className="flex-1 flex flex-col h-full bg-background overflow-hidden relative">
       <header className={cn(
-        "h-14 border-b flex items-center justify-between px-4 shrink-0 transition-all duration-200 z-20 overflow-hidden",
+        "h-14 border-b flex items-center justify-between px-4 shrink-0 transition-all duration-150 z-20 overflow-hidden",
         selectionMode ? "bg-primary text-white" : "bg-background/80 backdrop-blur-md"
       )}>
         <AnimatePresence mode="wait">
@@ -270,7 +276,12 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
                       <MoreVertical className="h-5 w-5" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48 font-bold uppercase text-[10px] tracking-widest p-1 border-none shadow-2xl">
+                  <DropdownMenuContent align="end" className="w-56 font-bold uppercase text-[10px] tracking-widest p-1 border-none shadow-2xl bg-popover/95 backdrop-blur-md">
+                    {isAdmin && (
+                      <DropdownMenuItem onClick={() => setIsChannelSettingsOpen(true)} className="gap-2 p-3 rounded-xl">
+                        <Settings className="h-4 w-4 text-primary" /> Channel Settings
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem onClick={() => setIsClearChatDialogOpen(true)} className="gap-2 text-destructive p-3 rounded-xl">
                       <Eraser className="h-4 w-4" /> Clear Chat
                     </DropdownMenuItem>
@@ -366,6 +377,15 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
         currentCommunityName={server?.name}
         currentChannelName={contextData?.name}
       />
+
+      {serverId && channelId && (
+        <ChannelSettingsDialog 
+          open={isChannelSettingsOpen} 
+          onOpenChange={setIsChannelSettingsOpen} 
+          serverId={serverId}
+          channelId={channelId}
+        />
+      )}
 
       <AlertDialog open={isClearChatDialogOpen} onOpenChange={setIsClearChatDialogOpen}>
         <AlertDialogContent className="rounded-[2.5rem] border-none shadow-2xl p-8">
