@@ -332,7 +332,7 @@ export const MessageBubble = memo(function MessageBubble({
       </AnimatePresence>
 
       {!isMe && !selectionMode && (
-        <UserProfilePopover userId={message.senderId} onWhisper={onWhisper}>
+        <UserProfilePopover userId={message.senderId} onWhisper={onWhisper} side="right">
           <button className="h-8 w-8 mb-0.5 mr-2 shrink-0 transition-transform active:scale-95">
             <Avatar className="h-full w-full border border-border shadow-sm aspect-square">
               <AvatarImage src={message.senderPhotoURL} className="aspect-square object-cover" />
@@ -351,7 +351,7 @@ export const MessageBubble = memo(function MessageBubble({
         ) : (
           <>
             {!isMe && !selectionMode && (
-              <UserProfilePopover userId={message.senderId} onWhisper={onWhisper}>
+              <UserProfilePopover userId={message.senderId} onWhisper={onWhisper} side="right">
                 <button className="text-[9px] font-black text-muted-foreground/60 ml-1 mb-0.5 hover:text-primary uppercase tracking-widest transition-colors">{message.senderName || "..."}</button>
               </UserProfilePopover>
             )}
@@ -474,7 +474,6 @@ export const MessageBubble = memo(function MessageBubble({
                 </div>
               </div>
 
-              {/* Reactions Badges */}
               {reactionsData.length > 0 && (
                 <div className={cn("flex flex-wrap gap-1 mt-2 -mb-1", isMe ? "justify-end" : "justify-start")}>
                   {reactionsData.map(({ emoji, count, hasReacted, uids }) => (
@@ -513,7 +512,6 @@ export const MessageBubble = memo(function MessageBubble({
       {!selectionMode && !isActuallyDeleted && (
         <div className={cn("mb-1 mx-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-center gap-1", isMe ? "mr-1 flex-row-reverse" : "ml-1 flex-row")}>
           
-          {/* Reaction Trigger Bar (WhatsApp Style) */}
           <div className="flex items-center gap-0.5 bg-background/80 backdrop-blur-md rounded-full border border-border p-0.5 shadow-sm">
             <Popover open={isReactionPickerOpen} onOpenChange={setIsReactionPickerOpen}>
               <PopoverTrigger asChild>
@@ -688,8 +686,8 @@ function ReactionDetailsDialog({ open, onOpenChange, emoji, uids }: { open: bool
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[350px] rounded-[2rem] border-none shadow-2xl p-0 overflow-hidden bg-background">
-        <DialogHeader className="p-6 bg-gradient-to-b from-primary/5 to-transparent border-b">
+      <DialogContent className="sm:max-w-[350px] rounded-[2rem] border-none shadow-2xl p-0 overflow-hidden bg-background h-fit max-h-[80vh] flex flex-col">
+        <DialogHeader className="p-6 bg-gradient-to-b from-primary/5 to-transparent border-b shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="text-3xl animate-bounce [animation-duration:2s]">{emoji}</div>
@@ -702,7 +700,7 @@ function ReactionDetailsDialog({ open, onOpenChange, emoji, uids }: { open: bool
           </div>
         </DialogHeader>
         
-        <ScrollArea className="max-h-[300px] p-2">
+        <ScrollArea className="flex-1 p-2">
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-12 gap-2 opacity-30">
               <Plus className="h-6 w-6 animate-spin text-primary" />
@@ -712,10 +710,12 @@ function ReactionDetailsDialog({ open, onOpenChange, emoji, uids }: { open: bool
             <div className="space-y-1">
               {users.map((u) => (
                 <div key={u.id} className="flex items-center gap-3 p-3 rounded-2xl hover:bg-muted/50 transition-colors">
-                  <Avatar className="h-10 w-10 border border-border shadow-sm">
-                    <AvatarImage src={u.photoURL} />
-                    <AvatarFallback className="bg-primary text-white font-black text-xs">{u.username?.[0]?.toUpperCase()}</AvatarFallback>
-                  </Avatar>
+                  <UserProfilePopover userId={u.id} side="right">
+                    <Avatar className="h-10 w-10 border border-border shadow-sm">
+                      <AvatarImage src={u.photoURL} />
+                      <AvatarFallback className="bg-primary text-white font-black text-xs">{u.username?.[0]?.toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                  </UserProfilePopover>
                   <div className="flex flex-col min-w-0">
                     <span className="text-sm font-black uppercase tracking-tight truncate">@{u.username}</span>
                     <span className="text-[9px] text-muted-foreground font-medium truncate italic">{u.bio || "Member of the Verse"}</span>
@@ -726,7 +726,7 @@ function ReactionDetailsDialog({ open, onOpenChange, emoji, uids }: { open: bool
           )}
         </ScrollArea>
 
-        <div className="p-4 bg-muted/20 border-t flex items-center justify-center">
+        <div className="p-4 bg-muted/20 border-t flex items-center justify-center shrink-0">
           <div className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.3em] text-muted-foreground/40">
             <span>Identified by Duniya</span>
             <div className="h-1 w-1 rounded-full bg-primary/40" />

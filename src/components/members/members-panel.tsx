@@ -53,7 +53,6 @@ export function MembersPanel({ serverId, onWhisper }: MembersPanelProps) {
 
   const pendingInvitesQuery = useMemoFirebase(() => {
     if (!db || !serverId || !isAdmin) return null;
-    // Fetch both pending and declined invitations so admins can re-invite
     return query(
       collection(db, "invitations"),
       where("communityId", "==", serverId),
@@ -109,7 +108,7 @@ export function MembersPanel({ serverId, onWhisper }: MembersPanelProps) {
   const segmentedMembers = useMemo(() => {
     if (!members) return { online: [], away: [], offline: [] };
 
-    const STALE_THRESHOLD = 3 * 60 * 1000; // 3 Minutes
+    const STALE_THRESHOLD = 3 * 60 * 1000;
 
     return members.reduce((acc: any, m) => {
       const lastSeen = m.lastOnlineAt ? new Date(m.lastOnlineAt).getTime() : 0;
@@ -170,7 +169,6 @@ export function MembersPanel({ serverId, onWhisper }: MembersPanelProps) {
 
   const handleRemind = (invite: any) => {
     const inviteRef = doc(db, "invitations", invite.id);
-    // Reset status to pending so it pops up for the user again
     updateDocumentNonBlocking(inviteRef, {
       status: "pending",
       createdAt: new Date().toISOString()
@@ -349,36 +347,38 @@ export function MembersPanel({ serverId, onWhisper }: MembersPanelProps) {
       </ScrollArea>
 
       <Dialog open={isInviteOpen} onOpenChange={setIsInviteOpen}>
-        <DialogContent className="sm:max-w-[425px] rounded-[2rem] border-none shadow-2xl">
+        <DialogContent className="sm:max-w-[425px] rounded-[2rem] border-none shadow-2xl flex flex-col h-fit max-h-[90vh]">
           <DialogHeader>
             <DialogTitle className="text-xl font-black uppercase">Invite Members</DialogTitle>
             <DialogDescription className="font-medium">Selected users will receive a popup to join your community.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            {selectedUsers.length > 0 && (
-              <div className="flex flex-wrap gap-1 mb-2">
-                {selectedUsers.map(u => (
-                  <Badge key={u.id} variant="secondary" className="pl-1 pr-1 py-1 flex items-center gap-1 bg-primary/10 text-primary border-primary/20">
-                    <Avatar className="h-4 w-4"><AvatarImage src={u.photoURL} /><AvatarFallback className="text-[6px]">{u.username?.[0]}</AvatarFallback></Avatar>
-                    <span className="text-[10px] font-bold">@{u.username}</span>
-                    <button onClick={() => toggleUserSelection(u)} className="hover:bg-primary/20 rounded-full p-0.5 transition-colors"><X className="h-2 w-2" /></button>
-                  </Badge>
-                ))}
+          <ScrollArea className="flex-1 px-1">
+            <div className="space-y-4 py-4">
+              {selectedUsers.length > 0 && (
+                <div className="flex flex-wrap gap-1 mb-2">
+                  {selectedUsers.map(u => (
+                    <Badge key={u.id} variant="secondary" className="pl-1 pr-1 py-1 flex items-center gap-1 bg-primary/10 text-primary border-primary/20">
+                      <Avatar className="h-4 w-4"><AvatarImage src={u.photoURL} /><AvatarFallback className="text-[6px]">{u.username?.[0]}</AvatarFallback></Avatar>
+                      <span className="text-[10px] font-bold">@{u.username}</span>
+                      <button onClick={() => toggleUserSelection(u)} className="hover:bg-primary/20 rounded-full p-0.5 transition-colors"><X className="h-2 w-2" /></button>
+                    </Badge>
+                  ))}
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label htmlFor="search" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Search Universe</Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input id="search" className="pl-9 bg-muted/40 border-none rounded-xl" placeholder="Type a username..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} disabled={isInviting} />
+                </div>
               </div>
-            )}
-            <div className="space-y-2">
-              <Label htmlFor="search" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Search Universe</Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input id="search" className="pl-9 bg-muted/40 border-none rounded-xl" placeholder="Type a username..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} disabled={isInviting} />
+              <div className="space-y-2 min-h-[120px]">
+                <h4 className="text-[10px] font-bold uppercase text-muted-foreground px-1">Results</h4>
+                {isSearching ? <div className="flex items-center justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground/30" /></div> : (searchQuery.trim().length < 2 ? <div className="flex items-center justify-center py-8 opacity-30"><p className="text-xs text-foreground">Type @handle to search...</p></div> : (searchResults.length === 0 ? <div className="flex items-center justify-center py-8 opacity-30"><p className="text-xs text-foreground">No users found.</p></div> : <div className="space-y-1">{searchResults.map((u) => { const isSelected = selectedUsers.some(sel => sel.id === u.id); return ( <button key={u.id} type="button" onClick={() => toggleUserSelection(u)} className={cn("w-full flex items-center gap-2 p-2 rounded-lg transition-colors text-left", isSelected ? "bg-primary/10 border border-primary/20" : "hover:bg-muted border border-transparent")}> <Avatar className="h-6 w-6"><AvatarImage src={u.photoURL} /><AvatarFallback className="text-[8px] bg-primary text-primary-foreground">{u.username?.[0]?.toUpperCase()}</AvatarFallback></Avatar> <span className="text-xs font-bold flex-1 text-foreground">@{u.username}</span> {isSelected && <Check className="h-3 w-3 text-primary" />} </button> ); })}</div>))}
               </div>
             </div>
-            <div className="space-y-2 min-h-[120px]">
-              <h4 className="text-[10px] font-bold uppercase text-muted-foreground px-1">Results</h4>
-              {isSearching ? <div className="flex items-center justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground/30" /></div> : (searchQuery.trim().length < 2 ? <div className="flex items-center justify-center py-8 opacity-30"><p className="text-xs text-foreground">Type @handle to search...</p></div> : (searchResults.length === 0 ? <div className="flex items-center justify-center py-8 opacity-30"><p className="text-xs text-foreground">No users found.</p></div> : <div className="space-y-1">{searchResults.map((u) => { const isSelected = selectedUsers.some(sel => sel.id === u.id); return ( <button key={u.id} type="button" onClick={() => toggleUserSelection(u)} className={cn("w-full flex items-center gap-2 p-2 rounded-lg transition-colors text-left", isSelected ? "bg-primary/10 border border-primary/20" : "hover:bg-muted border border-transparent")}> <Avatar className="h-6 w-6"><AvatarImage src={u.photoURL} /><AvatarFallback className="text-[8px] bg-primary text-primary-foreground">{u.username?.[0]?.toUpperCase()}</AvatarFallback></Avatar> <span className="text-xs font-bold flex-1 text-foreground">@{u.username}</span> {isSelected && <Check className="h-3 w-3 text-primary" />} </button> ); })}</div>))}
-            </div>
-          </div>
-          <DialogFooter>
+          </ScrollArea>
+          <DialogFooter className="gap-2 shrink-0">
             <Button type="button" variant="ghost" className="rounded-xl font-bold" onClick={() => { setIsInviteOpen(false); setSelectedUsers([]); }} disabled={isInviting}>Cancel</Button>
             <Button className="rounded-xl font-black shadow-lg shadow-primary/20" onClick={handleInvite} disabled={isInviting || selectedUsers.length === 0}>{isInviting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}Send Invite {selectedUsers.length > 0 ? `(${selectedUsers.length})` : ""}</Button>
           </DialogFooter>
@@ -418,7 +418,7 @@ function MemberItem({
 
   return (
     <div className="flex items-center gap-2 p-2 rounded-md hover:bg-muted transition-colors group cursor-default relative">
-      <UserProfilePopover userId={member.id} onWhisper={onWhisper}>
+      <UserProfilePopover userId={member.id} onWhisper={onWhisper} side="left">
         <button className="relative transition-transform hover:scale-110">
           <Avatar className="h-8 w-8 border border-border shadow-sm aspect-square">
             <AvatarImage src={member.photoURL || undefined} className="aspect-square object-cover" />
@@ -435,7 +435,7 @@ function MemberItem({
       </UserProfilePopover>
       
       <div className="flex flex-col min-w-0 flex-1">
-        <UserProfilePopover userId={member.id} onWhisper={onWhisper}>
+        <UserProfilePopover userId={member.id} onWhisper={onWhisper} side="left">
           <button className="flex items-center gap-1 min-w-0 w-full text-left">
             <span className={cn(
               "text-xs font-bold truncate leading-none hover:text-primary transition-colors",

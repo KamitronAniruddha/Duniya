@@ -17,9 +17,10 @@ interface UserProfilePopoverProps {
   userId: string;
   children: React.ReactNode;
   onWhisper?: (userId: string, username: string) => void;
+  side?: "left" | "right" | "top" | "bottom";
 }
 
-export function UserProfilePopover({ userId, children, onWhisper }: UserProfilePopoverProps) {
+export function UserProfilePopover({ userId, children, onWhisper, side = "right" }: UserProfilePopoverProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -28,7 +29,13 @@ export function UserProfilePopover({ userId, children, onWhisper }: UserProfileP
         {children}
       </PopoverTrigger>
       {isOpen && (
-        <PopoverContent className="w-80 p-0 overflow-hidden border-none shadow-2xl rounded-[2rem]" side="right" align="start" sideOffset={10}>
+        <PopoverContent 
+          className="w-80 p-0 overflow-hidden border-none shadow-2xl rounded-[2rem] z-[100]" 
+          side={side} 
+          align="start" 
+          sideOffset={10}
+          collisionPadding={20}
+        >
           <UserProfileContent userId={userId} onWhisper={(id, name) => { onWhisper?.(id, name); setIsOpen(false); }} />
         </PopoverContent>
       )}

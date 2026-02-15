@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -10,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Hash, Check, X } from "lucide-react";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface ChannelSettingsDialogProps {
   open: boolean;
@@ -22,7 +24,6 @@ export function ChannelSettingsDialog({ open, onOpenChange, serverId, channelId 
   const db = useFirestore();
   const { toast } = useToast();
   
-  // Channels are nested within communities: /communities/{communityId}/channels/{channelId}
   const channelRef = useMemoFirebase(() => 
     serverId && channelId ? doc(db, "communities", serverId, "channels", channelId) : null, 
     [db, serverId, channelId]
@@ -59,32 +60,36 @@ export function ChannelSettingsDialog({ open, onOpenChange, serverId, channelId 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] rounded-[2rem] border-none shadow-2xl p-0 overflow-hidden">
-        <DialogHeader className="p-8 pb-4 bg-gradient-to-b from-primary/10 to-transparent">
+      <DialogContent className="sm:max-w-[425px] rounded-[2rem] border-none shadow-2xl p-0 overflow-hidden flex flex-col h-fit max-h-[90vh]">
+        <DialogHeader className="p-8 pb-4 bg-gradient-to-b from-primary/10 to-transparent shrink-0">
           <DialogTitle className="text-2xl font-black tracking-tight">Channel Settings</DialogTitle>
           <DialogDescription className="font-medium text-muted-foreground">
             Update the identity of this channel in the Verse.
           </DialogDescription>
         </DialogHeader>
         
-        <form onSubmit={handleUpdate} className="p-8 pt-2 space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="chname" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Channel Name</Label>
-            <div className="relative">
-              <Hash className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground/60" />
-              <Input 
-                id="chname" 
-                className="pl-9 h-12 bg-muted/40 border-none rounded-2xl font-bold focus:ring-2 focus:ring-primary/20 transition-all" 
-                value={name} 
-                onChange={(e) => setName(e.target.value)} 
-                required 
-                placeholder="general"
-                disabled={isLoading}
-              />
+        <form onSubmit={handleUpdate} className="flex flex-col flex-1 overflow-hidden">
+          <ScrollArea className="flex-1 p-8 pt-2">
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="chname" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Channel Name</Label>
+                <div className="relative">
+                  <Hash className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground/60" />
+                  <Input 
+                    id="chname" 
+                    className="pl-9 h-12 bg-muted/40 border-none rounded-2xl font-bold focus:ring-2 focus:ring-primary/20 transition-all" 
+                    value={name} 
+                    onChange={(e) => setName(e.target.value)} 
+                    required 
+                    placeholder="general"
+                    disabled={isLoading}
+                  />
+                </div>
+              </div>
             </div>
-          </div>
+          </ScrollArea>
           
-          <div className="flex flex-col sm:flex-row gap-3 pt-2">
+          <DialogFooter className="p-8 pt-4 flex flex-col sm:flex-row gap-3 bg-muted/10 shrink-0">
             <Button type="button" variant="ghost" className="flex-1 rounded-xl font-bold h-12" onClick={() => onOpenChange(false)} disabled={isLoading}>
               Cancel
             </Button>
@@ -92,10 +97,10 @@ export function ChannelSettingsDialog({ open, onOpenChange, serverId, channelId 
               {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Check className="h-4 w-4 mr-2" />}
               Save Changes
             </Button>
-          </div>
+          </DialogFooter>
         </form>
 
-        <div className="p-4 bg-muted/20 border-t flex items-center justify-center">
+        <div className="p-4 bg-muted/20 border-t flex items-center justify-center shrink-0">
           <div className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.3em] text-muted-foreground/40">
             <span>Identity Verified by Duniya</span>
             <div className="h-1 w-1 rounded-full bg-primary/40" />
