@@ -52,6 +52,9 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
   const serverRef = useMemoFirebase(() => (serverId ? doc(db, "communities", serverId) : null), [db, serverId]);
   const { data: server } = useDoc(serverRef);
 
+  const userDocRef = useMemoFirebase(() => (user ? doc(db, "users", user.uid) : null), [db, user?.uid]);
+  const { data: userData } = useDoc(userDocRef);
+
   const isAdmin = useMemo(() => {
     if (!user || !server) return false;
     return server.ownerId === user.uid || server.admins?.includes(user.uid);
@@ -102,12 +105,13 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
     const finalWhisper = whisperTarget !== undefined ? whisperTarget : whisperingTo;
 
     // DEFENSIVE METADATA: null-coalesce all fields to avoid Firestore undefined crashes.
+    // Use userData?.photoURL as the primary source for the sender's avatar.
     const data: any = {
       id: messageRef.id,
       channelId: channelId || null,
       senderId: user.uid,
       senderName: user.displayName || "User",
-      senderPhotoURL: user.photoURL || "",
+      senderPhotoURL: userData?.photoURL || user.photoURL || "",
       content: text || "",
       type: messageType,
       sentAt: sentAt.toISOString(),
@@ -143,7 +147,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
     setDocumentNonBlocking(messageRef, data, { merge: true });
     setReplyingTo(null);
     setWhisperingTo(null);
-  }, [db, basePath, user, replyingTo, whisperingTo, channelId]);
+  }, [db, basePath, user, replyingTo, whisperingTo, channelId, userData?.photoURL]);
 
   const handleClearChat = useCallback(async () => {
     if (!db || !basePath || !user || !messages.length) return;

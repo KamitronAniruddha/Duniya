@@ -93,9 +93,11 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
     setIsLoading(true);
 
     try {
+      // CRITICAL FIX: Only update displayName in Firebase Auth.
+      // Firebase Auth photoURL has a strict length limit (approx 2048 chars).
+      // Base64 image strings are much longer and must be stored in Firestore instead.
       await updateProfile(user, {
         displayName: username,
-        photoURL: photoURL
       });
 
       const userRef = doc(db, "users", user.uid);
