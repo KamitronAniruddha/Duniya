@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Loader2, Heart, CheckCircle2, ArrowLeft, ShieldCheck } from "lucide-react";
+import { Loader2, Heart, CheckCircle2, ArrowLeft, ShieldCheck, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { Logo } from "@/components/logo";
@@ -28,6 +28,7 @@ export function AuthScreen() {
   const [username, setUsername] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [pin, setPin] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   
   // State for toggling between Ani and Sanu signature
   const [signatureType, setSignatureType] = useState<"ani" | "sanu">("ani");
@@ -197,7 +198,7 @@ export function AuthScreen() {
                       exit={{ opacity: 0, scale: 0.9 }}
                     >
                       <motion.path
-                        d="M15,28 L25,8 L35,28 M20,20 L30,20 M45,28 V18 C45,14 55,14 55,18 V28 M65,18 V28 M65,10 V12"
+                        d="M10,25 C15,10 25,10 30,25 M15,18 H25 M40,25 V15 C40,10 50,10 50,15 V25 M60,15 V25 M60,8 V10"
                         stroke="currentColor"
                         strokeWidth="2.5"
                         strokeLinecap="round"
@@ -278,29 +279,47 @@ export function AuthScreen() {
               </div>
               <div className="space-y-0.5">
                 <Label htmlFor="password" className="text-[8px] font-black uppercase tracking-wider text-muted-foreground/80 ml-1">Password</Label>
-                <Input 
-                  id="password" 
-                  type="password" 
-                  required 
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={isLoading}
-                  className="bg-muted/50 border-none h-9 rounded-xl focus:ring-2 focus:ring-primary/20 transition-all text-sm"
-                />
+                <div className="relative">
+                  <Input 
+                    id="password" 
+                    type={showPassword ? "text" : "password"} 
+                    required 
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={isLoading}
+                    className="bg-muted/50 border-none h-9 rounded-xl focus:ring-2 focus:ring-primary/20 transition-all text-sm pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors focus:outline-none"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
               </div>
               {view === "signup" && (
                 <>
                   <div className="space-y-0.5">
                     <Label htmlFor="confirmPassword" className="text-[8px] font-black uppercase tracking-wider text-muted-foreground/80 ml-1">Confirm Password</Label>
-                    <Input 
-                      id="confirmPassword" 
-                      type="password" 
-                      required 
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      disabled={isLoading}
-                      className="bg-muted/50 border-none h-9 rounded-xl focus:ring-2 focus:ring-primary/20 transition-all text-sm"
-                    />
+                    <div className="relative">
+                      <Input 
+                        id="confirmPassword" 
+                        type={showPassword ? "text" : "password"} 
+                        required 
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        disabled={isLoading}
+                        className="bg-muted/50 border-none h-9 rounded-xl focus:ring-2 focus:ring-primary/20 transition-all text-sm pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors focus:outline-none"
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
                   </div>
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-1 ml-1 mb-0.5">
@@ -329,7 +348,10 @@ export function AuthScreen() {
               <button 
                 type="button"
                 className="text-[9px] text-primary hover:text-primary/80 font-black tracking-widest transition-colors uppercase"
-                onClick={() => setView(view === "login" ? "signup" : "login")}
+                onClick={() => {
+                  setView(view === "login" ? "signup" : "login");
+                  setShowPassword(false);
+                }}
                 disabled={isLoading}
               >
                 {view === "login" ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
