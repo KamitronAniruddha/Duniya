@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { memo, useState, useRef, useEffect, useMemo } from "react";
@@ -96,6 +97,9 @@ export const MessageBubble = memo(function MessageBubble({
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [isDisappeared, setIsDisappeared] = useState(false);
 
+  // Optimized waveform heights calculation to prevent layout thrashing
+  const waveformHeights = useMemo(() => [...Array(20)].map(() => Math.random() * 16 + 4), []);
+
   const formattedTime = useMemo(() => {
     if (!message.sentAt) return "";
     const date = new Date(message.sentAt);
@@ -114,7 +118,7 @@ export const MessageBubble = memo(function MessageBubble({
       }
       updateDocumentNonBlocking(msgRef, updateData);
     }
-  }, [message.id, user?.uid, isMe, messagePath, message.disappearingEnabled]);
+  }, [message.id, user?.uid, isMe, messagePath]);
 
   useEffect(() => {
     if (!message.disappearingEnabled || !user || message.isDeleted || message.fullyDeleted) return;
@@ -238,7 +242,7 @@ export const MessageBubble = memo(function MessageBubble({
       {!isMe && !selectionMode && (
         <UserProfilePopover userId={message.senderId}>
           <button className="h-8 w-8 mb-0.5 mr-2 shrink-0 transition-transform active:scale-95">
-            <Avatar className="h-full w-full border border-border shadow-sm">
+            <Avatar className="h-full w-full border border-border shadow-sm aspect-square">
               <AvatarImage src={message.senderPhotoURL} className="aspect-square object-cover" />
               <AvatarFallback className="text-[9px] font-black bg-primary text-primary-foreground">{message.senderName?.[0]?.toUpperCase() || "?"}</AvatarFallback>
             </Avatar>
@@ -296,8 +300,8 @@ export const MessageBubble = memo(function MessageBubble({
                   </Button>
                   <div className="flex-1 flex flex-col gap-1.5 min-w-0">
                     <div className="flex items-end gap-0.5 h-6 overflow-hidden items-center">
-                      {[...Array(20)].map((_, i) => (
-                        <div key={i} className={cn("w-1 rounded-full shrink-0 transition-all duration-300", isMe ? (progress > (i * 5) ? "bg-primary-foreground" : "bg-primary-foreground/30") : (progress > (i * 5) ? "bg-primary" : "bg-primary/20"), isPlaying ? "animate-pulse" : "h-1")} style={{ height: isPlaying ? `${Math.random() * 16 + 4}px` : '4px' }} />
+                      {waveformHeights.map((h, i) => (
+                        <div key={i} className={cn("w-1 rounded-full shrink-0 transition-all duration-300", isMe ? (progress > (i * 5) ? "bg-primary-foreground" : "bg-primary-foreground/30") : (progress > (i * 5) ? "bg-primary" : "bg-primary/20"), isPlaying ? "animate-pulse" : "h-1")} style={{ height: isPlaying ? `${h}px` : '4px' }} />
                       ))}
                     </div>
                     <div className="flex items-center justify-between gap-2">

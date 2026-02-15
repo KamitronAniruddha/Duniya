@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -33,9 +34,11 @@ export function CommunityProfileDialog({ open, onOpenChange, serverId }: Communi
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-[425px] rounded-[2rem] p-0 overflow-hidden border-none shadow-2xl bg-background">
-          <DialogHeader className="sr-only">
-            <DialogTitle>{server.name} Profile</DialogTitle>
-            <DialogDescription>Detailed information about the {server.name} community in the Verse.</DialogDescription>
+          <DialogHeader className="p-6 bg-gradient-to-b from-primary/10 to-transparent">
+            <DialogTitle className="text-2xl font-black tracking-tight uppercase">{server.name} Profile</DialogTitle>
+            <DialogDescription className="font-medium text-muted-foreground">
+              Community overview and identity in the Duniya Verse.
+            </DialogDescription>
           </DialogHeader>
           
           <div className="h-24 bg-primary w-full relative">
@@ -44,7 +47,7 @@ export function CommunityProfileDialog({ open, onOpenChange, serverId }: Communi
                 onClick={() => setIsZoomOpen(true)}
                 className="group relative h-24 w-24 rounded-[2rem] border-4 border-background shadow-2xl overflow-hidden transition-all hover:scale-105 active:scale-95 bg-card"
               >
-                <Avatar className="h-full w-full rounded-none">
+                <Avatar className="h-full w-full rounded-none aspect-square">
                   <AvatarImage src={server.icon} className="object-cover" />
                   <AvatarFallback className="bg-primary text-white text-3xl font-black">
                     {server.name?.[0]?.toUpperCase() || "?"}
@@ -115,7 +118,7 @@ export function CommunityProfileDialog({ open, onOpenChange, serverId }: Communi
         <DialogContent className="max-w-[90vw] max-h-[90vh] p-0 border-none bg-transparent shadow-none flex items-center justify-center overflow-hidden">
           <DialogHeader className="sr-only">
             <DialogTitle>{server.name} Icon Zoom</DialogTitle>
-            <DialogDescription>Full-sized community icon view.</DialogDescription>
+            <DialogDescription>Full-sized community icon view in original proportions.</DialogDescription>
           </DialogHeader>
           <div className="relative w-full h-full flex items-center justify-center">
             <motion.div 

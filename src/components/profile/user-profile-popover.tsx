@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -63,7 +64,7 @@ function UserProfileContent({ userId }: { userId: string }) {
             className="group relative h-24 w-24 rounded-[2rem] border-4 border-background shadow-xl overflow-hidden transition-transform hover:scale-105 active:scale-95 bg-card"
           >
             <Avatar className="h-full w-full rounded-none aspect-square">
-              <AvatarImage src={userData?.photoURL || undefined} className="object-cover" />
+              <AvatarImage src={userData?.photoURL || undefined} className="object-cover aspect-square" />
               <AvatarFallback className="bg-primary text-white text-3xl font-black">
                 {userData?.username?.[0]?.toUpperCase() || "?"}
               </AvatarFallback>
@@ -127,7 +128,7 @@ function UserProfileContent({ userId }: { userId: string }) {
         <DialogContent className="max-w-[90vw] max-h-[90vh] p-0 border-none bg-transparent shadow-none flex items-center justify-center">
           <DialogHeader className="sr-only">
             <DialogTitle>@{userData?.username || 'User'} Profile Picture</DialogTitle>
-            <DialogDescription>Full-sized profile picture view for the Verse user.</DialogDescription>
+            <DialogDescription>Full-sized profile picture view for the Verse user in high fidelity.</DialogDescription>
           </DialogHeader>
           <div className="relative w-full h-full flex items-center justify-center group">
             {userData?.photoURL ? (

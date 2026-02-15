@@ -10,9 +10,7 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   experimental: {
-    allowedDevOrigins: [
-      '6000-firebase-studio-1771072659035.cluster-ejd22kqny5htuv5dfowoyipt52.cloudworkstations.dev',
-    ],
+    // Removed unrecognized allowedDevOrigins to fix server start-up error
   },
   images: {
     remotePatterns: [
