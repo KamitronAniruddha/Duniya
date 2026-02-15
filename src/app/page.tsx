@@ -168,12 +168,18 @@ export default function DuniyaApp() {
 
   const renderTabletLayout = () => (
     <div className="flex h-full w-full overflow-hidden bg-muted/10">
-      {/* Side Rail Navigation */}
-      <aside className="w-20 bg-background border-r flex flex-col items-center py-6 gap-8 z-30 shadow-sm">
+      {/* Side Rail Navigation - Acts as Server Switcher */}
+      <aside className="w-20 bg-background border-r flex flex-col items-center py-6 gap-8 z-30 shadow-sm shrink-0">
         <div className="p-3 bg-primary/10 rounded-2xl">
           <Tablet className="h-6 w-6 text-primary" />
         </div>
-        <nav className="flex flex-col gap-4">
+        
+        <ServerSidebar 
+          activeServerId={activeCommunityId} 
+          onSelectServer={handleSelectServer} 
+        />
+
+        <nav className="flex flex-col gap-4 mt-4 border-t pt-6">
           <Button 
             variant={activeTab === "chat" ? "default" : "ghost"} 
             size="icon" 
@@ -207,11 +213,8 @@ export default function DuniyaApp() {
       <main className="flex-1 flex flex-col min-w-0 h-full relative overflow-hidden">
         {activeTab === "chat" ? (
           <div className="flex h-full w-full">
-            <div className="w-72 border-r bg-background/50 backdrop-blur-md hidden lg:block">
-              <ServerSidebar 
-                activeServerId={activeCommunityId} 
-                onSelectServer={handleSelectServer} 
-              />
+            {/* Persistant Channel Sidebar for Tablet */}
+            <div className="w-64 border-r bg-background/50 backdrop-blur-md shrink-0">
               <ChannelSidebar 
                 serverId={activeCommunityId} 
                 activeChannelId={activeChannelId}
@@ -222,7 +225,8 @@ export default function DuniyaApp() {
               <ChatWindow 
                 channelId={activeChannelId}
                 serverId={activeCommunityId}
-                showMembers={false}
+                showMembers={showMembers}
+                onToggleMembers={handleToggleMembers}
               />
             </div>
           </div>
@@ -308,7 +312,7 @@ export default function DuniyaApp() {
         </button>
         <button 
           className={cn("flex flex-col items-center gap-1 p-2 transition-all", activeTab === "profile" ? "text-primary" : "text-muted-foreground")}
-          onClick={() => setIsProfileOpen(true)}
+          onClick={() => setActiveTab("profile")}
         >
           <User className="h-5 w-5" />
           <span className="text-[10px] font-black uppercase tracking-widest">Profile</span>
