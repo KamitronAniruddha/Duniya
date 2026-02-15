@@ -33,18 +33,6 @@ service cloud.firestore {
       }
     }
 
-    match /conversations/{conversationId} {
-      allow read, write: if isSignedIn();
-      
-      match /messages/{messageId} {
-        allow read, write: if isSignedIn();
-      }
-      
-      match /{allSubcollections=**} {
-        allow read, write: if isSignedIn();
-      }
-    }
-
     match /contact_form_submissions/{submissionId} {
       allow create: if true; 
       allow read, write: if isSignedIn();

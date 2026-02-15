@@ -3,7 +3,7 @@
 
 import { useRef, useEffect, useState, useMemo, useCallback } from "react";
 import { useCollection, useFirestore, useUser, useDoc, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy, limit, doc, where, writeBatch, arrayUnion, deleteField, setDoc } from "firebase/firestore";
+import { collection, query, orderBy, limit, doc, where, writeBatch, arrayUnion, deleteField } from "firebase/firestore";
 import { MessageBubble } from "./message-bubble";
 import { MessageInput } from "./message-input";
 import { Hash, Users, Loader2, MessageCircle, X, Trash2, MoreVertical, Eraser, Forward, MessageSquare } from "lucide-react";
@@ -16,18 +16,15 @@ import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { ForwardDialog } from "./forward-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface ChatWindowProps {
   channelId?: string | null;
   serverId?: string | null;
-  conversationId?: string | null;
-  mode: "channel" | "dm";
   showMembers?: boolean;
   onToggleMembers?: () => void;
 }
 
-export function ChatWindow({ channelId, serverId, conversationId, mode, showMembers, onToggleMembers }: ChatWindowProps) {
+export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }: ChatWindowProps) {
   const db = useFirestore();
   const { user } = useUser();
   const { toast } = useToast();
@@ -41,31 +38,20 @@ export function ChatWindow({ channelId, serverId, conversationId, mode, showMemb
   const [isClearChatDialogOpen, setIsClearChatDialogOpen] = useState(false);
   const [isForwardDialogOpen, setIsForwardDialogOpen] = useState(false);
 
-  // Robust path resolution logic
+  // Path resolution logic
   const basePath = useMemo(() => {
-    if (mode === "channel" && serverId && channelId) {
+    if (serverId && channelId) {
       return `communities/${serverId}/channels/${channelId}`;
     }
-    if (mode === "dm" && conversationId) {
-      return `conversations/${conversationId}`;
-    }
     return null;
-  }, [mode, serverId, channelId, conversationId]);
+  }, [serverId, channelId]);
 
   // Document references
   const contextRef = useMemoFirebase(() => (basePath ? doc(db, basePath) : null), [db, basePath]);
   const { data: contextData } = useDoc(contextRef);
 
-  const serverRef = useMemoFirebase(() => (mode === "channel" && serverId ? doc(db, "communities", serverId) : null), [db, serverId]);
+  const serverRef = useMemoFirebase(() => (serverId ? doc(db, "communities", serverId) : null), [db, serverId]);
   const { data: server } = useDoc(serverRef);
-
-  const otherUserId = useMemo(() => {
-    if (mode !== "dm" || !contextData) return null;
-    return contextData.participantIds?.find((id: string) => id !== user?.uid);
-  }, [contextData, user?.uid, mode]);
-
-  const otherUserRef = useMemoFirebase(() => (otherUserId ? doc(db, "users", otherUserId) : null), [db, otherUserId]);
-  const { data: otherUser } = useDoc(otherUserRef);
 
   // Message querying
   const messagesQuery = useMemoFirebase(() => {
@@ -84,20 +70,19 @@ export function ChatWindow({ channelId, serverId, conversationId, mode, showMemb
     return rawMessages.filter(msg => !msg.fullyDeleted && !msg.deletedFor?.includes(user.uid));
   }, [rawMessages, user?.uid]);
 
-  // Member lookup for display names
+  // Member lookup
   const membersQuery = useMemoFirebase(() => {
-    if (!db || mode !== "channel" || !serverId) return null;
+    if (!db || !serverId) return null;
     return query(collection(db, "users"), where("serverIds", "array-contains", serverId));
-  }, [db, serverId, mode]);
+  }, [db, serverId]);
   const { data: members } = useCollection(membersQuery);
 
   const memberMap = useMemo(() => {
     const map: Record<string, any> = {};
     if (members) members.forEach(m => map[m.id] = m);
     if (user) map[user.uid] = user;
-    if (otherUser) map[otherUser.id] = otherUser;
     return map;
-  }, [members, otherUser, user]);
+  }, [members, user]);
 
   const handleSendMessage = useCallback(async (text: string, audioUrl?: string, videoUrl?: string, replySenderName?: string, disappearing?: { enabled: boolean; duration: number }) => {
     if (!db || !basePath || !user) return;
@@ -107,8 +92,7 @@ export function ChatWindow({ channelId, serverId, conversationId, mode, showMemb
     
     const data: any = {
       id: messageRef.id,
-      channelId: channelId || null,
-      conversationId: conversationId || null,
+      channelId: channelId,
       senderId: user.uid,
       content: text,
       type: videoUrl ? "media" : (audioUrl ? "media" : "text"),
@@ -136,16 +120,8 @@ export function ChatWindow({ channelId, serverId, conversationId, mode, showMemb
     }
 
     setDocumentNonBlocking(messageRef, data, { merge: true });
-    
-    if (mode === "dm" && contextRef) {
-      updateDocumentNonBlocking(contextRef, {
-        lastMessage: text || (audioUrl ? "Audio Message" : (videoUrl ? "Video Message" : "New Message")),
-        updatedAt: sentAt.toISOString()
-      });
-    }
-
     setReplyingTo(null);
-  }, [db, basePath, user, replyingTo, channelId, conversationId, mode, contextRef]);
+  }, [db, basePath, user, replyingTo, channelId]);
 
   const handleBatchDelete = useCallback(async (type: "everyone" | "me") => {
     if (!db || !basePath || !user || selectedIds.size === 0) return;
@@ -240,13 +216,13 @@ export function ChatWindow({ channelId, serverId, conversationId, mode, showMemb
         <MessageCircle className="h-16 w-16 text-primary/20 mb-4" />
         <h2 className="text-2xl font-black mb-2 tracking-tight">Duniya Verse Chat</h2>
         <p className="text-muted-foreground text-xs max-w-xs font-medium uppercase tracking-widest">
-          Select a conversation to start messaging.
+          Select a community to start messaging.
         </p>
       </div>
     );
   }
 
-  const headerTitle = mode === "channel" ? (contextData?.name || "...") : (otherUser?.username || "...");
+  const headerTitle = contextData?.name || "...";
 
   return (
     <div className="flex-1 flex flex-col h-full bg-background overflow-hidden relative">
@@ -280,32 +256,23 @@ export function ChatWindow({ channelId, serverId, conversationId, mode, showMemb
         ) : (
           <>
             <div className="flex items-center gap-3">
-              {mode === "channel" ? (
-                <Hash className="h-5 w-5 text-muted-foreground" />
-              ) : (
-                <Avatar className="h-8 w-8 border">
-                  <AvatarImage src={otherUser?.photoURL} />
-                  <AvatarFallback className="bg-primary text-white font-black text-[10px]">{otherUser?.username?.[0]}</AvatarFallback>
-                </Avatar>
-              )}
+              <Hash className="h-5 w-5 text-muted-foreground" />
               <div className="flex flex-col">
-                <h2 className="font-black text-sm truncate leading-none mb-0.5 tracking-tight">@{headerTitle}</h2>
-                <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">{mode === "dm" ? "Direct Message" : "Channel"}</span>
+                <h2 className="font-black text-sm truncate leading-none mb-0.5 tracking-tight">#{headerTitle}</h2>
+                <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">Channel</span>
               </div>
             </div>
             
             <div className="flex items-center gap-2">
               <ThemeToggle />
-              {mode === "channel" && (
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className={cn("h-9 w-9 rounded-xl transition-all", showMembers ? "bg-primary/10 text-primary" : "text-muted-foreground")} 
-                  onClick={onToggleMembers}
-                >
-                  <Users className="h-5 w-5" />
-                </Button>
-              )}
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className={cn("h-9 w-9 rounded-xl transition-all", showMembers ? "bg-primary/10 text-primary" : "text-muted-foreground")} 
+                onClick={onToggleMembers}
+              >
+                <Users className="h-5 w-5" />
+              </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-muted-foreground">
@@ -333,8 +300,8 @@ export function ChatWindow({ channelId, serverId, conversationId, mode, showMemb
               </div>
             ) : messages.length === 0 ? (
               <div className="py-24 text-center opacity-30">
-                <MessageSquare className="h-12 w-12 mx-auto mb-4" />
-                <h3 className="text-xl font-black mb-1">WELCOME TO {mode === "dm" ? "PRIVATE CHAT" : `#${headerTitle}`}</h3>
+                <Hash className="h-12 w-12 mx-auto mb-4" />
+                <h3 className="text-xl font-black mb-1">WELCOME TO #{headerTitle}</h3>
                 <p className="text-[10px] font-black uppercase tracking-widest">No messages yet.</p>
               </div>
             ) : (
@@ -372,7 +339,7 @@ export function ChatWindow({ channelId, serverId, conversationId, mode, showMemb
           </div>
         </div>
 
-        {showMembers && mode === "channel" && (
+        {showMembers && (
           <div className="hidden lg:block animate-in slide-in-from-right duration-300 border-l z-10 bg-background">
             <MembersPanel serverId={serverId!} />
           </div>
@@ -408,7 +375,7 @@ export function ChatWindow({ channelId, serverId, conversationId, mode, showMemb
           <div className="p-8 text-center bg-muted/30">
             <Eraser className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <AlertDialogTitle className="text-2xl font-black tracking-tight mb-2">Clear Chat?</AlertDialogTitle>
-            <AlertDialogDescription>All messages in this conversation will be hidden for you.</AlertDialogDescription>
+            <AlertDialogDescription>All messages in this channel will be hidden for you.</AlertDialogDescription>
           </div>
           <div className="p-6 bg-background flex flex-col gap-2">
             <AlertDialogAction onClick={handleClearChat} className="w-full h-12 rounded-xl font-black">
@@ -429,7 +396,7 @@ export function ChatWindow({ channelId, serverId, conversationId, mode, showMemb
           }
         }} 
         messagesToForward={rawMessages?.filter(m => selectedIds.has(m.id)) || []}
-        currentCommunityName={mode === "channel" ? server?.name : "Private Chat"}
+        currentCommunityName={server?.name}
         memberMap={memberMap}
       />
     </div>

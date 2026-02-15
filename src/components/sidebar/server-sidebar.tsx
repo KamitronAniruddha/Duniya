@@ -17,7 +17,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 
 interface ServerSidebarProps {
   activeServerId: string | null;
-  onSelectServer: (id: string | "duniya" | "dm") => void;
+  onSelectServer: (id: string | "duniya") => void;
   isDuniyaActive?: boolean;
 }
 
@@ -157,8 +157,6 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive }
     toast({ title: "Invite Link Copied", description: "Share this link with your friends to join!" });
   };
 
-  const isDMActive = activeServerId === "dm";
-
   return (
     <aside className="w-[72px] bg-sidebar flex flex-col items-center py-4 gap-4 shrink-0 h-full overflow-y-auto custom-scrollbar border-r border-sidebar-border shadow-[4px_0_24px_rgba(0,0,0,0.1)] z-30">
       <TooltipProvider delayDuration={0}>
@@ -175,18 +173,6 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive }
         </Tooltip>
 
         <div className="w-8 h-[1px] bg-sidebar-accent/30 rounded-full shrink-0" />
-
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button onClick={() => onSelectServer("dm")} className="group relative flex items-center justify-center h-12 w-full">
-              <div className={cn("absolute left-0 w-1 bg-white rounded-r-full transition-all duration-300", isDMActive ? "h-8 opacity-100" : "h-0 opacity-0 group-hover:h-4 group-hover:opacity-100")} />
-              <div className={cn("w-12 h-12 flex items-center justify-center transition-all duration-300 shadow-lg rounded-[24px] group-hover:rounded-[12px] bg-sidebar-accent text-white group-hover:bg-primary group-hover:scale-105", isDMActive && "rounded-[12px] bg-primary")}>
-                <MessageSquare className="h-6 w-6" />
-              </div>
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="right" className="font-bold">Direct Messages</TooltipContent>
-        </Tooltip>
 
         <Tooltip>
           <TooltipTrigger asChild>

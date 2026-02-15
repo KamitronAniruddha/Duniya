@@ -4,7 +4,6 @@
 import { useState, useEffect } from "react";
 import { ServerSidebar } from "@/components/sidebar/server-sidebar";
 import { ChannelSidebar } from "@/components/sidebar/channel-sidebar";
-import { DMSidebar } from "@/components/sidebar/dm-sidebar";
 import { ChatWindow } from "@/components/chat/chat-window";
 import { AuthScreen } from "@/components/auth/auth-screen";
 import { DuniyaPanel } from "@/components/duniya/duniya-panel";
@@ -22,8 +21,7 @@ export default function DuniyaApp() {
   
   const [activeCommunityId, setActiveCommunityId] = useState<string | null>(null);
   const [activeChannelId, setActiveChannelId] = useState<string | null>(null);
-  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
-  const [view, setView] = useState<"chat" | "duniya" | "dm">("chat");
+  const [view, setView] = useState<"chat" | "duniya">("chat");
   const [showMembers, setShowMembers] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -83,16 +81,10 @@ export default function DuniyaApp() {
               setView("duniya");
               setActiveCommunityId(null);
               setActiveChannelId(null);
-              setActiveConversationId(null);
-            } else if (id === "dm") {
-              setView("dm");
-              setActiveCommunityId(null);
-              setActiveChannelId(null);
             } else {
               setView("chat");
               setActiveCommunityId(id);
               setActiveChannelId(null);
-              setActiveConversationId(null);
             }
           }} 
         />
@@ -101,12 +93,6 @@ export default function DuniyaApp() {
             serverId={activeCommunityId} 
             activeChannelId={activeChannelId}
             onSelectChannel={setActiveChannelId}
-          />
-        )}
-        {view === "dm" && (
-          <DMSidebar 
-            activeConversationId={activeConversationId}
-            onSelectConversation={setActiveConversationId}
           />
         )}
       </div>
@@ -133,16 +119,10 @@ export default function DuniyaApp() {
                       setView("duniya");
                       setActiveCommunityId(null);
                       setActiveChannelId(null);
-                      setActiveConversationId(null);
-                    } else if (id === "dm") {
-                      setView("dm");
-                      setActiveCommunityId(null);
-                      setActiveChannelId(null);
                     } else {
                       setView("chat");
                       setActiveCommunityId(id);
                       setActiveChannelId(null);
-                      setActiveConversationId(null);
                     }
                     setIsMobileMenuOpen(false);
                   }} 
@@ -153,15 +133,6 @@ export default function DuniyaApp() {
                     activeChannelId={activeChannelId}
                     onSelectChannel={(id) => {
                       setActiveChannelId(id);
-                      setIsMobileMenuOpen(false);
-                    }}
-                  />
-                )}
-                {view === "dm" && (
-                  <DMSidebar 
-                    activeConversationId={activeConversationId}
-                    onSelectConversation={(id) => {
-                      setActiveConversationId(id);
                       setIsMobileMenuOpen(false);
                     }}
                   />
@@ -178,18 +149,12 @@ export default function DuniyaApp() {
               setView("chat");
               setActiveCommunityId(id);
             }} />
-          ) : view === "dm" ? (
-            <ChatWindow 
-              conversationId={activeConversationId}
-              mode="dm"
-            />
           ) : (
             <ChatWindow 
               channelId={activeChannelId}
               serverId={activeCommunityId}
               showMembers={showMembers}
               onToggleMembers={() => setShowMembers(!showMembers)}
-              mode="channel"
             />
           )}
         </div>

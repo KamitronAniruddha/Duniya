@@ -29,9 +29,9 @@
           "type": "string",
           "description": "A short biographical description provided by the user."
         },
-        "statusMessage": {
+        "onlineStatus": {
           "type": "string",
-          "description": "A user-defined message reflecting their current status or mood."
+          "description": "User's current online status (online, idle, offline)."
         },
         "lastOnlineAt": {
           "type": "string",
@@ -40,7 +40,7 @@
         },
         "isBlocked": {
           "type": "boolean",
-          "description": "Boolean flag indicating if the user's account is currently blocked for moderation purposes."
+          "description": "Boolean flag indicating if the user's account is currently blocked."
         },
         "createdAt": {
           "type": "string",
@@ -82,14 +82,18 @@
           "type": "string",
           "description": "Unique identifier of the user who owns/created the community."
         },
-        "avatarUrl": {
+        "icon": {
           "type": "string",
-          "description": "URL to the community's icon or logo.",
+          "description": "URL to the community's icon.",
           "format": "uri"
         },
-        "inviteCode": {
+        "joinCode": {
           "type": "string",
-          "description": "A unique, shareable code for inviting new members."
+          "description": "A 5-digit code for joining the community."
+        },
+        "members": {
+          "type": "array",
+          "items": { "type": "string" }
         },
         "isPublic": {
           "type": "boolean",
@@ -144,37 +148,6 @@
         "createdAt"
       ]
     },
-    "Conversation": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Conversation",
-      "type": "object",
-      "description": "Represents a private 1:1 conversation between two users.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the conversation (often sorted uids joined by underscore)."
-        },
-        "participantIds": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "Array of the two user IDs participating in the chat."
-        },
-        "lastMessage": {
-          "type": "string",
-          "description": "Content of the most recent message for preview."
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp of the last activity in the conversation.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "participantIds",
-        "updatedAt"
-      ]
-    },
     "Message": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Message",
@@ -208,8 +181,7 @@
   },
   "auth": {
     "providers": [
-      "password",
-      "anonymous"
+      "password"
     ]
   },
   "firestore": {
@@ -244,24 +216,6 @@
       },
       {
         "path": "/communities/{communityId}/channels/{channelId}/messages/{messageId}",
-        "definition": {
-          "entityName": "Message",
-          "schema": {
-            "$ref": "#/backend/entities/Message"
-          }
-        }
-      },
-      {
-        "path": "/conversations/{conversationId}",
-        "definition": {
-          "entityName": "Conversation",
-          "schema": {
-            "$ref": "#/backend/entities/Conversation"
-          }
-        }
-      },
-      {
-        "path": "/conversations/{conversationId}/messages/{messageId}",
         "definition": {
           "entityName": "Message",
           "schema": {
