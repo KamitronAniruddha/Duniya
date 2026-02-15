@@ -21,9 +21,7 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    // --- GLOBAL ACCESS ---
-    // Allow any signed-in user to read and write to core chat collections.
-    // This ensures high reliability while we refine granular access.
+    // --- USER PROFILES ---
     
     match /users/{userId} {
       allow read: if isSignedIn();
@@ -32,34 +30,52 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // --- COMMUNITIES & CHANNELS ---
+    // Using explicit matches for nested paths to ensure reliable permission propagation.
+    
     match /communities/{communityId} {
       allow read, write: if isSignedIn();
       
-      // Explicitly allow subcollection access
+      match /channels/{channelId} {
+        allow read, write: if isSignedIn();
+        
+        match /messages/{messageId} {
+          allow read, write: if isSignedIn();
+        }
+      }
+      
+      // Generic fallback for any other subcollection
       match /{allSubcollections=**} {
         allow read, write: if isSignedIn();
       }
     }
 
+    // --- PRIVATE CONVERSATIONS ---
+    
     match /conversations/{conversationId} {
       allow read, write: if isSignedIn();
       
-      // Explicitly allow subcollection access
+      match /messages/{messageId} {
+        allow read, write: if isSignedIn();
+      }
+      
       match /{allSubcollections=**} {
         allow read, write: if isSignedIn();
       }
     }
 
-    // --- SUPPORT & MISC ---
+    // --- SUPPORT & SUBMISSIONS ---
     
     match /contact_form_submissions/{submissionId} {
       allow create: if true; 
-      allow read, write: if isAdmin();
+      allow read, write: if isSignedIn();
     }
 
-    // Catch-all for any other path to ensure admins always have access
+    // --- GLOBAL FALLBACK ---
+    // Ensure that for any other path, signed-in users have access while admins have full control.
+    
     match /{path=**} {
-      allow read, write: if isAdmin();
+      allow read, write: if isSignedIn() || isAdmin();
     }
   }
 }

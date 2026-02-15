@@ -41,7 +41,7 @@ export function ChatWindow({ channelId, serverId, conversationId, mode, showMemb
   const [isClearChatDialogOpen, setIsClearChatDialogOpen] = useState(false);
   const [isForwardDialogOpen, setIsForwardDialogOpen] = useState(false);
 
-  // Absolute path resolution for current view
+  // Robust path resolution logic
   const basePath = useMemo(() => {
     if (mode === "channel" && serverId && channelId) {
       return `communities/${serverId}/channels/${channelId}`;
@@ -52,43 +52,22 @@ export function ChatWindow({ channelId, serverId, conversationId, mode, showMemb
     return null;
   }, [mode, serverId, channelId, conversationId]);
 
-  // Context Info
-  const channelRef = useMemoFirebase(() => (mode === "channel" && basePath ? doc(db, basePath) : null), [db, basePath, mode]);
-  const { data: channel } = useDoc(channelRef);
+  // Document references
+  const contextRef = useMemoFirebase(() => (basePath ? doc(db, basePath) : null), [db, basePath]);
+  const { data: contextData } = useDoc(contextRef);
 
-  const serverRef = useMemoFirebase(() => (mode === "channel" && serverId ? doc(db, "communities", serverId) : null), [db, serverId, mode]);
+  const serverRef = useMemoFirebase(() => (mode === "channel" && serverId ? doc(db, "communities", serverId) : null), [db, serverId]);
   const { data: server } = useDoc(serverRef);
 
-  const conversationRef = useMemoFirebase(() => (mode === "dm" && basePath ? doc(db, basePath) : null), [db, basePath, mode]);
-  const { data: conversation } = useDoc(conversationRef);
-
   const otherUserId = useMemo(() => {
-    return conversation?.participantIds?.find((id: string) => id !== user?.uid);
-  }, [conversation, user?.uid]);
+    if (mode !== "dm" || !contextData) return null;
+    return contextData.participantIds?.find((id: string) => id !== user?.uid);
+  }, [contextData, user?.uid, mode]);
 
   const otherUserRef = useMemoFirebase(() => (otherUserId ? doc(db, "users", otherUserId) : null), [db, otherUserId]);
   const { data: otherUser } = useDoc(otherUserRef);
 
-  // Member Lookup
-  const membersQuery = useMemoFirebase(() => {
-    if (!db || mode !== "channel" || !serverId) return null;
-    return query(collection(db, "users"), where("serverIds", "array-contains", serverId));
-  }, [db, serverId, mode]);
-
-  const { data: members } = useCollection(membersQuery);
-
-  const memberMap = useMemo(() => {
-    const map: Record<string, any> = {};
-    if (members) {
-      members.forEach(m => map[m.id] = m);
-    }
-    if (mode === "dm" && otherUser && user) {
-      map[otherUser.id] = otherUser;
-      map[user.uid] = user; 
-    }
-    return map;
-  }, [members, otherUser, user, mode]);
-
+  // Message querying
   const messagesQuery = useMemoFirebase(() => {
     if (!db || !basePath || !user) return null;
     return query(
@@ -105,6 +84,21 @@ export function ChatWindow({ channelId, serverId, conversationId, mode, showMemb
     return rawMessages.filter(msg => !msg.fullyDeleted && !msg.deletedFor?.includes(user.uid));
   }, [rawMessages, user?.uid]);
 
+  // Member lookup for display names
+  const membersQuery = useMemoFirebase(() => {
+    if (!db || mode !== "channel" || !serverId) return null;
+    return query(collection(db, "users"), where("serverIds", "array-contains", serverId));
+  }, [db, serverId, mode]);
+  const { data: members } = useCollection(membersQuery);
+
+  const memberMap = useMemo(() => {
+    const map: Record<string, any> = {};
+    if (members) members.forEach(m => map[m.id] = m);
+    if (user) map[user.uid] = user;
+    if (otherUser) map[otherUser.id] = otherUser;
+    return map;
+  }, [members, otherUser, user]);
+
   const handleSendMessage = useCallback(async (text: string, audioUrl?: string, videoUrl?: string, replySenderName?: string, disappearing?: { enabled: boolean; duration: number }) => {
     if (!db || !basePath || !user) return;
     
@@ -119,8 +113,8 @@ export function ChatWindow({ channelId, serverId, conversationId, mode, showMemb
       content: text,
       type: videoUrl ? "media" : (audioUrl ? "media" : "text"),
       sentAt: sentAt.toISOString(),
-      ...(audioUrl && { audioUrl }),
-      ...(videoUrl && { videoUrl }),
+      audioUrl: audioUrl || null,
+      videoUrl: videoUrl || null,
       disappearingEnabled: disappearing?.enabled || false,
       disappearDuration: disappearing?.duration || 0,
       fullyDeleted: false,
@@ -130,8 +124,7 @@ export function ChatWindow({ channelId, serverId, conversationId, mode, showMemb
     };
 
     if (disappearing?.enabled) {
-      const expireDate = new Date(sentAt.getTime() + disappearing.duration);
-      data.senderExpireAt = expireDate.toISOString();
+      data.senderExpireAt = new Date(sentAt.getTime() + disappearing.duration).toISOString();
     }
 
     if (replyingTo && replySenderName) {
@@ -144,15 +137,15 @@ export function ChatWindow({ channelId, serverId, conversationId, mode, showMemb
 
     setDocumentNonBlocking(messageRef, data, { merge: true });
     
-    if (mode === "dm" && conversationRef) {
-      updateDocumentNonBlocking(conversationRef, {
-        lastMessage: text || (audioUrl ? "Audio Message" : "Video Message"),
+    if (mode === "dm" && contextRef) {
+      updateDocumentNonBlocking(contextRef, {
+        lastMessage: text || (audioUrl ? "Audio Message" : (videoUrl ? "Video Message" : "New Message")),
         updatedAt: sentAt.toISOString()
       });
     }
 
     setReplyingTo(null);
-  }, [db, basePath, user, replyingTo, channelId, conversationId, mode, conversationRef]);
+  }, [db, basePath, user, replyingTo, channelId, conversationId, mode, contextRef]);
 
   const handleBatchDelete = useCallback(async (type: "everyone" | "me") => {
     if (!db || !basePath || !user || selectedIds.size === 0) return;
@@ -235,13 +228,6 @@ export function ChatWindow({ channelId, serverId, conversationId, mode, showMemb
     }
   };
 
-  const messagesToForward = useMemo(() => {
-    return rawMessages?.filter(m => {
-      if (!selectedIds.has(m.id)) return false;
-      return !m.isDeleted && !m.fullyDeleted;
-    }) || [];
-  }, [selectedIds, rawMessages]);
-
   useEffect(() => {
     if (scrollRef.current && !selectionMode) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -260,7 +246,7 @@ export function ChatWindow({ channelId, serverId, conversationId, mode, showMemb
     );
   }
 
-  const headerTitle = mode === "channel" ? (channel?.name || "...") : (otherUser?.username || "...");
+  const headerTitle = mode === "channel" ? (contextData?.name || "...") : (otherUser?.username || "...");
 
   return (
     <div className="flex-1 flex flex-col h-full bg-background overflow-hidden relative">
@@ -283,7 +269,6 @@ export function ChatWindow({ channelId, serverId, conversationId, mode, showMemb
                 size="icon" 
                 className="text-white hover:bg-white/10" 
                 onClick={() => setIsForwardDialogOpen(true)}
-                disabled={messagesToForward.length === 0}
               >
                 <Forward className="h-5 w-5" />
               </Button>
@@ -349,7 +334,7 @@ export function ChatWindow({ channelId, serverId, conversationId, mode, showMemb
             ) : messages.length === 0 ? (
               <div className="py-24 text-center opacity-30">
                 <MessageSquare className="h-12 w-12 mx-auto mb-4" />
-                <h3 className="text-xl font-black mb-1">WELCOME TO {mode === "dm" ? "PRIVATE CHAT" : `#${channel?.name}`}</h3>
+                <h3 className="text-xl font-black mb-1">WELCOME TO {mode === "dm" ? "PRIVATE CHAT" : `#${headerTitle}`}</h3>
                 <p className="text-[10px] font-black uppercase tracking-widest">No messages yet.</p>
               </div>
             ) : (
@@ -402,16 +387,10 @@ export function ChatWindow({ channelId, serverId, conversationId, mode, showMemb
             <AlertDialogDescription>This action will remove the selected messages from your view.</AlertDialogDescription>
           </div>
           <div className="p-6 bg-background flex flex-col gap-2">
-            <AlertDialogAction 
-              onClick={() => handleBatchDelete("me")}
-              className="w-full h-12 rounded-xl font-black bg-destructive text-white hover:bg-destructive/90"
-            >
+            <AlertDialogAction onClick={() => handleBatchDelete("me")} className="w-full h-12 rounded-xl font-black bg-destructive text-white">
               Delete for Me
             </AlertDialogAction>
-            <AlertDialogAction 
-              onClick={() => handleBatchDelete("everyone")}
-              className="w-full h-12 rounded-xl font-black bg-destructive text-white hover:bg-destructive/90"
-            >
+            <AlertDialogAction onClick={() => handleBatchDelete("everyone")} className="w-full h-12 rounded-xl font-black bg-destructive text-white">
               Delete for Everyone
             </AlertDialogAction>
             <AlertDialogCancel className="w-full h-12 rounded-xl font-bold border-none" onClick={() => {
@@ -449,7 +428,7 @@ export function ChatWindow({ channelId, serverId, conversationId, mode, showMemb
             setSelectedIds(new Set());
           }
         }} 
-        messagesToForward={messagesToForward}
+        messagesToForward={rawMessages?.filter(m => selectedIds.has(m.id)) || []}
         currentCommunityName={mode === "channel" ? server?.name : "Private Chat"}
         memberMap={memberMap}
       />

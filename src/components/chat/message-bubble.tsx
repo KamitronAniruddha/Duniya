@@ -84,15 +84,12 @@ export const MessageBubble = memo(function MessageBubble({
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [isTraceOpen, setIsTraceOpen] = useState(false);
 
-  // Swipe logic
+  // Swipe & Long Press
   const [dragX, setDragX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const startX = useRef(0);
   const startY = useRef(0);
   const isHorizontalSwipe = useRef<boolean | null>(null);
-  const swipeThreshold = 60;
-
-  // Long press timer
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const LONG_PRESS_DURATION = 500;
 
@@ -105,11 +102,12 @@ export const MessageBubble = memo(function MessageBubble({
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }, [message.sentAt]);
 
-  // Mark as seen
+  // Mark as seen and handle disappearing timers
   useEffect(() => {
     if (!user || isMe || message.isDeleted || message.fullyDeleted || !messagePath || messagePath.includes('null')) return;
+    
     const hasSeen = message.seenBy?.includes(user.uid);
-    if (!hasSeen && message.id) {
+    if (!hasSeen) {
       const msgRef = doc(db, messagePath);
       const updateData: any = { 
         seenBy: arrayUnion(user.uid) 
@@ -123,11 +121,12 @@ export const MessageBubble = memo(function MessageBubble({
       
       updateDocumentNonBlocking(msgRef, updateData);
     }
-  }, [message.id, user?.uid, isMe, message.disappearingEnabled, message.seenBy, db, messagePath, message.fullyDeleted, message.isDeleted, message.disappearDuration, message.viewerExpireAt]);
+  }, [message.id, user?.uid, isMe, messagePath, message.disappearingEnabled, message.seenBy]);
 
-  // Disappearing Timer
+  // Disappearing Timer countdown
   useEffect(() => {
     if (!message.disappearingEnabled || !user || message.isDeleted || message.fullyDeleted) return;
+    
     const timer = setInterval(() => {
       let expireAtStr = isMe ? message.senderExpireAt : message.viewerExpireAt?.[user.uid];
       if (expireAtStr) {
@@ -142,7 +141,7 @@ export const MessageBubble = memo(function MessageBubble({
       }
     }, 1000);
     return () => clearInterval(timer);
-  }, [message.disappearingEnabled, message.senderExpireAt, message.viewerExpireAt, user?.uid, isMe, message.isDeleted, message.fullyDeleted]);
+  }, [message.disappearingEnabled, message.senderExpireAt, message.viewerExpireAt, user?.uid, isMe]);
 
   const handleStart = (e: React.TouchEvent | React.MouseEvent) => {
     const clientX = 'touches' in e ? (e as React.TouchEvent).touches[0].clientX : (e as React.MouseEvent).clientX;
@@ -170,52 +169,28 @@ export const MessageBubble = memo(function MessageBubble({
     const diffY = clientY - startY.current;
 
     if (isHorizontalSwipe.current === null) {
-      if (Math.abs(diffX) > Math.abs(diffY)) {
-        isHorizontalSwipe.current = true;
-      } else if (Math.abs(diffY) > 5) {
+      if (Math.abs(diffX) > Math.abs(diffY)) isHorizontalSwipe.current = true;
+      else if (Math.abs(diffY) > 5) {
         isHorizontalSwipe.current = false;
-        if (longPressTimer.current) {
-          clearTimeout(longPressTimer.current);
-          longPressTimer.current = null;
-        }
+        if (longPressTimer.current) clearTimeout(longPressTimer.current);
         setIsDragging(false);
         return;
       }
     }
 
     if (isHorizontalSwipe.current && !selectionMode && diffX > 0 && !message.isDeleted && !isDisappeared) {
-      if (longPressTimer.current) {
-        clearTimeout(longPressTimer.current);
-        longPressTimer.current = null;
-      }
+      if (longPressTimer.current) clearTimeout(longPressTimer.current);
       const rubberBand = Math.pow(diffX, 0.85);
       setDragX(Math.min(rubberBand * 2, 100));
     }
   };
 
   const handleEnd = () => {
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
-    
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
     if (!isDragging) return;
-    if (dragX >= swipeThreshold && !selectionMode) {
-      onReply?.();
-      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
-        navigator.vibrate(10);
-      }
-    }
+    if (dragX >= 60 && !selectionMode) onReply?.();
     setDragX(0);
     setIsDragging(false);
-    isHorizontalSwipe.current = null;
-  };
-
-  const handleBubbleClick = (e: React.MouseEvent) => {
-    if (selectionMode) {
-      e.stopPropagation();
-      onSelect?.(message.id);
-    }
   };
 
   const formatAudioTime = (time: number) => {
@@ -257,10 +232,7 @@ export const MessageBubble = memo(function MessageBubble({
   };
 
   const isActuallyDeleted = message.isDeleted || isDisappeared || message.fullyDeleted;
-
-  const latestHop = message.forwardingChain && message.forwardingChain.length > 0 
-    ? message.forwardingChain[message.forwardingChain.length - 1] 
-    : null;
+  const latestHop = message.forwardingChain?.[message.forwardingChain.length - 1];
 
   return (
     <div 
@@ -276,30 +248,32 @@ export const MessageBubble = memo(function MessageBubble({
       onTouchStart={handleStart}
       onTouchMove={handleMove}
       onTouchEnd={handleEnd}
-      onClick={handleBubbleClick}
+      onClick={() => selectionMode && onSelect?.(message.id)}
     >
+      {/* Selection Checkbox */}
       <div className={cn(
         "shrink-0 flex items-center justify-center transition-all duration-300 overflow-hidden",
         selectionMode ? "w-10 opacity-100" : "w-0 opacity-0",
         isMe ? "ml-2" : "mr-2"
       )}>
         <div className={cn(
-          "h-5 w-5 rounded-full border-2 flex items-center justify-center transition-all animate-in zoom-in-50 duration-200",
-          isSelected ? "bg-primary border-primary text-white scale-110 shadow-lg shadow-primary/20" : "border-muted-foreground/40 scale-100"
+          "h-5 w-5 rounded-full border-2 flex items-center justify-center transition-all duration-200",
+          isSelected ? "bg-primary border-primary text-white scale-110 shadow-lg" : "border-muted-foreground/40 scale-100"
         )}>
           {isSelected && <Check className="h-3 w-3 stroke-[4px]" />}
         </div>
       </div>
 
-      <div className="absolute left-4 top-1/2 -translate-y-1/2 transition-all duration-75 flex items-center justify-center bg-primary/10 rounded-full h-8 w-8 pointer-events-none" style={{ opacity: Math.min(dragX / swipeThreshold, 1), transform: `scale(${Math.min(dragX / swipeThreshold, 1)})`, left: `${Math.min(dragX / 2, 20)}px` }}>
-        <Reply className={cn("h-4 w-4", dragX >= swipeThreshold ? "text-primary" : "text-muted-foreground")} />
+      {/* Swipe Indicator */}
+      <div className="absolute left-4 top-1/2 -translate-y-1/2 transition-all flex items-center justify-center bg-primary/10 rounded-full h-8 w-8 pointer-events-none" style={{ opacity: Math.min(dragX / 60, 1), transform: `scale(${Math.min(dragX / 60, 1)})`, left: `${Math.min(dragX / 2, 20)}px` }}>
+        <Reply className={cn("h-4 w-4", dragX >= 60 ? "text-primary" : "text-muted-foreground")} />
       </div>
 
       {!isMe && !selectionMode && (
         <UserProfilePopover userId={message.senderId}>
-          <button className="h-8 w-8 mb-1 mr-2 shrink-0 transition-transform hover:scale-110 active:scale-95">
+          <button className="h-8 w-8 mb-1 mr-2 shrink-0 transition-transform hover:scale-110">
             <Avatar className="h-full w-full border border-border shadow-sm">
-              <AvatarImage src={sender?.photoURL || undefined} />
+              <AvatarImage src={sender?.photoURL} />
               <AvatarFallback className="text-[10px] font-bold bg-primary text-white">{sender?.username?.[0]?.toUpperCase() || "?"}</AvatarFallback>
             </Avatar>
           </button>
@@ -319,30 +293,20 @@ export const MessageBubble = memo(function MessageBubble({
           <>
             {!isMe && !selectionMode && (
               <UserProfilePopover userId={message.senderId}>
-                <button className="text-[10px] font-black text-muted-foreground ml-1 mb-0.5 hover:text-primary transition-colors uppercase tracking-wider">{sender?.username || "..."}</button>
+                <button className="text-[10px] font-black text-muted-foreground ml-1 mb-0.5 hover:text-primary uppercase tracking-wider">{sender?.username || "..."}</button>
               </UserProfilePopover>
             )}
             
             <div className={cn(
               "px-3.5 py-2.5 rounded-2xl shadow-sm transition-all relative",
-              message.disappearingEnabled && "ring-1 ring-primary/30",
               isMe ? "bg-primary text-white rounded-br-none" : "bg-card text-foreground rounded-bl-none border border-border"
             )}>
+              {/* Forwarding Context */}
               {message.isForwarded && (
                 <div className={cn("flex flex-col mb-1.5 opacity-70", isMe ? "items-end" : "items-start")}>
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIsTraceOpen(true);
-                    }}
-                    className={cn(
-                      "flex items-center gap-1 italic text-[9px] font-black uppercase tracking-widest hover:text-primary transition-colors group/forward", 
-                      isMe ? "text-white/90" : "text-muted-foreground"
-                    )}
-                  >
-                    <Forward className="h-2.5 w-2.5 group-hover/forward:scale-110 transition-transform" /> 
-                    Forwarded
-                    <History className="h-2 w-2 ml-1 opacity-0 group-hover/forward:opacity-100 transition-opacity" />
+                  <button onClick={(e) => { e.stopPropagation(); setIsTraceOpen(true); }} className={cn("flex items-center gap-1 italic text-[9px] font-black uppercase tracking-widest hover:text-primary transition-colors group/forward", isMe ? "text-white/90" : "text-muted-foreground")}>
+                    <Forward className="h-2.5 w-2.5" /> Forwarded
+                    <History className="h-2 w-2 ml-1" />
                   </button>
                   {latestHop && (
                     <div className={cn("flex items-center gap-1 text-[8px] font-bold tracking-tight mt-0.5", isMe ? "text-white/60" : "text-primary/70")}>
@@ -352,29 +316,27 @@ export const MessageBubble = memo(function MessageBubble({
                   )}
                 </div>
               )}
+
+              {/* Reply Quote */}
               {message.replyTo && (
-                <button onClick={() => onQuoteClick?.(message.replyTo!.messageId)} className={cn("w-full text-left mb-2 p-2 rounded-lg border-l-4 text-xs bg-black/5 flex flex-col gap-0.5 backdrop-blur-sm", isMe ? "border-white/40" : "border-primary/50")}>
-                  <span className={cn("font-bold text-[10px] flex items-center gap-1 uppercase tracking-tighter", isMe ? "text-white/90" : "text-primary")}><CornerDownRight className="h-3 w-3" />{message.replyTo.senderName}</span>
+                <button onClick={() => onQuoteClick?.(message.replyTo!.messageId)} className={cn("w-full text-left mb-2 p-2 rounded-lg border-l-4 text-xs bg-black/5 flex flex-col gap-0.5", isMe ? "border-white/40" : "border-primary/50")}>
+                  <span className={cn("font-bold text-[10px] flex items-center gap-1 uppercase", isMe ? "text-white/90" : "text-primary")}>
+                    <CornerDownRight className="h-3 w-3" />{message.replyTo.senderName}
+                  </span>
                   <p className={cn("line-clamp-2 italic", isMe ? "text-white/70" : "text-muted-foreground")}>{message.replyTo.text}</p>
                 </button>
               )}
 
+              {/* Media Content */}
               {message.type === 'media' && message.audioUrl ? (
                 <div className="flex items-center gap-3 py-1 min-w-[220px]">
-                  <audio ref={audioRef} src={message.audioUrl} preload="metadata" onTimeUpdate={() => {
-                    if (audioRef.current) {
-                      setCurrentTime(audioRef.current.currentTime);
-                      setProgress((audioRef.current.currentTime / audioRef.current.duration) * 100);
-                    }
-                  }} onLoadedMetadata={() => {
-                    if (audioRef.current) setDuration(audioRef.current.duration);
-                  }} />
+                  <audio ref={audioRef} src={message.audioUrl} onTimeUpdate={() => audioRef.current && (setCurrentTime(audioRef.current.currentTime), setProgress((audioRef.current.currentTime / audioRef.current.duration) * 100))} onLoadedMetadata={() => audioRef.current && setDuration(audioRef.current.duration)} />
                   <Button variant="ghost" size="icon" className={cn("h-10 w-10 rounded-full", isMe ? "text-white hover:bg-white/10" : "text-primary hover:bg-primary/10")} onClick={togglePlay}>
                     {isPlaying ? <Pause className="h-5 w-5 fill-current" /> : <Play className="h-5 w-5 fill-current ml-0.5" />}
                   </Button>
                   <div className="flex-1 space-y-1.5">
-                    <div className={cn("h-1.5 w-full rounded-full overflow-hidden relative shadow-inner", isMe ? "bg-white/30" : "bg-muted")}>
-                      <div className={cn("h-full transition-all duration-300 ease-linear", isMe ? "bg-white" : "bg-primary")} style={{ width: `${progress}%` }} />
+                    <div className={cn("h-1.5 w-full rounded-full overflow-hidden", isMe ? "bg-white/30" : "bg-muted")}>
+                      <div className={cn("h-full transition-all duration-300", isMe ? "bg-white" : "bg-primary")} style={{ width: `${progress}%` }} />
                     </div>
                     <div className={cn("text-[10px] font-mono font-bold flex items-center gap-1", isMe ? "text-white/80" : "text-primary")}>
                       <Volume2 className="h-3 w-3" />{formatAudioTime(isPlaying ? currentTime : duration)}
@@ -382,30 +344,27 @@ export const MessageBubble = memo(function MessageBubble({
                   </div>
                 </div>
               ) : message.type === 'media' && message.videoUrl ? (
-                <div className="relative group/video overflow-hidden rounded-xl aspect-square w-64 md:w-80 shadow-lg bg-black/90">
+                <div className="relative group/video overflow-hidden rounded-xl aspect-square w-64 md:w-80 bg-black/90">
                   <video ref={videoRef} src={message.videoUrl} className="w-full h-full object-cover" loop muted={!isVideoPlaying} autoPlay playsInline onClick={() => setIsVideoPlaying(!isVideoPlaying)} />
                 </div>
               ) : (
                 <p className="whitespace-pre-wrap break-words leading-relaxed text-sm tracking-tight">{message.content}</p>
               )}
 
+              {/* Status Footer */}
               <div className="flex items-center justify-between gap-4 mt-1.5">
                 {message.disappearingEnabled && (
                   <div className={cn("flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tighter", isMe ? "bg-white/10 text-white" : "bg-primary/10 text-primary")}>
                     <Timer className="h-2.5 w-2.5" />
-                    {timeRemaining !== null ? (
-                      <span>Vanish in {formatCountdown(timeRemaining)}</span>
-                    ) : (
-                      <span>Waiting for view</span>
-                    )}
+                    {timeRemaining !== null ? <span>Vanish in {formatCountdown(timeRemaining)}</span> : <span>Waiting for view</span>}
                   </div>
                 )}
-                <div className={cn("text-[9px] leading-none font-black ml-auto flex items-center gap-1 tracking-widest", isMe ? "text-white/80" : "text-muted-foreground")}>
+                <div className={cn("text-[9px] font-black ml-auto flex items-center gap-1 tracking-widest", isMe ? "text-white/80" : "text-muted-foreground")}>
                   {formattedTime}
                   {isMe && (
                     <div className="flex items-center ml-0.5">
                       {message.seenBy && message.seenBy.length > 0 ? (
-                        <CheckCheck className="h-3.5 w-3.5 text-[#00E0FF] drop-shadow-[0_0_4px_rgba(0,224,255,0.8)] animate-in zoom-in-50 duration-300" />
+                        <CheckCheck className="h-3.5 w-3.5 text-[#00E0FF] drop-shadow-[0_0_4px_rgba(0,224,255,0.8)]" />
                       ) : (
                         <Check className="h-3.5 w-3.5 text-white/60" />
                       )}
@@ -418,11 +377,12 @@ export const MessageBubble = memo(function MessageBubble({
         )}
       </div>
 
+      {/* Bubble Menu */}
       {!selectionMode && !isActuallyDeleted && (
         <div className={cn("mb-2 mx-1 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5", isMe ? "mr-1" : "ml-1")}>
-          <button onClick={onReply} className="h-7 w-7 rounded-full hover:bg-muted/50 flex items-center justify-center text-muted-foreground hover:text-primary transition-colors"><Reply className="h-3.5 w-3.5" /></button>
+          <button onClick={onReply} className="h-7 w-7 rounded-full hover:bg-muted/50 flex items-center justify-center text-muted-foreground hover:text-primary"><Reply className="h-3.5 w-3.5" /></button>
           <DropdownMenu>
-            <DropdownMenuTrigger asChild><button className="h-7 w-7 rounded-full hover:bg-muted/50 flex items-center justify-center text-muted-foreground hover:text-primary transition-colors"><MoreHorizontal className="h-3.5 w-3.5" /></button></DropdownMenuTrigger>
+            <DropdownMenuTrigger asChild><button className="h-7 w-7 rounded-full hover:bg-muted/50 flex items-center justify-center text-muted-foreground hover:text-primary"><MoreHorizontal className="h-3.5 w-3.5" /></button></DropdownMenuTrigger>
             <DropdownMenuContent align={isMe ? "end" : "start"} className="rounded-xl font-bold uppercase text-[10px] tracking-widest">
               <DropdownMenuItem onClick={handleCopy} className="gap-2"><Copy className="h-4 w-4" />Copy</DropdownMenuItem>
               <DropdownMenuItem onClick={onForward} className="gap-2"><Forward className="h-4 w-4" />Forward</DropdownMenuItem>
@@ -433,26 +393,8 @@ export const MessageBubble = memo(function MessageBubble({
       )}
 
       {message.forwardingChain && (
-        <MessageTraceDialog 
-          open={isTraceOpen} 
-          onOpenChange={setIsTraceOpen} 
-          chain={message.forwardingChain} 
-        />
+        <MessageTraceDialog open={isTraceOpen} onOpenChange={setIsTraceOpen} chain={message.forwardingChain} />
       )}
     </div>
-  );
-}, (prev, next) => {
-  return (
-    prev.isSelected === next.isSelected &&
-    prev.selectionMode === next.selectionMode &&
-    prev.messagePath === next.messagePath &&
-    prev.message.id === next.message.id &&
-    prev.message.content === next.message.content &&
-    prev.message.isDeleted === next.message.isDeleted &&
-    prev.message.seenBy?.length === next.message.seenBy?.length &&
-    prev.sender?.id === next.sender?.id &&
-    prev.sender?.photoURL === next.sender?.photoURL &&
-    prev.sender?.username === next.sender?.username &&
-    JSON.stringify(prev.message.forwardingChain) === JSON.stringify(next.message.forwardingChain)
   );
 });
