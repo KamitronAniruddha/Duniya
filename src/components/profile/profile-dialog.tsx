@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, User, Lock, Camera, ShieldAlert, Eye, EyeOff, Users, Palette, Check, Upload, Link, Monitor, Tablet, Smartphone, Sparkles } from "lucide-react";
+import { Loader2, User, Lock, Camera, ShieldAlert, Eye, EyeOff, Users, Palette, Check, Upload, Link, Monitor, Tablet, Smartphone, Sparkles, Trash2 } from "lucide-react";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -94,6 +94,11 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
       setIsUploading(false);
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleRemoveAvatar = () => {
+    setPhotoURL("");
+    toast({ title: "Avatar Removed", description: "Save profile to apply changes." });
   };
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
@@ -205,13 +210,26 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
                       {username?.[0]?.toUpperCase() || "?"}
                     </AvatarFallback>
                   </Avatar>
-                  <button 
-                    type="button" 
-                    onClick={() => fileInputRef.current?.click()}
-                    className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover/avatar:opacity-100 flex items-center justify-center transition-opacity"
-                  >
-                    <Upload className="h-6 w-6 text-white" />
-                  </button>
+                  <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover/avatar:opacity-100 flex items-center justify-center transition-opacity gap-2">
+                    <button 
+                      type="button" 
+                      onClick={() => fileInputRef.current?.click()}
+                      className="p-2 bg-white/20 hover:bg-white/40 rounded-full transition-colors"
+                      title="Upload Photo"
+                    >
+                      <Upload className="h-5 w-5 text-white" />
+                    </button>
+                    {photoURL && (
+                      <button 
+                        type="button" 
+                        onClick={handleRemoveAvatar}
+                        className="p-2 bg-destructive/20 hover:bg-destructive/40 rounded-full transition-colors"
+                        title="Remove Avatar"
+                      >
+                        <Trash2 className="h-5 w-5 text-white" />
+                      </button>
+                    )}
+                  </div>
                   <input 
                     type="file" 
                     ref={fileInputRef} 
