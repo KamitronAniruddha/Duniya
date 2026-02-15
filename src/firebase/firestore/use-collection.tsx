@@ -9,6 +9,7 @@ import {
   QuerySnapshot,
   CollectionReference,
 } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
@@ -85,6 +86,13 @@ export function useCollection<T = any>(
         setIsLoading(false);
       },
       (error: FirestoreError) => {
+        // Suppress permission errors during logout transitions
+        const auth = getAuth();
+        if (error.code === 'permission-denied' && !auth.currentUser) {
+          setIsLoading(false);
+          return;
+        }
+
         // This logic extracts the path from either a ref or a query
         const path: string =
           memoizedTargetRefOrQuery.type === 'collection'

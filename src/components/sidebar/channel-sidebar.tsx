@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -8,7 +7,7 @@ import { Hash, Settings, ChevronDown, LogOut, Loader2, Plus, Timer, Globe, Mail,
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { ProfileDialog } from "@/components/profile/profile-dialog";
 import { ServerSettingsDialog } from "@/components/servers/server-settings-dialog";
 import { DisappearingMessagesDialog } from "@/components/servers/disappearing-messages-dialog";
@@ -63,8 +62,15 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
   const isOwner = community?.ownerId === user?.uid;
   const isAdmin = isOwner || community?.admins?.includes(user?.uid);
 
-  const handleLogout = () => {
-    auth.signOut();
+  const handleLogout = async () => {
+    if (user?.uid && db) {
+      updateDocumentNonBlocking(doc(db, "users", user.uid), {
+        onlineStatus: "offline",
+        lastOnlineAt: new Date().toISOString()
+      });
+    }
+    // Await sign out to ensure unmounting happens after presence update is queued
+    await auth.signOut();
   };
 
   const copyInviteLink = () => {
@@ -82,13 +88,13 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
 
     try {
       const channelRef = doc(collection(db, "communities", serverId, "channels"));
-      setDocumentNonBlocking(channelRef, {
+      updateDocumentNonBlocking(channelRef, {
         id: channelRef.id,
         communityId: serverId,
         name: newChannelName.trim().toLowerCase().replace(/\s+/g, '-'),
         type: "text",
         createdAt: new Date().toISOString()
-      }, { merge: true });
+      });
 
       toast({ title: "Channel Created" });
       setNewChannelName("");

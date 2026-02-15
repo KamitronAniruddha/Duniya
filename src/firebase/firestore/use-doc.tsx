@@ -8,6 +8,7 @@ import {
   FirestoreError,
   DocumentSnapshot,
 } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
@@ -72,6 +73,13 @@ export function useDoc<T = any>(
         setIsLoading(false);
       },
       (error: FirestoreError) => {
+        // Suppress permission errors during logout transitions
+        const auth = getAuth();
+        if (error.code === 'permission-denied' && !auth.currentUser) {
+          setIsLoading(false);
+          return;
+        }
+
         const contextualError = new FirestorePermissionError({
           operation: 'get',
           path: memoizedDocRef.path,
