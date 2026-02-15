@@ -244,10 +244,12 @@ export default function DuniyaApp() {
             </div>
           </div>
         ) : activeTab === "explore" ? (
-          <DuniyaPanel onJoinSuccess={(id) => {
-            setActiveTab("chat");
-            handleSelectServer(id);
-          }} />
+          <div className="flex-1 h-full">
+            <DuniyaPanel onJoinSuccess={(id) => {
+              setActiveTab("chat");
+              handleSelectServer(id);
+            }} />
+          </div>
         ) : (
           <div className="h-full w-full flex items-center justify-center p-8 text-center opacity-50">
             <div className="flex flex-col items-center gap-4">

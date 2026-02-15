@@ -208,6 +208,13 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
                   >
                     <Upload className="h-6 w-6 text-white" />
                   </button>
+                  <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    className="hidden" 
+                    accept="image/*" 
+                    onChange={handleFileChange} 
+                  />
                 </div>
                 <div className="text-center">
                   <h4 className="font-black text-lg">@{username}</h4>
@@ -220,6 +227,20 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
                 <div className="relative">
                   <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input id="username" className="pl-9 bg-muted/30 border-none rounded-xl font-bold h-11" value={username} onChange={(e) => setUsername(e.target.value)} />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="photoURL" className="text-[10px] font-black uppercase tracking-wider text-muted-foreground ml-1">Avatar URL</Label>
+                <div className="relative">
+                  <Link className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input 
+                    id="photoURL" 
+                    className="pl-9 bg-muted/30 border-none rounded-xl font-medium h-11 text-xs" 
+                    value={photoURL} 
+                    onChange={(e) => setPhotoURL(e.target.value)} 
+                    placeholder="https://images.unsplash.com/..."
+                  />
                 </div>
               </div>
 
