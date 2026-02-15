@@ -207,9 +207,28 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
     }
   }, []);
 
+  // Filter out deleted messages for forwarding
   const messagesToForward = useMemo(() => {
-    return rawMessages?.filter(m => selectedIds.has(m.id)) || [];
-  }, [selectedIds, rawMessages]);
+    return rawMessages?.filter(m => {
+      if (!selectedIds.has(m.id)) return false;
+      
+      // Check if it's technically deleted or disappeared
+      const isActuallyDeleted = m.isDeleted || m.fullyDeleted;
+      
+      // Check if it has expired (disappearing logic)
+      let hasExpired = false;
+      if (m.disappearingEnabled && user) {
+        const expireAtStr = m.senderId === user.uid ? m.senderExpireAt : m.viewerExpireAt?.[user.uid];
+        if (expireAtStr && new Date(expireAtStr).getTime() < new Date().getTime()) {
+          hasExpired = true;
+        }
+      }
+
+      return !isActuallyDeleted && !hasExpired;
+    }) || [];
+  }, [selectedIds, rawMessages, user?.uid]);
+
+  const canForward = useMemo(() => messagesToForward.length > 0, [messagesToForward]);
 
   const messageCount = messages.length;
   useEffect(() => {
@@ -249,7 +268,13 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
             </Button>
             <span className="font-black text-lg flex-1 tracking-tight">{selectedIds.size} SELECTED</span>
             <div className="flex items-center gap-1">
-              <Button variant="ghost" size="icon" className="text-white hover:bg-white/10" onClick={() => setIsForwardDialogOpen(true)}>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="text-white hover:bg-white/10 disabled:opacity-40" 
+                onClick={() => setIsForwardDialogOpen(true)}
+                disabled={!canForward}
+              >
                 <Forward className="h-5 w-5" />
               </Button>
               <Button variant="ghost" size="icon" className="text-white hover:bg-white/10" onClick={() => setIsDeleteDialogOpen(true)}>
