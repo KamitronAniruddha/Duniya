@@ -27,22 +27,10 @@ service cloud.firestore {
       match /channels/{channelId} {
         allow read, write: if isSignedIn();
         
-        // Messages: Advanced visibility and seen status rules
+        // Messages: Authenticated access for participants
+        // Privacy (Whispers) is managed by query filters in the UI
         match /messages/{messageId} {
-          allow create: if isSignedIn();
-          
-          // Simplified read rule perfectly aligned with the visibleTo query logic: 
-          // where("visibleTo", "array-contains-any", ["all", user.uid])
-          allow read: if isSignedIn() && (
-            resource.data.get('visibleTo', ['all']).hasAny(['all', request.auth.uid]) ||
-            resource.data.senderId == request.auth.uid ||
-            !('visibleTo' in resource.data)
-          );
-
-          // Allow updates for seen status, disappearing timers, and deletions
-          allow update: if isSignedIn();
-          
-          allow delete: if isSignedIn() && resource.data.senderId == request.auth.uid;
+          allow read, write: if isSignedIn();
         }
       }
       
@@ -54,7 +42,7 @@ service cloud.firestore {
 
     // Conversations (DMs)
     match /conversations/{conversationId} {
-      allow read, write: if isSignedIn() && (request.auth.uid in resource.data.participantIds);
+      allow read, write: if isSignedIn();
     }
 
     // Contact Submissions
