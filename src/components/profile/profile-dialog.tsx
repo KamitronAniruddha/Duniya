@@ -64,15 +64,15 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
   const [interfaceMode, setInterfaceMode] = useState("laptop");
 
   useEffect(() => {
-    if (userData) {
-      setUsername(userData.username || "");
+    if (userData && open) {
+      setUsername(userData.displayName || userData.username || "");
       setPhotoURL(userData.photoURL || "");
       setBio(userData.bio || "");
       setAllowGroupInvites(userData.allowGroupInvites !== false);
       setShowOnlineStatus(userData.showOnlineStatus !== false);
       setInterfaceMode(userData.interfaceMode || "laptop");
     }
-  }, [userData]);
+  }, [userData, open]);
 
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -102,15 +102,19 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
     setIsLoading(true);
 
     try {
+      // Update Firebase Auth Profile
       await updateProfile(user, {
-        displayName: username,
+        displayName: username.trim(),
+        photoURL: photoURL.trim() || null
       });
 
+      // Update Firestore Document
       const userRef = doc(db, "users", user.uid);
       updateDocumentNonBlocking(userRef, {
-        username: username.toLowerCase() || null,
-        photoURL: photoURL || null,
-        bio: bio || null,
+        displayName: username.trim(),
+        username: userData?.username || username.toLowerCase().replace(/\s+/g, '') || null,
+        photoURL: photoURL.trim() || null,
+        bio: bio.trim() || null,
         interfaceMode: interfaceMode,
         updatedAt: new Date().toISOString()
       });
@@ -120,7 +124,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Error",
+        title: "Update Error",
         description: error.message
       });
     } finally {
@@ -196,7 +200,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
               <div className="flex flex-col items-center justify-center gap-4 mb-4">
                 <div className="relative group/avatar">
                   <Avatar className="h-24 w-24 ring-4 ring-primary/10 ring-offset-2">
-                    <AvatarImage src={photoURL || undefined} />
+                    <AvatarImage src={photoURL || undefined} className="object-cover" />
                     <AvatarFallback className="text-3xl bg-primary text-white font-black">
                       {username?.[0]?.toUpperCase() || "?"}
                     </AvatarFallback>
@@ -217,16 +221,16 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
                   />
                 </div>
                 <div className="text-center">
-                  <h4 className="font-black text-lg">@{username}</h4>
+                  <h4 className="font-black text-lg">@{userData?.username || username}</h4>
                   <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">{user?.email}</p>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="username" className="text-[10px] font-black uppercase tracking-wider text-muted-foreground ml-1">Verse Handle</Label>
+                <Label htmlFor="displayName" className="text-[10px] font-black uppercase tracking-wider text-muted-foreground ml-1">Display Name</Label>
                 <div className="relative">
                   <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input id="username" className="pl-9 bg-muted/30 border-none rounded-xl font-bold h-11" value={username} onChange={(e) => setUsername(e.target.value)} />
+                  <Input id="displayName" className="pl-9 bg-muted/30 border-none rounded-xl font-bold h-11" value={username} onChange={(e) => setUsername(e.target.value)} />
                 </div>
               </div>
 
