@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useFirestore, useUser } from "@/firebase";
 import { doc, arrayUnion, deleteField } from "firebase/firestore";
 import { UserProfilePopover } from "@/components/profile/user-profile-popover";
-import { Reply, CornerDownRight, Play, Pause, Volume2, MoreHorizontal, Trash2, Ban, Copy, Timer, Eye, Check, CheckCheck } from "lucide-react";
+import { Reply, CornerDownRight, Play, Pause, Volume2, MoreHorizontal, Trash2, Ban, Copy, Timer, Check, CheckCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useRef, useEffect } from "react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -95,7 +95,7 @@ export function MessageBubble({ message, channelId, serverId, sender, isMe, onRe
       
       updateDocumentNonBlocking(msgRef, updateData);
     }
-  }, [message.id, user?.uid, isMe, message.disappearingEnabled, message.seenBy]);
+  }, [message.id, user?.uid, isMe, message.disappearingEnabled, message.seenBy, db, serverId, channelId]);
 
   // Real-time Countdown logic
   useEffect(() => {
@@ -130,14 +130,14 @@ export function MessageBubble({ message, channelId, serverId, sender, isMe, onRe
 
   const handleTouchStart = (e: React.TouchEvent | React.MouseEvent) => {
     if (message.isDeleted || isDisappeared) return;
-    const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
+    const clientX = 'touches' in e ? (e as React.TouchEvent).touches[0].clientX : (e as React.MouseEvent).clientX;
     startX.current = clientX;
     setIsDragging(true);
   };
 
   const handleTouchMove = (e: React.TouchEvent | React.MouseEvent) => {
     if (!isDragging || message.isDeleted || isDisappeared) return;
-    const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
+    const clientX = 'touches' in e ? (e as React.TouchEvent).touches[0].clientX : (e as React.MouseEvent).clientX;
     const diff = clientX - startX.current;
     if (diff > 0) {
       const rubberBand = Math.pow(diff, 0.85);
@@ -261,7 +261,14 @@ export function MessageBubble({ message, channelId, serverId, sender, isMe, onRe
 
           {message.type === 'media' && message.audioUrl ? (
             <div className="flex items-center gap-3 py-1 min-w-[220px]">
-              <audio ref={audioRef} src={message.audioUrl} preload="metadata" />
+              <audio ref={audioRef} src={message.audioUrl} preload="metadata" onTimeUpdate={() => {
+                if (audioRef.current) {
+                  setCurrentTime(audioRef.current.currentTime);
+                  setProgress((audioRef.current.currentTime / audioRef.current.duration) * 100);
+                }
+              }} onLoadedMetadata={() => {
+                if (audioRef.current) setDuration(audioRef.current.duration);
+              }} />
               <Button variant="ghost" size="icon" className={cn("h-10 w-10 rounded-full", isMe ? "text-white" : "text-primary")} onClick={togglePlay}>
                 {isPlaying ? <Pause className="h-5 w-5 fill-current" /> : <Play className="h-5 w-5 fill-current ml-0.5" />}
               </Button>
@@ -296,14 +303,14 @@ export function MessageBubble({ message, channelId, serverId, sender, isMe, onRe
                 )}
               </div>
             )}
-            <div className={cn("text-[9px] leading-none opacity-70 font-medium ml-auto flex items-center gap-1.5", isMe ? "text-white/80" : "text-muted-foreground")}>
+            <div className={cn("text-[9px] leading-none font-black ml-auto flex items-center gap-1", isMe ? "text-white" : "text-muted-foreground")}>
               {formattedTime}
               {isMe && (
                 <div className="flex items-center">
                   {isSeenByOthers ? (
-                    <CheckCheck className="h-3.5 w-3.5 text-blue-400" />
+                    <CheckCheck className="h-4 w-4 text-[#00E0FF] drop-shadow-[0_0_2px_rgba(0,224,255,0.6)] animate-in zoom-in duration-300" />
                   ) : (
-                    <Check className="h-3.5 w-3.5" />
+                    <Check className="h-4 w-4 text-white/70" />
                   )}
                 </div>
               )}
