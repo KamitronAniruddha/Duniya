@@ -70,6 +70,7 @@ export default function DuniyaApp() {
       }
     };
 
+    // Initial online status
     setPresence("online");
 
     const handleVisibility = () => {
@@ -87,7 +88,7 @@ export default function DuniyaApp() {
       window.removeEventListener('visibilitychange', handleVisibility);
       window.removeEventListener('beforeunload', handleUnload);
     };
-  }, [user?.uid, db, auth.currentUser]); 
+  }, [user?.uid, db, auth.currentUser, userData?.showOnlineStatus]); // Added showOnlineStatus to deps for instant privacy updates
 
   const handleSelectServer = useCallback((id: string | "duniya") => {
     if (id === "duniya") {

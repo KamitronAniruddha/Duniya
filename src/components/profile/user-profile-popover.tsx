@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { CalendarDays, User as UserIcon, Maximize2, EyeOff, Ghost } from "lucide-react";
+import { CalendarDays, User as UserIcon, Maximize2, EyeOff, Ghost, Clock } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
@@ -47,6 +47,7 @@ function UserProfileContent({ userId, onWhisper }: { userId: string; onWhisper?:
     : "";
 
   const isOnline = userData?.onlineStatus === "online" && userData?.showOnlineStatus !== false;
+  const isIdle = userData?.onlineStatus === "idle" && userData?.showOnlineStatus !== false;
 
   return (
     <>
@@ -86,17 +87,21 @@ function UserProfileContent({ userId, onWhisper }: { userId: string; onWhisper?:
             </Button>
           )}
 
-          {isOnline && (
+          {isOnline ? (
             <div className="absolute bottom-1 left-[76px] h-6 w-6 rounded-full border-4 border-background bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.6)] animate-pulse" />
-          )}
+          ) : isIdle ? (
+            <div className="absolute bottom-1 left-[76px] h-6 w-6 rounded-full border-4 border-background bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.6)]" />
+          ) : null}
         </div>
 
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <h3 className="text-xl font-black tracking-tight">@{userData?.username || "..."}</h3>
-            {isOnline && (
+            {isOnline ? (
               <Badge variant="secondary" className="bg-green-500/10 text-green-600 border-green-500/20 text-[10px] font-black h-5 uppercase tracking-wider px-2">Online</Badge>
-            )}
+            ) : isIdle ? (
+              <Badge variant="secondary" className="bg-amber-500/10 text-amber-600 border-amber-500/20 text-[10px] font-black h-5 uppercase tracking-wider px-2">Away</Badge>
+            ) : null}
           </div>
           {userData?.bio && (
             <p className="text-sm text-foreground/70 leading-relaxed font-medium mt-2">{userData.bio}</p>

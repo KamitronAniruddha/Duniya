@@ -83,6 +83,9 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
     }
   };
 
+  const isOnline = userData?.onlineStatus === "online" && userData?.showOnlineStatus !== false;
+  const isIdle = userData?.onlineStatus === "idle" && userData?.showOnlineStatus !== false;
+
   return (
     <aside className="w-64 bg-card border-r border-border flex flex-col h-full overflow-hidden shrink-0 z-20 shadow-inner">
       {serverId && user ? (
@@ -187,7 +190,10 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
                 <AvatarImage src={userData?.photoURL || undefined} />
                 <AvatarFallback className="bg-primary text-white font-black text-xs">{userData?.username?.[0]?.toUpperCase()}</AvatarFallback>
               </Avatar>
-              <div className={cn("absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-background shadow-sm transition-colors duration-200", userData?.onlineStatus === "online" && userData?.showOnlineStatus !== false ? "bg-green-500" : "bg-muted-foreground/30")} />
+              <div className={cn(
+                "absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-background shadow-sm transition-colors duration-200", 
+                isOnline ? "bg-green-500" : isIdle ? "bg-amber-500" : "bg-muted-foreground/30"
+              )} />
             </div>
             <div className="flex flex-col min-w-0">
               <span className="text-xs font-black truncate leading-none mb-1 uppercase tracking-tight">@{userData?.username || "..."}</span>

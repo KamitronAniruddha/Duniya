@@ -88,8 +88,9 @@ export function MembersPanel({ serverId, onWhisper }: MembersPanelProps) {
   const isOwner = server.ownerId === currentUser?.uid;
   const serverAdmins = server.admins || [];
   
-  const onlineMembers = members?.filter(m => m.onlineStatus === "online" && m.showOnlineStatus !== false) || [];
-  const offlineMembers = members?.filter(m => m.onlineStatus !== "online" || m.showOnlineStatus === false) || [];
+  // Unified Active Members: includes both 'online' and 'idle'
+  const activeMembers = members?.filter(m => (m.onlineStatus === "online" || m.onlineStatus === "idle") && m.showOnlineStatus !== false) || [];
+  const offlineMembers = members?.filter(m => (m.onlineStatus !== "online" && m.onlineStatus !== "idle") || m.showOnlineStatus === false) || [];
 
   const handleInvite = async () => {
     if (selectedUsers.length === 0 || !db || !serverRef) return;
@@ -171,11 +172,11 @@ export function MembersPanel({ serverId, onWhisper }: MembersPanelProps) {
             </div>
           ) : (
             <>
-              {onlineMembers.length > 0 && (
+              {activeMembers.length > 0 && (
                 <div className="space-y-2">
-                  <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-2">Online — {onlineMembers.length}</h4>
+                  <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-2">Online — {activeMembers.length}</h4>
                   <div className="space-y-0.5">
-                    {onlineMembers.map((member) => (
+                    {activeMembers.map((member) => (
                       <MemberItem 
                         key={member.id} 
                         member={member} 
@@ -272,6 +273,7 @@ function MemberItem({
   onWhisper?: (userId: string, username: string) => void;
 }) {
   const isOnline = member.onlineStatus === "online" && member.showOnlineStatus !== false;
+  const isIdle = member.onlineStatus === "idle" && member.showOnlineStatus !== false;
   const { user: currentUser } = useUser();
 
   return (
@@ -284,9 +286,11 @@ function MemberItem({
               {member.username?.[0]?.toUpperCase() || "?"}
             </AvatarFallback>
           </Avatar>
-          {isOnline && (
+          {isOnline ? (
             <div className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-background bg-green-500 shadow-[0_0_4px_rgba(34,197,94,0.6)]" />
-          )}
+          ) : isIdle ? (
+            <div className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-background bg-amber-500 shadow-[0_0_4px_rgba(245,158,11,0.6)]" />
+          ) : null}
         </button>
       </UserProfilePopover>
       
@@ -295,7 +299,7 @@ function MemberItem({
           <button className="flex items-center gap-1 min-w-0 w-full text-left">
             <span className={cn(
               "text-xs font-bold truncate leading-none hover:text-primary transition-colors",
-              isOnline ? "text-foreground" : "text-muted-foreground"
+              (isOnline || isIdle) ? "text-foreground" : "text-muted-foreground"
             )}>
               @{member.username}
             </span>
