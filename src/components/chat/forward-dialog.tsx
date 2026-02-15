@@ -93,13 +93,19 @@ export function ForwardDialog({ open, onOpenChange, messagesToForward, currentCo
              });
           }
 
+          // Intelligent type detection for legacy or missing data
+          let msgType = msg.type || "text";
+          if (msg.imageUrl && (msgType === "text" || !msgType)) msgType = "media";
+          if (msg.fileUrl && (msgType === "text" || !msgType)) msgType = "file";
+          if (msg.audioUrl && (msgType === "text" || !msgType)) msgType = "media";
+
           const data = {
             id: newMsgRef.id,
             channelId: target.channelId,
             senderId: user.uid,
             senderName: currentSenderName,
             content: msg.content || "",
-            type: msg.type || "text",
+            type: msgType,
             sentAt: new Date().toISOString(),
             isForwarded: true,
             audioUrl: msg.audioUrl || null,

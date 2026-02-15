@@ -340,7 +340,7 @@ export const MessageBubble = memo(function MessageBubble({
                     </div>
                   </div>
                 </div>
-              ) : message.type === 'file' && message.fileUrl ? (
+              ) : (message.type === 'file' || message.fileUrl) && message.fileUrl ? (
                 <div className="flex items-center gap-3 p-3 bg-black/5 rounded-2xl border border-black/10 min-w-[200px] max-w-full">
                   <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center shadow-sm shrink-0", isMe ? "bg-primary-foreground text-primary" : "bg-primary text-primary-foreground")}>
                     {message.fileType?.includes('pdf') ? <FileText className="h-5 w-5" /> : <File className="h-5 w-5" />}
@@ -364,7 +364,7 @@ export const MessageBubble = memo(function MessageBubble({
                 <p className="whitespace-pre-wrap break-words leading-snug text-sm font-medium tracking-tight selection:bg-white/30 px-2">{message.content}</p>
               )}
 
-              {(message.imageUrl || message.type === 'file') && message.content && (
+              {(message.imageUrl || message.type === 'file' || message.fileUrl) && message.content && (
                 <p className="mt-2 px-2 whitespace-pre-wrap break-words leading-snug text-sm font-medium tracking-tight selection:bg-white/30">{message.content}</p>
               )}
 
@@ -434,29 +434,30 @@ export const MessageBubble = memo(function MessageBubble({
       </Dialog>
 
       <Dialog open={isPDFViewOpen} onOpenChange={setIsPDFViewOpen}>
-        <DialogContent className="max-w-[95vw] h-[90vh] p-0 border-none shadow-2xl bg-background overflow-hidden flex flex-col rounded-[2.5rem]">
-          <DialogHeader className="p-6 md:p-8 pb-4 bg-gradient-to-b from-primary/10 to-transparent shrink-0 flex flex-row items-center justify-between border-b">
-            <div className="flex flex-col gap-1">
-              <DialogTitle className="text-xl md:text-2xl font-black tracking-tight uppercase truncate max-w-[200px] md:max-w-md">
+        <DialogContent className="max-w-[95vw] w-[95vw] h-[90vh] max-h-[90svh] p-0 border-none shadow-2xl bg-background overflow-hidden flex flex-col rounded-[2rem] sm:rounded-[2.5rem]">
+          <DialogHeader className="p-4 md:p-6 pb-2 bg-gradient-to-b from-primary/10 to-transparent shrink-0 flex flex-row items-center justify-between border-b">
+            <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+              <DialogTitle className="text-lg md:text-xl font-black tracking-tight uppercase truncate pr-4">
                 {message.fileName || "PDF Viewer"}
               </DialogTitle>
-              <DialogDescription className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">
+              <DialogDescription className="text-[8px] md:text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">
                 Verse Document Preview
               </DialogDescription>
             </div>
-            <div className="flex items-center gap-2 mr-8">
-              <Button size="sm" variant="outline" className="h-10 rounded-xl text-[10px] font-black uppercase tracking-widest bg-background/50 backdrop-blur-sm px-4" onClick={() => handleDownload(message.fileUrl!, message.fileName || "document.pdf")}>
-                <Download className="h-3 w-3 mr-2 text-primary" /> Save Copy
+            <div className="flex items-center gap-2 shrink-0">
+              <Button size="sm" variant="outline" className="h-8 md:h-10 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest bg-background/50 backdrop-blur-sm px-3 md:px-4" onClick={() => handleDownload(message.fileUrl!, message.fileName || "document.pdf")}>
+                <Download className="h-3 w-3 mr-1.5 md:mr-2 text-primary" /> Save
               </Button>
             </div>
           </DialogHeader>
-          <div className="flex-1 w-full bg-muted/20 relative">
+          <div className="flex-1 w-full bg-muted/10 relative overflow-hidden">
             <iframe 
               src={message.fileUrl} 
-              className="w-full h-full border-none" 
-              title={message.fileName} 
+              className="absolute inset-0 w-full h-full border-none" 
+              title={message.fileName}
+              style={{ colorScheme: 'light' }}
             />
-            <div className="absolute top-4 right-4 p-2 bg-background/80 backdrop-blur-md rounded-lg border text-[8px] font-black uppercase tracking-widest text-primary opacity-40">
+            <div className="absolute top-4 right-4 p-2 bg-background/80 backdrop-blur-md rounded-lg border text-[8px] font-black uppercase tracking-widest text-primary opacity-40 pointer-events-none">
               Verified by Duniya
             </div>
           </div>
