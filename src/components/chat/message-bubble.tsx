@@ -115,7 +115,9 @@ export const MessageBubble = memo(function MessageBubble({
     const hasSeen = message.seenBy?.includes(user.uid);
     if (!hasSeen && message.id) {
       const msgRef = doc(db, messagePath);
-      const updateData: any = { seenBy: arrayUnion(user.uid) };
+      const updateData: any = { 
+        seenBy: arrayUnion(user.uid) 
+      };
       
       if (message.disappearingEnabled) {
         const now = new Date();

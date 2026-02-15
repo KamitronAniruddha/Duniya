@@ -21,53 +21,44 @@ service cloud.firestore {
       );
     }
 
+    // Helper to check if user is a participant in a DM conversation
     function isParticipantInConversation(conversationId) {
-      return isSignedIn() && (
-        request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds
-      );
+      let conv = get(/databases/$(database)/documents/conversations/$(conversationId));
+      return isSignedIn() && (request.auth.uid in conv.data.participantIds);
     }
 
-    // --- COLLECTION RULES ---
+    // --- USER PROFILES ---
 
     match /users/{userId} {
       allow read: if true; 
       allow create: if isOwner(userId);
       allow update: if isOwner(userId) || isAdmin();
       allow delete: if isAdmin();
-
-      match /{allPaths=**} {
-        allow read: if isSignedIn();
-        allow write: if isOwner(userId) || isAdmin();
-      }
     }
+
+    // --- DM CONVERSATIONS ---
 
     match /conversations/{conversationId} {
       allow read: if isSignedIn() && request.auth.uid in resource.data.participantIds;
-      allow update: if isSignedIn() && request.auth.uid in resource.data.participantIds;
       allow create: if isSignedIn() && request.auth.uid in request.resource.data.participantIds;
+      allow update: if isSignedIn() && request.auth.uid in resource.data.participantIds;
       allow delete: if isAdmin();
 
       match /messages/{messageId} {
         allow read: if isParticipantInConversation(conversationId);
         allow create: if isParticipantInConversation(conversationId);
+        // Allow updates for metadata: seenBy, deletedFor, disappearing timers, and soft-deletion
         allow update: if isParticipantInConversation(conversationId) && (
-          request.resource.data.diff(resource.data).affectedKeys().hasAny(['seenBy', 'viewerExpireAt', 'deletedFor', 'isDeleted', 'content', 'type', 'audioUrl', 'videoUrl', 'senderExpireAt'])
+          request.resource.data.diff(resource.data).affectedKeys().hasAny([
+            'seenBy', 'viewerExpireAt', 'deletedFor', 'isDeleted', 'content', 'type', 
+            'audioUrl', 'videoUrl', 'senderExpireAt', 'fullyDeleted'
+          ])
         );
         allow delete: if isSignedIn() && (resource.data.senderId == request.auth.uid || isAdmin());
       }
     }
 
-    match /roles_admin/{userId} {
-      allow get: if isSignedIn();
-      allow list, write: if isAdmin();
-    }
-
-    match /contact_form_submissions/{submissionId} {
-      allow get: if isAdmin() || (isSignedIn() && resource.data.submitterId == request.auth.uid);
-      allow list: if isAdmin();
-      allow create: if true; 
-      allow update, delete: if isAdmin();
-    }
+    // --- COMMUNITIES & CHANNELS ---
 
     match /communities/{communityId} {
       allow read: if isSignedIn();
@@ -81,25 +72,37 @@ service cloud.firestore {
         match /messages/{messageId} {
           allow read: if isSignedIn();
           allow create: if isSignedIn();
+          // Allow updates for metadata and soft-deletion
           allow update: if isSignedIn() && (
             isAdmin() || 
             resource.data.senderId == request.auth.uid ||
-            (request.resource.data.diff(resource.data).affectedKeys().hasAny(['seenBy', 'viewerExpireAt', 'deletedFor', 'isDeleted', 'content', 'type', 'audioUrl', 'videoUrl', 'senderExpireAt']))
+            (request.resource.data.diff(resource.data).affectedKeys().hasAny([
+              'seenBy', 'viewerExpireAt', 'deletedFor', 'isDeleted', 'content', 'type', 
+              'audioUrl', 'videoUrl', 'senderExpireAt', 'fullyDeleted'
+            ]))
           );
           allow delete: if isSignedIn() && (resource.data.senderId == request.auth.uid || isAdmin());
         }
       }
-
-      match /{allPaths=**} {
-        allow read, write: if isSignedIn();
-      }
     }
 
+    // --- ADMINISTRATIVE & SUPPORT ---
+
+    match /roles_admin/{userId} {
+      allow get: if isSignedIn();
+      allow list, write: if isAdmin();
+    }
+
+    match /contact_form_submissions/{submissionId} {
+      allow get: if isAdmin() || (isSignedIn() && resource.data.submitterId == request.auth.uid);
+      allow list: if isAdmin();
+      allow create: if true; 
+      allow update, delete: if isAdmin();
+    }
+    
+    // Fallback for legacy or other collections
     match /call_sessions/{callSessionId} {
       allow read, write: if isSignedIn();
-      match /{allPaths=**} {
-        allow read, write: if isSignedIn();
-      }
     }
   }
 }
