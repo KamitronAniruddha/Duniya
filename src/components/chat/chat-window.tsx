@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useRef, useEffect, useState, useMemo, useCallback } from "react";
@@ -202,40 +201,42 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
   return (
     <div className="flex-1 flex flex-col h-full bg-background overflow-hidden relative">
       <header className={cn(
-        "h-14 border-b flex items-center justify-between px-4 shrink-0 transition-all duration-500 z-20 overflow-hidden",
+        "h-14 border-b flex items-center justify-between px-4 shrink-0 transition-colors duration-300 z-20 overflow-hidden",
         selectionMode ? "bg-primary text-white" : "bg-background/80 backdrop-blur-md"
       )}>
         <AnimatePresence mode="wait">
           {selectionMode ? (
             <motion.div 
               key="selection-header"
-              initial={{ opacity: 0, y: -20, filter: "blur(10px)" }} 
-              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-              exit={{ opacity: 0, y: 20, filter: "blur(10px)" }}
+              initial={{ opacity: 0, y: -10 }} 
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
               className="flex items-center gap-4 w-full h-full"
             >
-              <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full" onClick={handleCancelSelection}>
-                <X className="h-5 w-5" />
+              <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full h-8 w-8" onClick={handleCancelSelection}>
+                <X className="h-4 w-4" />
               </Button>
               <div className="flex-1 flex flex-col">
-                <span className="font-black text-lg tracking-tighter leading-none">{selectedIds.size} SELECTED</span>
-                <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">Verse Operations</span>
+                <span className="font-black text-base tracking-tighter leading-none">{selectedIds.size} SELECTED</span>
+                <span className="text-[9px] font-bold uppercase tracking-widest opacity-60">Verse Operations</span>
               </div>
               <div className="flex items-center gap-1">
-                <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full" onClick={() => setIsForwardOpen(true)}>
-                  <Forward className="h-5 w-5" />
+                <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full h-9 w-9" onClick={() => setIsForwardOpen(true)}>
+                  <Forward className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full" onClick={() => setIsDeleteDialogOpen(true)}>
-                  <Trash2 className="h-5 w-5" />
+                <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full h-9 w-9" onClick={() => setIsDeleteDialogOpen(true)}>
+                  <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
             </motion.div>
           ) : (
             <motion.div 
               key="normal-header"
-              initial={{ opacity: 0, y: 10, filter: "blur(10px)" }} 
-              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-              exit={{ opacity: 0, y: -10, filter: "blur(10px)" }}
+              initial={{ opacity: 0, y: 10 }} 
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
               className="flex items-center justify-between w-full h-full"
             >
               <div className="flex items-center gap-3">
@@ -251,7 +252,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className={cn("h-9 w-9 rounded-xl transition-all duration-300", showMembers ? "bg-primary/10 text-primary" : "text-muted-foreground")} 
+                  className={cn("h-9 w-9 rounded-xl transition-all duration-200", showMembers ? "bg-primary/10 text-primary" : "text-muted-foreground")} 
                   onClick={onToggleMembers}
                 >
                   <Users className="h-5 w-5" />
@@ -295,16 +296,14 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
                     <motion.div
                       key={msg.id}
                       layout
-                      initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                      initial={{ opacity: 0, scale: 0.98, y: 10 }}
                       animate={{ opacity: 1, scale: 1, y: 0 }}
                       exit={{ 
                         opacity: 0, 
-                        scale: 0.8, 
-                        x: msg.senderId === user?.uid ? 50 : -50,
-                        filter: "blur(12px)",
-                        transition: { duration: 0.3, delay: index * 0.02 } 
+                        scale: 0.9, 
+                        transition: { duration: 0.2 } 
                       }}
-                      transition={{ type: "spring", stiffness: 350, damping: 25 }}
+                      transition={{ type: "spring", stiffness: 500, damping: 30 }}
                     >
                       <MessageBubble 
                         message={msg}
@@ -366,7 +365,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
           <AlertDialogHeader>
             <AlertDialogTitle className="text-2xl font-black tracking-tight">Clear Chat?</AlertDialogTitle>
             <AlertDialogDescription className="font-medium text-muted-foreground">
-              This will hide all current messages from your view in the Verse. This action is cinematic but irreversible for your local view.
+              This will hide all current messages from your view in the Verse. This action is irreversible for your local view.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="gap-3 mt-4">
