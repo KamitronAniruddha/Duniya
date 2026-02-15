@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth, useFirestore } from "@/firebase";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { doc, getDocs, collection, query, where, limit } from "firebase/firestore";
@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Loader2, Heart } from "lucide-react";
+import { Loader2, Heart, CheckCircle2, ArrowLeft, ShieldCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { Logo } from "@/components/logo";
@@ -21,15 +21,24 @@ export function AuthScreen() {
   const db = useFirestore();
   const { toast } = useToast();
   
-  const [isLogin, setIsLogin] = useState(true);
+  const [view, setView] = useState<"login" | "signup" | "loggedOut">("login");
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [pin, setPin] = useState("");
   
   // State for toggling between Ani and Sanu signature
   const [signatureType, setSignatureType] = useState<"ani" | "sanu">("ani");
+
+  useEffect(() => {
+    const justLoggedOut = localStorage.getItem("justLoggedOut");
+    if (justLoggedOut === "true") {
+      setView("loggedOut");
+      localStorage.removeItem("justLoggedOut");
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,11 +48,12 @@ export function AuthScreen() {
     const cleanUsername = username.trim().toLowerCase();
 
     try {
-      if (isLogin) {
+      if (view === "login") {
         await signInWithEmailAndPassword(auth, cleanEmail, password);
       } else {
         if (password !== confirmPassword) throw new Error("Passwords do not match");
         if (cleanUsername.length < 3) throw new Error("Username must be at least 3 characters");
+        if (pin.length !== 4 || !/^\d+$/.test(pin)) throw new Error("PIN must be 4 digits");
 
         const q = query(
           collection(db, "users"), 
@@ -81,7 +91,9 @@ export function AuthScreen() {
           isBlocked: false,
           serverIds: [],
           allowGroupInvites: true,
-          showOnlineStatus: true
+          showOnlineStatus: true,
+          securityPin: pin,
+          interfaceMode: "laptop"
         };
         
         setDocumentNonBlocking(userRef, userData, { merge: true });
@@ -96,6 +108,63 @@ export function AuthScreen() {
       setIsLoading(false);
     }
   };
+
+  const renderLoggedOut = () => (
+    <motion.div 
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="w-full max-w-md my-auto"
+    >
+      <Card className="border-none shadow-2xl bg-card overflow-hidden rounded-[2.5rem]">
+        <CardHeader className="text-center pt-10 pb-6 bg-gradient-to-b from-primary/5 to-transparent">
+          <div className="flex justify-center mb-6">
+            <motion.div 
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", damping: 15 }}
+              className="h-20 w-20 bg-primary/10 rounded-[2rem] flex items-center justify-center text-primary"
+            >
+              <CheckCircle2 className="h-10 w-10" />
+            </motion.div>
+          </div>
+          <CardTitle className="text-3xl font-black uppercase tracking-tighter text-foreground">Logged Out</CardTitle>
+          <CardDescription className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mt-2 px-8">
+            You have successfully disconnected from the Verse. Come back soon!
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="px-10 pb-10 space-y-4">
+          <Button 
+            className="w-full h-14 rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-primary/20"
+            onClick={() => setView("login")}
+          >
+            Sign In Again
+          </Button>
+          <Button 
+            variant="outline" 
+            className="w-full h-14 rounded-2xl font-black uppercase tracking-widest border-2"
+            onClick={() => setView("signup")}
+          >
+            Create New Account
+          </Button>
+        </CardContent>
+        <div className="p-4 bg-muted/20 border-t flex items-center justify-center">
+          <div className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.3em] text-muted-foreground/40">
+            <span>Duniya Messenger Verified</span>
+            <div className="h-1 w-1 rounded-full bg-primary/40" />
+            <span>Aniruddha ❤️</span>
+          </div>
+        </div>
+      </Card>
+    </motion.div>
+  );
+
+  if (view === "loggedOut") {
+    return (
+      <div className="fixed inset-0 w-full flex flex-col bg-background overflow-y-auto custom-scrollbar p-4">
+        {renderLoggedOut()}
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 w-full flex flex-col bg-background overflow-y-auto custom-scrollbar selection:bg-primary/30">
@@ -175,12 +244,12 @@ export function AuthScreen() {
             
             <CardTitle className="text-xl font-black tracking-tighter text-foreground uppercase">Duniya</CardTitle>
             <CardDescription className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/60">
-              {isLogin ? "Welcome back to the Verse" : "Join the modern community platform"}
+              {view === "login" ? "Welcome back to the Verse" : "Join the modern community platform"}
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-2 px-6 md:px-8 pt-2">
-              {!isLogin && (
+              {view === "signup" && (
                 <div className="space-y-0.5">
                   <Label htmlFor="username" className="text-[8px] font-black uppercase tracking-wider text-muted-foreground/80 ml-1">Unique Username</Label>
                   <Input 
@@ -219,32 +288,51 @@ export function AuthScreen() {
                   className="bg-muted/50 border-none h-9 rounded-xl focus:ring-2 focus:ring-primary/20 transition-all text-sm"
                 />
               </div>
-              {!isLogin && (
-                <div className="space-y-0.5">
-                  <Label htmlFor="confirmPassword" className="text-[8px] font-black uppercase tracking-wider text-muted-foreground/80 ml-1">Confirm Password</Label>
-                  <Input 
-                    id="confirmPassword" 
-                    type="password" 
-                    required 
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    disabled={isLoading}
-                    className="bg-muted/50 border-none h-9 rounded-xl focus:ring-2 focus:ring-primary/20 transition-all text-sm"
-                  />
-                </div>
+              {view === "signup" && (
+                <>
+                  <div className="space-y-0.5">
+                    <Label htmlFor="confirmPassword" className="text-[8px] font-black uppercase tracking-wider text-muted-foreground/80 ml-1">Confirm Password</Label>
+                    <Input 
+                      id="confirmPassword" 
+                      type="password" 
+                      required 
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      disabled={isLoading}
+                      className="bg-muted/50 border-none h-9 rounded-xl focus:ring-2 focus:ring-primary/20 transition-all text-sm"
+                    />
+                  </div>
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-1 ml-1 mb-0.5">
+                      <Label htmlFor="pin" className="text-[8px] font-black uppercase tracking-wider text-muted-foreground/80">Security PIN</Label>
+                      <ShieldCheck className="h-2.5 w-2.5 text-primary" />
+                    </div>
+                    <Input 
+                      id="pin" 
+                      type="text" 
+                      maxLength={4}
+                      placeholder="4 Digits (e.g. 1234)" 
+                      required 
+                      value={pin}
+                      onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
+                      disabled={isLoading}
+                      className="bg-muted/50 border-none h-9 rounded-xl focus:ring-2 focus:ring-primary/20 transition-all text-sm font-mono tracking-[0.5em] text-center"
+                    />
+                  </div>
+                </>
               )}
             </CardContent>
             <CardFooter className="flex flex-col space-y-3 px-6 md:px-8 pb-4 pt-1">
               <Button type="submit" className="w-full h-10 text-sm font-black rounded-xl shadow-xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98] uppercase tracking-widest" disabled={isLoading}>
-                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (isLogin ? "Sign In" : "Create Account")}
+                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (view === "login" ? "Sign In" : "Create Account")}
               </Button>
               <button 
                 type="button"
                 className="text-[9px] text-primary hover:text-primary/80 font-black tracking-widest transition-colors uppercase"
-                onClick={() => setIsLogin(!isLogin)}
+                onClick={() => setView(view === "login" ? "signup" : "login")}
                 disabled={isLoading}
               >
-                {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
+                {view === "login" ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
               </button>
             </CardFooter>
           </form>

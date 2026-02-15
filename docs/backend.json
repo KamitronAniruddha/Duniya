@@ -22,6 +22,7 @@
         "allowGroupInvites": { "type": "boolean" },
         "showOnlineStatus": { "type": "boolean" },
         "interfaceMode": { "type": "string", "enum": ["laptop", "tablet", "mobile"] },
+        "securityPin": { "type": "string", "description": "4-digit security PIN for account protection." },
         "mutedInviteCommunities": { 
           "type": "object",
           "description": "Map of communityId to ISO expiry date for muted invitations."

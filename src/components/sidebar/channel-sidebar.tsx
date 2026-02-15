@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -72,6 +73,8 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
         lastOnlineAt: new Date().toISOString()
       });
     }
+    // Set flag for AuthScreen to show logout success message
+    localStorage.setItem("justLoggedOut", "true");
     await auth.signOut();
   };
 
