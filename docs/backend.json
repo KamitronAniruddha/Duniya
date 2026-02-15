@@ -65,67 +65,6 @@
         "createdAt"
       ]
     },
-    "ContactFormSubmission": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "ContactFormSubmission",
-      "type": "object",
-      "description": "Stores messages submitted by users through a contact form, intended for administrator review.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the contact form submission."
-        },
-        "submitterId": {
-          "type": "string",
-          "description": "Unique identifier of the user who submitted the form, if they were logged in. (Relationship: User 1:N ContactFormSubmission)"
-        },
-        "senderName": {
-          "type": "string",
-          "description": "The name provided by the sender if they are not a logged-in user or wish to use a different name."
-        },
-        "senderEmail": {
-          "type": "string",
-          "description": "The email address provided by the sender for communication, especially if not a logged-in user.",
-          "format": "email"
-        },
-        "subject": {
-          "type": "string",
-          "description": "The subject line or topic of the contact form message."
-        },
-        "message": {
-          "type": "string",
-          "description": "The full content of the message submitted by the user."
-        },
-        "submittedAt": {
-          "type": "string",
-          "description": "Timestamp when the contact form was submitted.",
-          "format": "date-time"
-        },
-        "status": {
-          "type": "string",
-          "description": "The current status of the submission (e.g., 'New', 'In Progress', 'Resolved', 'Archived')."
-        },
-        "assignedToAdminId": {
-          "type": "string",
-          "description": "Unique identifier of the admin user assigned to handle this submission. (Relationship: User 1:N ContactFormSubmission)"
-        },
-        "resolvedAt": {
-          "type": "string",
-          "description": "Timestamp when the contact form submission was marked as resolved.",
-          "format": "date-time"
-        },
-        "adminNotes": {
-          "type": "string",
-          "description": "Internal notes added by administrators regarding the handling of this submission."
-        }
-      },
-      "required": [
-        "id",
-        "message",
-        "submittedAt",
-        "status"
-      ]
-    },
     "Community": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Community",
@@ -146,7 +85,7 @@
         },
         "ownerId": {
           "type": "string",
-          "description": "Unique identifier of the user who owns/created the community. (Relationship: User 1:N Community)"
+          "description": "Unique identifier of the user who owns/created the community."
         },
         "avatarUrl": {
           "type": "string",
@@ -155,20 +94,15 @@
         },
         "inviteCode": {
           "type": "string",
-          "description": "A unique, shareable code for inviting new members to the community."
+          "description": "A unique, shareable code for inviting new members."
         },
         "isPublic": {
           "type": "boolean",
-          "description": "Boolean indicating if the community is publicly discoverable by other users."
+          "description": "Boolean indicating if the community is publicly discoverable."
         },
         "createdAt": {
           "type": "string",
           "description": "Timestamp when the community was created.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp when the community was last updated.",
           "format": "date-time"
         }
       },
@@ -183,7 +117,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Channel",
       "type": "object",
-      "description": "Represents a channel within a Community where specific types of communication occur.",
+      "description": "Represents a channel within a Community.",
       "properties": {
         "id": {
           "type": "string",
@@ -191,32 +125,19 @@
         },
         "communityId": {
           "type": "string",
-          "description": "Unique identifier of the community this channel belongs to. (Relationship: Community 1:N Channel)"
+          "description": "Unique identifier of the community this channel belongs to."
         },
         "name": {
           "type": "string",
           "description": "The name of the channel."
         },
-        "description": {
-          "type": "string",
-          "description": "A brief description or topic for the channel."
-        },
         "type": {
           "type": "string",
-          "description": "The type of channel (e.g., 'text', 'voice', 'video', 'announcement')."
-        },
-        "isPrivate": {
-          "type": "boolean",
-          "description": "Boolean indicating if the channel is private and requires specific permissions to access."
+          "description": "The type of channel (e.g., 'text')."
         },
         "createdAt": {
           "type": "string",
           "description": "Timestamp when the channel was created.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp when the channel was last updated.",
           "format": "date-time"
         }
       },
@@ -228,83 +149,64 @@
         "createdAt"
       ]
     },
-    "Message": {
+    "Conversation": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Message",
+      "title": "Conversation",
       "type": "object",
-      "description": "Represents a single chat message sent within a channel or direct message.",
+      "description": "Represents a private 1:1 conversation between two users.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the message."
+          "description": "Unique identifier for the conversation (often sorted uids joined by underscore)."
         },
-        "channelId": {
-          "type": "string",
-          "description": "Unique identifier of the channel where the message was sent."
-        },
-        "senderId": {
-          "type": "string",
-          "description": "Unique identifier of the user who sent the message."
-        },
-        "content": {
-          "type": "string",
-          "description": "The textual content of the message."
-        },
-        "type": {
-          "type": "string",
-          "description": "The type of message (e.g., 'text', 'media')."
-        },
-        "sentAt": {
-          "type": "string",
-          "description": "Timestamp when the message was sent.",
-          "format": "date-time"
-        },
-        "disappearingEnabled": {
-          "type": "boolean",
-          "description": "Whether the message is set to disappear."
-        },
-        "disappearDuration": {
-          "type": "number",
-          "description": "Duration in milliseconds before the message disappears after being viewed."
-        },
-        "senderExpireAt": {
-          "type": "string",
-          "description": "ISO timestamp for when the message expires for the sender.",
-          "format": "date-time"
-        },
-        "viewerExpireAt": {
-          "type": "object",
-          "description": "Map of user IDs to ISO timestamps for when the message expires for that specific viewer.",
-          "additionalProperties": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        "seenBy": {
+        "participantIds": {
           "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "List of user IDs who have seen the message."
+          "items": { "type": "string" },
+          "description": "Array of the two user IDs participating in the chat."
         },
-        "deletedFor": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "List of user IDs for whom the message should no longer be visible."
+        "lastMessage": {
+          "type": "string",
+          "description": "Content of the most recent message for preview."
         },
-        "fullyDeleted": {
-          "type": "boolean",
-          "description": "Whether the message is completely deleted from all participants."
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp of the last activity in the conversation.",
+          "format": "date-time"
         }
       },
       "required": [
         "id",
-        "channelId",
+        "participantIds",
+        "updatedAt"
+      ]
+    },
+    "Message": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Message",
+      "type": "object",
+      "description": "Represents a single chat message.",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "senderId": {
+          "type": "string"
+        },
+        "content": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "sentAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
         "senderId",
         "content",
-        "type",
         "sentAt"
       ]
     }
@@ -333,8 +235,7 @@
           "entityName": "Community",
           "schema": {
             "$ref": "#/backend/entities/Community"
-          },
-          "description": "Stores metadata for communities."
+          }
         }
       },
       {
@@ -343,8 +244,7 @@
           "entityName": "Channel",
           "schema": {
             "$ref": "#/backend/entities/Channel"
-          },
-          "description": "Stores information for channels within a community."
+          }
         }
       },
       {
@@ -353,8 +253,25 @@
           "entityName": "Message",
           "schema": {
             "$ref": "#/backend/entities/Message"
-          },
-          "description": "Contains chat messages for a specific channel."
+          }
+        }
+      },
+      {
+        "path": "/conversations/{conversationId}",
+        "definition": {
+          "entityName": "Conversation",
+          "schema": {
+            "$ref": "#/backend/entities/Conversation"
+          }
+        }
+      },
+      {
+        "path": "/conversations/{conversationId}/messages/{messageId}",
+        "definition": {
+          "entityName": "Message",
+          "schema": {
+            "$ref": "#/backend/entities/Message"
+          }
         }
       }
     ]

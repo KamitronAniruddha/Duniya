@@ -1,8 +1,10 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
 import { ServerSidebar } from "@/components/sidebar/server-sidebar";
 import { ChannelSidebar } from "@/components/sidebar/channel-sidebar";
+import { DMSidebar } from "@/components/sidebar/dm-sidebar";
 import { ChatWindow } from "@/components/chat/chat-window";
 import { AuthScreen } from "@/components/auth/auth-screen";
 import { DuniyaPanel } from "@/components/duniya/duniya-panel";
@@ -21,25 +23,20 @@ export default function DuniyaApp() {
   
   const [activeCommunityId, setActiveCommunityId] = useState<string | null>(null);
   const [activeChannelId, setActiveChannelId] = useState<string | null>(null);
-  const [view, setView] = useState<"chat" | "duniya" | "admin">("chat");
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+  const [view, setView] = useState<"chat" | "duniya" | "admin" | "dm">("chat");
   const [showMembers, setShowMembers] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  // Admin check for Aniruddha
-  const isAdminUser = user?.email === "aniruddha@duniya.app";
 
   const userRef = useMemoFirebase(() => (user ? doc(db, "users", user.uid) : null), [db, user?.uid]);
   const { data: userData } = useDoc(userRef);
 
-  // Presence logic - using setDocumentNonBlocking with merge: true
   useEffect(() => {
     if (!user || !db || !auth.currentUser) return;
 
     const userRef = doc(db, "users", user.uid);
     const updateStatus = (status: "online" | "idle" | "offline") => {
       if (!auth.currentUser) return;
-      
-      // Respect Privacy Settings: If showOnlineStatus is false, always report as offline
       const finalStatus = userData?.showOnlineStatus === false ? "offline" : status;
       
       setDocumentNonBlocking(userRef, {
@@ -80,7 +77,7 @@ export default function DuniyaApp() {
     <div className="flex h-[100dvh] w-full bg-background overflow-hidden selection:bg-primary/20">
       <div className="hidden md:flex shrink-0 h-full overflow-hidden border-r border-border">
         <ServerSidebar 
-          activeServerId={activeCommunityId} 
+          activeServerId={view === "chat" ? activeCommunityId : view} 
           isDuniyaActive={view === "duniya"}
           isAdminActive={view === "admin"}
           onSelectServer={(id) => {
@@ -88,14 +85,21 @@ export default function DuniyaApp() {
               setView("duniya");
               setActiveCommunityId(null);
               setActiveChannelId(null);
+              setActiveConversationId(null);
             } else if (id === "admin") {
               setView("admin");
+              setActiveCommunityId(null);
+              setActiveChannelId(null);
+              setActiveConversationId(null);
+            } else if (id === "dm") {
+              setView("dm");
               setActiveCommunityId(null);
               setActiveChannelId(null);
             } else {
               setView("chat");
               setActiveCommunityId(id);
               setActiveChannelId(null);
+              setActiveConversationId(null);
             }
           }} 
         />
@@ -104,6 +108,12 @@ export default function DuniyaApp() {
             serverId={activeCommunityId} 
             activeChannelId={activeChannelId}
             onSelectChannel={setActiveChannelId}
+          />
+        )}
+        {view === "dm" && (
+          <DMSidebar 
+            activeConversationId={activeConversationId}
+            onSelectConversation={setActiveConversationId}
           />
         )}
       </div>
@@ -123,7 +133,7 @@ export default function DuniyaApp() {
               </SheetHeader>
               <div className="flex h-full w-full overflow-hidden bg-background">
                 <ServerSidebar 
-                  activeServerId={activeCommunityId} 
+                  activeServerId={view === "chat" ? activeCommunityId : view} 
                   isDuniyaActive={view === "duniya"}
                   isAdminActive={view === "admin"}
                   onSelectServer={(id) => {
@@ -131,14 +141,21 @@ export default function DuniyaApp() {
                       setView("duniya");
                       setActiveCommunityId(null);
                       setActiveChannelId(null);
+                      setActiveConversationId(null);
                     } else if (id === "admin") {
                       setView("admin");
+                      setActiveCommunityId(null);
+                      setActiveChannelId(null);
+                      setActiveConversationId(null);
+                    } else if (id === "dm") {
+                      setView("dm");
                       setActiveCommunityId(null);
                       setActiveChannelId(null);
                     } else {
                       setView("chat");
                       setActiveCommunityId(id);
                       setActiveChannelId(null);
+                      setActiveConversationId(null);
                     }
                     setIsMobileMenuOpen(false);
                   }} 
@@ -149,6 +166,15 @@ export default function DuniyaApp() {
                     activeChannelId={activeChannelId}
                     onSelectChannel={(id) => {
                       setActiveChannelId(id);
+                      setIsMobileMenuOpen(false);
+                    }}
+                  />
+                )}
+                {view === "dm" && (
+                  <DMSidebar 
+                    activeConversationId={activeConversationId}
+                    onSelectConversation={(id) => {
+                      setActiveConversationId(id);
                       setIsMobileMenuOpen(false);
                     }}
                   />
@@ -167,12 +193,18 @@ export default function DuniyaApp() {
             }} />
           ) : view === "admin" ? (
             <AdminDashboard />
+          ) : view === "dm" ? (
+            <ChatWindow 
+              conversationId={activeConversationId}
+              mode="dm"
+            />
           ) : (
             <ChatWindow 
               channelId={activeChannelId}
               serverId={activeCommunityId}
               showMembers={showMembers}
               onToggleMembers={() => setShowMembers(!showMembers)}
+              mode="channel"
             />
           )}
         </div>
