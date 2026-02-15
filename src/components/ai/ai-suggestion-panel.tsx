@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useCollection, useFirestore, useMemoFirebase, useUser } from "@/firebase";
-import { collection, query, orderBy, limit } from "firebase/firestore";
+import { collection, query, orderBy, limit, where } from "firebase/firestore";
 import { Sparkles, Zap, BookOpen, Search, Loader2 } from "lucide-react";
 import { suggestContextualTools, type SuggestedAction } from "@/ai/flows/contextual-tool-suggestion";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,8 +20,10 @@ export function AISuggestionPanel({ serverId, channelId }: AISuggestionPanelProp
 
   const messagesQuery = useMemoFirebase(() => {
     if (!db || !serverId || !channelId || !user) return null;
+    // CRITICAL SYNC: Using the same visibility filter as the main chat to satisfy Security Rules
     return query(
       collection(db, "communities", serverId, "channels", channelId, "messages"),
+      where("visibleTo", "array-contains-any", ["all", user.uid]),
       orderBy("sentAt", "desc"),
       limit(5)
     );

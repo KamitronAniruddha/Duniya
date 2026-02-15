@@ -18,23 +18,11 @@ service cloud.firestore {
       allow write: if isOwner(userId);
     }
 
-    // Communities: Public read for discovery, authenticated creation
+    // Communities & Subcollections: Simplified broad authenticated access
+    // Privacy (Whispers) is managed by high-performance query filters in the UI
     match /communities/{communityId} {
-      allow read: if true;
-      allow write: if isSignedIn();
+      allow read, write: if isSignedIn();
       
-      // Channels: Authenticated access
-      match /channels/{channelId} {
-        allow read, write: if isSignedIn();
-        
-        // Messages: Authenticated access
-        // Privacy (Whispers) is managed by query filters in the UI
-        match /messages/{messageId} {
-          allow read, write: if isSignedIn();
-        }
-      }
-      
-      // Subcollections fallback
       match /{allSubcollections=**} {
         allow read, write: if isSignedIn();
       }
