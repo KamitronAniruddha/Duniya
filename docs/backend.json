@@ -87,6 +87,24 @@
         "reactions": { "type": "object", "description": "Map of emoji to array of user IDs." }
       },
       "required": ["id", "senderId", "sentAt"]
+    },
+    "Invitation": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Invitation",
+      "type": "object",
+      "description": "Represents an invitation to join a community.",
+      "properties": {
+        "id": { "type": "string" },
+        "targetUserId": { "type": "string" },
+        "senderId": { "type": "string" },
+        "senderName": { "type": "string" },
+        "communityId": { "type": "string" },
+        "communityName": { "type": "string" },
+        "communityIcon": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "accepted", "declined"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "targetUserId", "communityId", "status"]
     }
   },
   "auth": {
@@ -121,6 +139,13 @@
         "definition": {
           "entityName": "Message",
           "schema": { "$ref": "#/backend/entities/Message" }
+        }
+      },
+      {
+        "path": "/invitations/{invitationId}",
+        "definition": {
+          "entityName": "Invitation",
+          "schema": { "$ref": "#/backend/entities/Invitation" }
         }
       }
     ]

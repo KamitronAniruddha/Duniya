@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -5,13 +6,13 @@ import { useCollection, useFirestore, useDoc, useMemoFirebase, useUser } from "@
 import { collection, query, where, doc, getDocs, arrayUnion, arrayRemove, limit } from "firebase/firestore";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ShieldCheck, Loader2, UserPlus, Check, AlertCircle, UserMinus, Shield, Search, X, EyeOff, Ghost } from "lucide-react";
+import { ShieldCheck, Loader2, UserPlus, Check, AlertCircle, UserMinus, Shield, Search, X, EyeOff, Ghost, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { updateDocumentNonBlocking, setDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { cn } from "@/lib/utils";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { UserProfilePopover } from "@/components/profile/user-profile-popover";
@@ -46,7 +47,6 @@ export function MembersPanel({ serverId, onWhisper }: MembersPanelProps) {
 
   const { data: members, isLoading: isMembersLoading } = useCollection(membersQuery);
 
-  // Update 'now' every 30s to re-calculate "Freshness" of online status
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 30000);
     return () => clearInterval(timer);
@@ -100,7 +100,6 @@ export function MembersPanel({ serverId, onWhisper }: MembersPanelProps) {
       const isFresh = (now - lastSeen) < STALE_THRESHOLD;
       const isPublic = m.showOnlineStatus !== false;
 
-      // STALE CHECK: If last heartbeat is too old, they are offline regardless of state string.
       if (!isFresh || !isPublic || m.onlineStatus === "offline") {
         acc.offline.push(m);
       } else if (m.onlineStatus === "idle") {
@@ -118,17 +117,31 @@ export function MembersPanel({ serverId, onWhisper }: MembersPanelProps) {
   const serverAdmins = server.admins || [];
 
   const handleInvite = async () => {
-    if (selectedUsers.length === 0 || !db || !serverRef) return;
+    if (selectedUsers.length === 0 || !db || !server) return;
     setIsInviting(true);
 
     try {
-      const userIdsToAdd = selectedUsers.map(u => u.id);
-      updateDocumentNonBlocking(serverRef, { members: arrayUnion(...userIdsToAdd) });
-      selectedUsers.forEach(u => {
-        const userRef = doc(db, "users", u.id);
-        updateDocumentNonBlocking(userRef, { serverIds: arrayUnion(serverId) });
+      // CONSENT-BASED INVITES: Instead of adding directly, create Invitation documents.
+      for (const target of selectedUsers) {
+        const inviteRef = doc(collection(db, "invitations"));
+        setDocumentNonBlocking(inviteRef, {
+          id: inviteRef.id,
+          targetUserId: target.id,
+          senderId: currentUser?.uid,
+          senderName: currentUser?.displayName || "Member",
+          communityId: serverId,
+          communityName: server.name,
+          communityIcon: server.icon || null,
+          status: "pending",
+          createdAt: new Date().toISOString()
+        }, { merge: true });
+      }
+
+      toast({ 
+        title: "Invitations Sent", 
+        description: `Requests sent to ${selectedUsers.length} user(s). They will join upon approval.` 
       });
-      toast({ title: "Invites Sent", description: `Successfully added ${selectedUsers.length} user(s) to the community.` });
+      
       setSelectedUsers([]);
       setSearchQuery("");
       setIsInviteOpen(false);
@@ -269,7 +282,7 @@ export function MembersPanel({ serverId, onWhisper }: MembersPanelProps) {
         <DialogContent className="sm:max-w-[425px] rounded-[2rem] border-none shadow-2xl">
           <DialogHeader>
             <DialogTitle className="text-xl font-black uppercase">Invite Members</DialogTitle>
-            <DialogDescription className="font-medium">Search the Verse by username to expand your community.</DialogDescription>
+            <DialogDescription className="font-medium">Selected users will receive a popup to join your community.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             {selectedUsers.length > 0 && (
@@ -297,7 +310,7 @@ export function MembersPanel({ serverId, onWhisper }: MembersPanelProps) {
           </div>
           <DialogFooter>
             <Button type="button" variant="ghost" className="rounded-xl font-bold" onClick={() => { setIsInviteOpen(false); setSelectedUsers([]); }} disabled={isInviting}>Cancel</Button>
-            <Button className="rounded-xl font-black shadow-lg shadow-primary/20" onClick={handleInvite} disabled={isInviting || selectedUsers.length === 0}>{isInviting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <UserPlus className="h-4 w-4 mr-2" />}Invite {selectedUsers.length > 0 ? `(${selectedUsers.length})` : ""}</Button>
+            <Button className="rounded-xl font-black shadow-lg shadow-primary/20" onClick={handleInvite} disabled={isInviting || selectedUsers.length === 0}>{isInviting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}Send Invite {selectedUsers.length > 0 ? `(${selectedUsers.length})` : ""}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

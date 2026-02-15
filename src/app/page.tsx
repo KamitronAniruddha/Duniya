@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -12,6 +13,7 @@ import { Loader2, Menu, Heart } from "lucide-react";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { InvitationManager } from "@/components/invitations/invitation-manager";
 
 export default function DuniyaApp() {
   const { user, isUserLoading } = useUser();
@@ -53,8 +55,6 @@ export default function DuniyaApp() {
       const showStatus = userData?.showOnlineStatus !== false;
       const finalStatus = showStatus ? status : "offline";
       
-      // CRITICAL STABILITY: Only update if status or visibility policy changed.
-      // Updates lastOnlineAt timestamp to keep the session "fresh" for others.
       if (lastSentStatusRef.current !== finalStatus || (finalStatus !== "offline" && Math.random() > 0.8)) {
         lastSentStatusRef.current = finalStatus;
         updateDocumentNonBlocking(doc(db, "users", user.uid), {
@@ -64,7 +64,6 @@ export default function DuniyaApp() {
       }
     };
 
-    // Initial status check
     setPresence(document.visibilityState === 'visible' ? "online" : "idle");
 
     const handleVisibility = () => {
@@ -79,8 +78,6 @@ export default function DuniyaApp() {
     window.addEventListener('blur', handleBlur);
     window.addEventListener('beforeunload', () => setPresence("offline"));
 
-    // HEARTBEAT: Industry standard for serverless presence.
-    // Refreshes the timestamp every 60s while active to prevent "stale" timeout.
     const heartbeat = setInterval(() => {
       if (document.visibilityState === 'visible') {
         setPresence("online");
@@ -126,6 +123,8 @@ export default function DuniyaApp() {
 
   return (
     <div className="flex h-[100dvh] w-full bg-background overflow-hidden">
+      <InvitationManager />
+      
       <div className="hidden md:flex shrink-0 h-full overflow-hidden border-r border-border">
         <ServerSidebar 
           activeServerId={view === "chat" ? activeCommunityId : view} 

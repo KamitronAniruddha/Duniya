@@ -1,3 +1,4 @@
+
 rules_version = '2';
 
 service cloud.firestore {
@@ -18,13 +19,20 @@ service cloud.firestore {
 
     // Communities and Nested Data:
     // - Broad authenticated access for all community interactions.
-    // - Recursive wildcard ensures all subcollections (channels, messages, members) are accessible.
     match /communities/{communityId} {
       allow read, write: if isSignedIn();
       
       match /{allSubcollections=**} {
         allow read, write: if isSignedIn();
       }
+    }
+
+    // Invitations:
+    // - allow create by anyone signed in (sender handles this)
+    // - allow read/update only by target user
+    match /invitations/{inviteId} {
+      allow create: if isSignedIn();
+      allow read, update: if isSignedIn() && request.auth.uid == resource.data.targetUserId;
     }
 
     // Contact Submissions: Public creation, authenticated management.
