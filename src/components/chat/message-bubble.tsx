@@ -44,10 +44,6 @@ interface MessageBubbleProps {
     seenBy?: string[];
     fullyDeleted?: boolean;
     isForwarded?: boolean;
-    forwardedFrom?: {
-      communityName: string;
-      senderName: string;
-    };
     forwardingChain?: ForwardHop[];
   };
   messagePath: string;

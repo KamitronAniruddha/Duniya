@@ -408,6 +408,12 @@ export function ChatWindow({ channelId, serverId, conversationId, mode, showMemb
             >
               Delete for Me
             </AlertDialogAction>
+            <AlertDialogAction 
+              onClick={() => handleBatchDelete("everyone")}
+              className="w-full h-12 rounded-xl font-black bg-destructive text-white hover:bg-destructive/90"
+            >
+              Delete for Everyone
+            </AlertDialogAction>
             <AlertDialogCancel className="w-full h-12 rounded-xl font-bold border-none" onClick={() => {
               setSelectionMode(false);
               setSelectedIds(new Set());
