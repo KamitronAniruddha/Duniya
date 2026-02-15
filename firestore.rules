@@ -35,7 +35,8 @@ service cloud.firestore {
           // where("visibleTo", "array-contains-any", ["all", user.uid])
           allow read: if isSignedIn() && (
             !('visibleTo' in resource.data) || 
-            resource.data.visibleTo.hasAny(['all', request.auth.uid])
+            (resource.data.visibleTo is list && resource.data.visibleTo.hasAny(['all', request.auth.uid])) ||
+            resource.data.visibleTo == 'all'
           );
 
           // Allow updates:
