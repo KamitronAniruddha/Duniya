@@ -102,7 +102,7 @@ export function AuthScreen() {
         <Card className="w-full max-w-md shadow-2xl border-none bg-card mb-12 animate-in fade-in zoom-in-95 duration-500">
           <CardHeader className="space-y-2 text-center pb-8">
             <div className="flex justify-center mb-6">
-              <div className="p-6 bg-primary/10 rounded-[2.5rem] shadow-inner animate-bounce duration-[3000ms]">
+              <div className="p-6 bg-primary/10 rounded-[2.5rem] shadow-inner animate-bounce [animation-duration:3s]">
                 <Logo size={64} />
               </div>
             </div>

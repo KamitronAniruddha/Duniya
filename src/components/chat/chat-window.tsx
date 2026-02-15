@@ -17,7 +17,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { DeleteOptionsDialog } from "./delete-options-dialog";
 import { ForwardDialog } from "./forward-dialog";
-import { AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 
 interface ChatWindowProps {
   channelId?: string | null;
@@ -62,6 +62,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
 
   const messages = useMemo(() => {
     if (!rawMessages || !user) return [];
+    // Only show messages not fully deleted and not deleted for current user
     return rawMessages.filter(msg => !msg.fullyDeleted && !msg.deletedFor?.includes(user.uid));
   }, [rawMessages, user?.uid]);
 
@@ -267,19 +268,31 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
               </div>
             ) : (
               <div className="flex flex-col justify-end min-h-full">
-                <AnimatePresence mode="popLayout">
+                <AnimatePresence mode="popLayout" initial={false}>
                   {messages.map((msg) => (
-                    <MessageBubble 
+                    <motion.div
                       key={msg.id}
-                      message={msg}
-                      messagePath={`${basePath}/messages/${msg.id}`}
-                      isMe={msg.senderId === user?.uid}
-                      isSelected={selectedIds.has(msg.id)}
-                      selectionMode={selectionMode}
-                      onLongPress={enterSelectionMode}
-                      onSelect={toggleMessageSelection}
-                      onReply={() => setReplyingTo(msg)}
-                    />
+                      layout
+                      initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ 
+                        opacity: 0, 
+                        scale: 0.8, 
+                        filter: "blur(10px)",
+                        transition: { duration: 0.25 }
+                      }}
+                    >
+                      <MessageBubble 
+                        message={msg}
+                        messagePath={`${basePath}/messages/${msg.id}`}
+                        isMe={msg.senderId === user?.uid}
+                        isSelected={selectedIds.has(msg.id)}
+                        selectionMode={selectionMode}
+                        onLongPress={enterSelectionMode}
+                        onSelect={toggleMessageSelection}
+                        onReply={() => setReplyingTo(msg)}
+                      />
+                    </motion.div>
                   ))}
                 </AnimatePresence>
               </div>

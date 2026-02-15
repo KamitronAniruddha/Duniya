@@ -232,10 +232,7 @@ export const MessageBubble = memo(function MessageBubble({
   const latestHop = message.forwardingChain?.[message.forwardingChain.length - 1];
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 10, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.8, filter: "blur(10px)" }}
+    <div 
       className={cn(
         "flex w-full py-0.5 group items-end relative transition-all duration-300 rounded-lg select-none", 
         isMe ? "flex-row-reverse" : "flex-row",
@@ -289,17 +286,13 @@ export const MessageBubble = memo(function MessageBubble({
       
       <div className={cn("flex flex-col max-w-[75%] relative transition-transform ease-out", isMe ? "items-end" : "items-start")} style={{ transform: `translateX(${dragX}px)` }}>
         {isActuallyDeleted ? (
-          <motion.div 
-            initial={{ opacity: 0.5 }}
-            animate={{ opacity: 1 }}
-            className={cn(
-              "px-3.5 py-2.5 rounded-2xl text-[11px] italic opacity-60 flex items-center gap-2 border shadow-none bg-card",
-              isMe ? "rounded-br-none" : "rounded-bl-none"
-            )}
-          >
+          <div className={cn(
+            "px-3.5 py-2.5 rounded-2xl text-[11px] italic opacity-60 flex items-center gap-2 border shadow-none bg-card",
+            isMe ? "rounded-br-none" : "rounded-bl-none"
+          )}>
             <Ban className="h-3 w-3" />
             {isDisappeared ? "This message disappeared" : (isMe ? "You deleted this message" : "This message was deleted")}
-          </motion.div>
+          </div>
         ) : (
           <>
             {!isMe && !selectionMode && (
@@ -427,7 +420,8 @@ export const MessageBubble = memo(function MessageBubble({
         onDeleteForMe={handleDeleteForMe} 
         onDeleteForEveryone={handleDeleteForEveryone} 
         isSender={isMe} 
+        count={1}
       />
-    </motion.div>
+    </div>
   );
 });
