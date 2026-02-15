@@ -466,7 +466,9 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
             setSelectedIds(new Set());
           }
         }} 
-        messagesToForward={messagesToForward} 
+        messagesToForward={messagesToForward}
+        currentCommunityName={server?.name}
+        memberMap={memberMap}
       />
     </div>
   );

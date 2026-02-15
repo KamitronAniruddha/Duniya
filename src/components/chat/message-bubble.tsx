@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useFirestore, useUser } from "@/firebase";
 import { doc, arrayUnion, deleteField } from "firebase/firestore";
 import { UserProfilePopover } from "@/components/profile/user-profile-popover";
-import { Reply, CornerDownRight, Play, Pause, Volume2, MoreHorizontal, Trash2, Ban, Copy, Timer, Check, CheckCheck, Forward } from "lucide-react";
+import { Reply, CornerDownRight, Play, Pause, Volume2, MoreHorizontal, Trash2, Ban, Copy, Timer, Check, CheckCheck, Forward, Landmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
@@ -35,6 +35,10 @@ interface MessageBubbleProps {
     seenBy?: string[];
     fullyDeleted?: boolean;
     isForwarded?: boolean;
+    forwardedFrom?: {
+      communityName: string;
+      senderName: string;
+    };
   };
   channelId: string;
   serverId: string;
@@ -311,9 +315,17 @@ export const MessageBubble = memo(function MessageBubble({
               message.disappearingEnabled && "ring-1 ring-primary/30",
               isMe ? "bg-primary text-white rounded-br-none" : "bg-card text-foreground rounded-bl-none border border-border"
             )}>
-              {message.isForwarded && (
-                <div className={cn("flex items-center gap-1 mb-1 italic opacity-60 text-[10px] font-black uppercase tracking-widest", isMe ? "text-white/90" : "text-muted-foreground")}>
-                  <Forward className="h-2.5 w-2.5" /> Forwarded
+              {(message.isForwarded || message.forwardedFrom) && (
+                <div className={cn("flex flex-col mb-1.5 opacity-70", isMe ? "items-end" : "items-start")}>
+                  <div className={cn("flex items-center gap-1 italic text-[9px] font-black uppercase tracking-widest", isMe ? "text-white/90" : "text-muted-foreground")}>
+                    <Forward className="h-2.5 w-2.5" /> Forwarded
+                  </div>
+                  {message.forwardedFrom && (
+                    <div className={cn("flex items-center gap-1 text-[8px] font-bold tracking-tight mt-0.5", isMe ? "text-white/60" : "text-primary/70")}>
+                      <Landmark className="h-2 w-2" />
+                      <span>from {message.forwardedFrom.communityName} by {message.forwardedFrom.senderName}</span>
+                    </div>
+                  )}
                 </div>
               )}
               {message.replyTo && (
@@ -408,6 +420,7 @@ export const MessageBubble = memo(function MessageBubble({
     prev.message.seenBy?.length === next.message.seenBy?.length &&
     prev.sender?.id === next.sender?.id &&
     prev.sender?.photoURL === next.sender?.photoURL &&
-    prev.sender?.username === next.sender?.username
+    prev.sender?.username === next.sender?.username &&
+    JSON.stringify(prev.message.forwardedFrom) === JSON.stringify(next.message.forwardedFrom)
   );
 });

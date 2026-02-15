@@ -8,16 +8,20 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Hash, Search, Forward, Loader2, CheckCircle2, X } from "lucide-react";
+import { Hash, Search, Forward, Loader2, CheckCircle2, X, Info } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 interface ForwardDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   messagesToForward: any[];
+  currentCommunityName?: string;
+  memberMap?: Record<string, any>;
 }
 
 interface SelectedChannel {
@@ -26,13 +30,14 @@ interface SelectedChannel {
   name: string;
 }
 
-export function ForwardDialog({ open, onOpenChange, messagesToForward }: ForwardDialogProps) {
+export function ForwardDialog({ open, onOpenChange, messagesToForward, currentCommunityName, memberMap }: ForwardDialogProps) {
   const db = useFirestore();
   const { user } = useUser();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedChannels, setSelectedChannels] = useState<SelectedChannel[]>([]);
   const [isForwarding, setIsForwarding] = useState(false);
+  const [includeRoot, setIncludeRoot] = useState(true);
 
   // Get user's communities
   const communitiesQuery = useMemoFirebase(() => {
@@ -61,6 +66,10 @@ export function ForwardDialog({ open, onOpenChange, messagesToForward }: Forward
       for (const channel of selectedChannels) {
         for (const msg of messagesToForward) {
           const newMsgRef = doc(collection(db, "communities", channel.communityId, "channels", channel.channelId, "messages"));
+          
+          // Determine original sender name from map if available
+          const originalSenderName = memberMap?.[msg.senderId]?.username || "Unknown";
+
           const data = {
             id: newMsgRef.id,
             channelId: channel.channelId,
@@ -74,7 +83,13 @@ export function ForwardDialog({ open, onOpenChange, messagesToForward }: Forward
             seenBy: [],
             deletedFor: [],
             viewerExpireAt: {},
-            fullyDeleted: false
+            fullyDeleted: false,
+            ...(includeRoot && {
+              forwardedFrom: {
+                communityName: currentCommunityName || "Original Source",
+                senderName: originalSenderName
+              }
+            })
           };
           await setDoc(newMsgRef, data);
         }
@@ -111,6 +126,17 @@ export function ForwardDialog({ open, onOpenChange, messagesToForward }: Forward
         </DialogHeader>
 
         <div className="p-6 pt-2 space-y-4">
+          <div className="flex items-center justify-between p-3 bg-primary/5 rounded-2xl border border-primary/10">
+            <div className="flex items-center gap-3">
+              <Info className="h-4 w-4 text-primary" />
+              <div className="flex flex-col">
+                <Label className="text-xs font-bold">Show original source</Label>
+                <p className="text-[10px] text-muted-foreground">Recipients can see the root of the message.</p>
+              </div>
+            </div>
+            <Switch checked={includeRoot} onCheckedChange={setIncludeRoot} />
+          </div>
+
           <div className="relative">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input 
