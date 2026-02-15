@@ -2,7 +2,7 @@
 
 import { useRef, useEffect, useState, useMemo, useCallback } from "react";
 import { useCollection, useFirestore, useUser, useDoc, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy, limit, doc, arrayUnion, writeBatch, deleteField, where } from "firebase/firestore";
+import { collection, query, orderBy, limit, doc, arrayUnion, writeBatch, deleteField } from "firebase/firestore";
 import { MessageBubble } from "./message-bubble";
 import { MessageInput } from "./message-input";
 import { Hash, Users, Loader2, MessageCircle, X, Trash2, MoreVertical, Eraser, Forward, Settings, Heart } from "lucide-react";
@@ -59,6 +59,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
 
   const messagesQuery = useMemoFirebase(() => {
     if (!db || !basePath || !user) return null;
+    // CRITICAL: Removed visibleTo filter to avoid composite index requirement and fix misreported permission errors.
     return query(
       collection(db, basePath, "messages"), 
       orderBy("sentAt", "asc"), 
@@ -70,6 +71,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
 
   const messages = useMemo(() => {
     if (!rawMessages || !user) return [];
+    // IN-MEMORY PRIVACY FILTER: Instantaneous and avoids Permission Denied errors caused by query engine limitations.
     return rawMessages.filter(msg => {
       if (msg.fullyDeleted || msg.deletedFor?.includes(user.uid)) return false;
       const visibleTo = msg.visibleTo || ["all"];
@@ -99,6 +101,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
 
     const finalWhisper = whisperTarget !== undefined ? whisperTarget : whisperingTo;
 
+    // DEFENSIVE METADATA: null-coalesce all fields to avoid Firestore undefined crashes.
     const data: any = {
       id: messageRef.id,
       channelId: channelId || null,
@@ -133,7 +136,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
       data.replyTo = { 
         messageId: replyingTo.id || "", 
         senderName: replySenderName || "User", 
-        text: replyingTo.content || 'Media Message' 
+        text: replyingTo.content || replyingTo.text || 'Media Message' 
       };
     }
     

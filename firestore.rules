@@ -9,16 +9,16 @@ service cloud.firestore {
     }
 
     // User Profiles: 
-    // - Allow PUBLIC read (get/list): Essential for username uniqueness checks and profile viewing.
-    // - Allow OWNER only write: Only the user can create or update their own identity.
+    // - allow public read (get/list) for username uniqueness checks and profile viewing.
+    // - allow owner only write.
     match /users/{userId} {
       allow get, list: if true;
       allow write: if isSignedIn() && request.auth.uid == userId;
     }
 
     // Communities and Nested Data:
-    // - Require authentication for all community interactions.
-    // - Privacy (Whispers) is enforced by high-performance client-side query filters.
+    // - Broad authenticated access for all community interactions.
+    // - Recursive wildcard ensures all subcollections (channels, messages, members) are accessible.
     match /communities/{communityId} {
       allow read, write: if isSignedIn();
       

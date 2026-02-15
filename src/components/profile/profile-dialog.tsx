@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth, useFirestore, useUser, useDoc, useMemoFirebase } from "@/firebase";
 import { updateProfile, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "firebase/auth";
 import { doc } from "firebase/firestore";
@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, User, Lock, Camera, ShieldAlert, Eye, EyeOff, Users, Palette, Check } from "lucide-react";
+import { Loader2, User, Lock, Camera, ShieldAlert, Eye, EyeOff, Users, Palette, Check, Upload } from "lucide-react";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -41,16 +41,17 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
   const db = useFirestore();
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const userDocRef = useMemoFirebase(() => (user ? doc(db, "users", user.uid) : null), [db, user?.uid]);
   const { data: userData } = useDoc(userDocRef);
 
   const [isLoading, setIsLoading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [username, setUsername] = useState("");
   const [photoURL, setPhotoURL] = useState("");
   const [bio, setBio] = useState("");
   
-  // Privacy Settings
   const [allowGroupInvites, setAllowGroupInvites] = useState(true);
   const [showOnlineStatus, setShowOnlineStatus] = useState(true);
 
@@ -68,6 +69,24 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (file.size > 1024 * 1024) { // 1MB limit for profile pics
+      toast({ variant: "destructive", title: "Image too large", description: "Please select an image under 1MB." });
+      return;
+    }
+
+    setIsUploading(true);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPhotoURL(reader.result as string);
+      setIsUploading(false);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
@@ -81,9 +100,10 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
 
       const userRef = doc(db, "users", user.uid);
       updateDocumentNonBlocking(userRef, {
-        username: username.toLowerCase(),
-        photoURL: photoURL,
-        bio: bio
+        username: username.toLowerCase() || null,
+        photoURL: photoURL || null,
+        bio: bio || null,
+        updatedAt: new Date().toISOString()
       });
 
       toast({ title: "Profile updated successfully" });
@@ -165,12 +185,21 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
           <TabsContent value="profile" className="p-6 focus-visible:ring-0 custom-scrollbar max-h-[450px] overflow-y-auto">
             <form onSubmit={handleUpdateProfile} className="space-y-4">
               <div className="flex flex-col items-center justify-center gap-4 mb-4">
-                <Avatar className="h-20 w-20 ring-4 ring-primary/10 ring-offset-2">
-                  <AvatarImage src={photoURL || undefined} />
-                  <AvatarFallback className="text-2xl bg-primary text-white font-black">
-                    {username?.[0]?.toUpperCase() || "?"}
-                  </AvatarFallback>
-                </Avatar>
+                <div className="relative group/avatar">
+                  <Avatar className="h-24 w-24 ring-4 ring-primary/10 ring-offset-2">
+                    <AvatarImage src={photoURL || undefined} />
+                    <AvatarFallback className="text-3xl bg-primary text-white font-black">
+                      {username?.[0]?.toUpperCase() || "?"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <button 
+                    type="button" 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover/avatar:opacity-100 flex items-center justify-center transition-opacity"
+                  >
+                    <Upload className="h-6 w-6 text-white" />
+                  </button>
+                </div>
                 <div className="text-center">
                   <h4 className="font-black text-lg">@{username}</h4>
                   <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">{user?.email}</p>
@@ -184,19 +213,46 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
                   <Input id="username" className="pl-9 bg-muted/30 border-none rounded-xl" value={username} onChange={(e) => setUsername(e.target.value)} />
                 </div>
               </div>
+
               <div className="space-y-2">
-                <Label htmlFor="photo" className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Photo URL</Label>
-                <div className="relative">
-                  <Camera className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input id="photo" className="pl-9 bg-muted/30 border-none rounded-xl" placeholder="https://..." value={photoURL} onChange={(e) => setPhotoURL(e.target.value)} />
+                <Label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Avatar Source</Label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Camera className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                      id="photo" 
+                      className="pl-9 bg-muted/30 border-none rounded-xl" 
+                      placeholder="Paste Image URL..." 
+                      value={photoURL} 
+                      onChange={(e) => setPhotoURL(e.target.value)} 
+                    />
+                  </div>
+                  <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    className="hidden" 
+                    accept="image/*" 
+                    onChange={handleFileChange} 
+                  />
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    className="rounded-xl h-10 w-10 p-0 border-dashed hover:bg-primary/10 hover:text-primary transition-all"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploading}
+                  >
+                    {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                  </Button>
                 </div>
+                <p className="text-[9px] text-muted-foreground italic px-1">Paste a link or upload from your device (Max 1MB).</p>
               </div>
+
               <div className="space-y-2">
                 <Label htmlFor="bio" className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Bio</Label>
                 <Textarea id="bio" className="bg-muted/30 border-none rounded-xl resize-none" placeholder="Tell us about yourself" value={bio} onChange={(e) => setBio(e.target.value)} />
               </div>
-              <Button type="submit" className="w-full h-12 rounded-xl font-black shadow-lg shadow-primary/20" disabled={isLoading}>
-                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Profile"}
+              <Button type="submit" className="w-full h-12 rounded-xl font-black shadow-lg shadow-primary/20" disabled={isLoading || isUploading}>
+                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Changes"}
               </Button>
             </form>
           </TabsContent>
