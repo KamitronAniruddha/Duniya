@@ -6,13 +6,14 @@ import { useCollection, useFirestore, useUser, useDoc, useMemoFirebase } from "@
 import { collection, query, orderBy, limit, doc, where, writeBatch, arrayUnion, deleteField } from "firebase/firestore";
 import { MessageBubble } from "./message-bubble";
 import { MessageInput } from "./message-input";
-import { Hash, Users, Loader2, MessageCircle, X, Trash2, CheckSquare } from "lucide-react";
+import { Hash, Users, Loader2, MessageCircle, X, Trash2, CheckSquare, CornerUpLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { setDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { MembersPanel } from "@/components/members/members-panel";
 import { useToast } from "@/hooks/use-toast";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 interface ChatWindowProps {
   channelId: string | null;
@@ -33,6 +34,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
   // Selection Mode State
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const channelRef = useMemoFirebase(() => (channelId && serverId && user ? doc(db, "communities", serverId, "channels", channelId) : null), [db, serverId, channelId, user?.uid]);
   const { data: channel } = useDoc(channelRef);
@@ -111,7 +113,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
     setReplyingTo(null);
   };
 
-  const handleBatchDelete = async () => {
+  const handleBatchDelete = async (type: "everyone" | "me") => {
     if (!db || !serverId || !channelId || !user || selectedIds.size === 0) return;
     
     const batch = writeBatch(db);
@@ -120,8 +122,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
     selectedMessages.forEach(msg => {
       const msgRef = doc(db, "communities", serverId, "channels", channelId, "messages", msg.id);
       
-      // If user is sender, delete for everyone (standard WhatsApp style for Duniya)
-      if (msg.senderId === user.uid) {
+      if (type === "everyone" && msg.senderId === user.uid) {
         batch.update(msgRef, {
           isDeleted: true,
           content: "This message was deleted",
@@ -130,7 +131,6 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
           type: "text"
         });
       } else {
-        // If not sender, delete for me only
         batch.update(msgRef, {
           deletedFor: arrayUnion(user.uid)
         });
@@ -142,10 +142,16 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
       toast({ title: `Deleted ${selectedIds.size} message(s)` });
       setSelectionMode(false);
       setSelectedIds(new Set());
+      setIsDeleteDialogOpen(false);
     } catch (e: any) {
       toast({ variant: "destructive", title: "Delete Failed", description: e.message });
     }
   };
+
+  const canDeleteForEveryone = useMemo(() => {
+    const selectedMessages = rawMessages?.filter(m => selectedIds.has(m.id)) || [];
+    return selectedMessages.every(m => m.senderId === user?.uid);
+  }, [selectedIds, rawMessages, user?.uid]);
 
   const toggleMessageSelection = useCallback((id: string) => {
     setSelectedIds(prev => {
@@ -200,18 +206,18 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
     <div className="flex-1 flex flex-col h-full bg-background overflow-hidden relative">
       <header className={cn(
         "h-14 border-b flex items-center justify-between px-4 shrink-0 transition-all z-20",
-        selectionMode ? "bg-primary text-white" : "bg-background/80 backdrop-blur-md"
+        selectionMode ? "bg-primary text-white shadow-lg" : "bg-background/80 backdrop-blur-md"
       )}>
         {selectionMode ? (
-          <div className="flex items-center gap-4 w-full">
+          <div className="flex items-center gap-4 w-full animate-in slide-in-from-top-4 duration-300">
             <Button variant="ghost" size="icon" className="text-white hover:bg-white/10" onClick={() => {
               setSelectionMode(false);
               setSelectedIds(new Set());
             }}>
               <X className="h-5 w-5" />
             </Button>
-            <span className="font-bold text-lg flex-1">{selectedIds.size} Selected</span>
-            <Button variant="ghost" size="icon" className="text-white hover:bg-white/10" onClick={handleBatchDelete}>
+            <span className="font-black text-lg flex-1 tracking-tight">{selectedIds.size} SELECTED</span>
+            <Button variant="ghost" size="icon" className="text-white hover:bg-white/10" onClick={() => setIsDeleteDialogOpen(true)}>
               <Trash2 className="h-5 w-5" />
             </Button>
           </div>
@@ -222,8 +228,8 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
                 <Hash className="h-4 w-4 text-muted-foreground" />
               </div>
               <div className="flex flex-col">
-                <h2 className="font-bold text-sm truncate leading-none mb-0.5">{channel?.name || "..."}</h2>
-                <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">{server?.name || "Community"}</span>
+                <h2 className="font-black text-sm truncate leading-none mb-0.5 tracking-tight">{channel?.name || "..."}</h2>
+                <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">{server?.name || "Community"}</span>
               </div>
             </div>
             
@@ -244,24 +250,24 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
 
       <div className="flex-1 flex min-h-0 overflow-hidden bg-background">
         <div className="flex-1 flex flex-col min-w-0 h-full relative">
-          <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-2 bg-muted/5 custom-scrollbar min-h-0">
+          <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-1 bg-muted/5 custom-scrollbar min-h-0">
             {messagesLoading ? (
               <div className="flex flex-col items-center justify-center py-20 opacity-30 gap-3">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <p className="text-xs font-black uppercase tracking-widest">Loading Conversation</p>
+                <p className="text-xs font-black uppercase tracking-widest">Syncing the Verse</p>
               </div>
             ) : messages.length === 0 ? (
               <div className="py-24 text-center opacity-30 animate-in fade-in duration-1000">
                 <div className="p-6 bg-muted rounded-full w-fit mx-auto mb-6">
                   <Hash className="h-12 w-12" />
                 </div>
-                <h3 className="text-xl font-black mb-1">Welcome to #{channel?.name}</h3>
-                <p className="text-xs font-bold uppercase tracking-widest">This is the beginning of the channel history.</p>
+                <h3 className="text-xl font-black mb-1">WELCOME TO #{channel?.name}</h3>
+                <p className="text-[10px] font-black uppercase tracking-widest">The journey begins here.</p>
               </div>
             ) : (
               <div className="flex flex-col justify-end min-h-full">
                 {messages.map((msg) => (
-                  <div key={msg.id} ref={(el) => { messageRefs.current[msg.id] = el; }} className="transition-colors duration-500 rounded-lg">
+                  <div key={msg.id} ref={(el) => { messageRefs.current[msg.id] = el; }} className="transition-all duration-300">
                     <MessageBubble 
                       message={{
                         ...msg,
@@ -295,12 +301,43 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
         </div>
 
         {showMembers && (
-          <div className="hidden lg:block animate-in slide-in-from-right duration-300">
+          <div className="hidden lg:block animate-in slide-in-from-right duration-300 border-l shadow-2xl z-10">
             <MembersPanel serverId={serverId} />
           </div>
         )}
       </div>
       
+      {/* Selection Mode Actions */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent className="rounded-[2rem] border-none shadow-2xl p-8">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-2xl font-black tracking-tighter">Delete {selectedIds.size} Messages?</AlertDialogTitle>
+            <AlertDialogDescription className="font-medium text-muted-foreground">
+              {canDeleteForEveryone 
+                ? "Would you like to delete these for yourself or for everyone in the community?" 
+                : "You can only delete these messages for yourself as some were sent by others."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-3 pt-4">
+            <AlertDialogCancel className="h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] m-0">Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => handleBatchDelete("me")}
+              className="h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] m-0 bg-muted text-foreground hover:bg-muted/80"
+            >
+              Delete for me
+            </AlertDialogAction>
+            {canDeleteForEveryone && (
+              <AlertDialogAction 
+                onClick={() => handleBatchDelete("everyone")}
+                className="h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] m-0 bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Delete for all
+              </AlertDialogAction>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <div className="hidden md:flex justify-center py-1 bg-background border-t">
         <div className="flex items-center gap-1 text-[8px] font-black uppercase tracking-[0.3em] text-muted-foreground/40">
           <span>Made by Aniruddha with love</span>
