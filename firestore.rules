@@ -10,10 +10,10 @@ service cloud.firestore {
     }
 
     // User Profiles: 
-    // - allow public read (get/list) for username uniqueness checks and profile viewing.
+    // - allow public read for identity lookups.
     // - allow owner only write.
     match /users/{userId} {
-      allow get, list: if true;
+      allow read: if true;
       allow write: if isSignedIn() && request.auth.uid == userId;
     }
 
@@ -28,11 +28,15 @@ service cloud.firestore {
     }
 
     // Invitations:
-    // - allow create by anyone signed in (sender handles this)
-    // - allow read/update only by target user
+    // - allow broad access for signed in users to handle requests.
     match /invitations/{inviteId} {
-      allow create: if isSignedIn();
-      allow read, update: if isSignedIn() && request.auth.uid == resource.data.targetUserId;
+      allow read, write: if isSignedIn();
+    }
+
+    // Conversations (DMs):
+    // - allow broad access for signed in users.
+    match /conversations/{convId} {
+      allow read, write: if isSignedIn();
     }
 
     // Contact Submissions: Public creation, authenticated management.
@@ -41,7 +45,7 @@ service cloud.firestore {
       allow read, update, delete: if isSignedIn();
     }
 
-    // Broad authenticated access for any other collections.
+    // Catch-all for any other collections.
     match /{document=**} {
       allow read, write: if isSignedIn();
     }

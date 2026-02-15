@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 import { useAuth, useFirestore } from "@/firebase";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from "firebase/auth";
-import { doc, getDocs, collection, query, where, limit } from "firebase/firestore";
+import { doc, getDocs, collection, query, where, limit, setDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -94,7 +94,8 @@ export function AuthScreen() {
           interfaceMode: "laptop"
         };
         
-        setDocumentNonBlocking(userRef, userData, { merge: true });
+        // CRITICAL FIX: Await the initial user document creation to prevent permission errors in main layout
+        await setDoc(userRef, userData, { merge: true });
       }
     } catch (error: any) {
       toast({
@@ -111,9 +112,9 @@ export function AuthScreen() {
     <motion.div 
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="w-full max-w-md my-auto"
+      className="w-full max-w-md my-auto flex flex-col items-center justify-center h-full"
     >
-      <Card className="border-none shadow-2xl bg-card overflow-hidden rounded-[2.5rem]">
+      <Card className="border-none shadow-2xl bg-card overflow-hidden rounded-[2.5rem] w-full">
         <CardHeader className="text-center pt-10 pb-6 bg-gradient-to-b from-primary/5 to-transparent">
           <div className="flex justify-center mb-6">
             <motion.div 
@@ -158,8 +159,8 @@ export function AuthScreen() {
 
   if (view === "loggedOut") {
     return (
-      <div className="fixed inset-0 w-full flex flex-col bg-background overflow-y-auto custom-scrollbar p-4 selection:bg-primary/30">
-        <div className="min-h-svh w-full flex flex-col items-center justify-center">
+      <div className="fixed inset-0 w-full flex flex-col items-center justify-center bg-background overflow-hidden p-4 selection:bg-primary/30">
+        <div className="w-full flex items-center justify-center h-full">
           {renderLoggedOut()}
         </div>
       </div>
@@ -168,7 +169,7 @@ export function AuthScreen() {
 
   return (
     <div className="fixed inset-0 w-full flex flex-col bg-background overflow-y-auto custom-scrollbar selection:bg-primary/30">
-      <div className="min-h-svh w-full flex flex-col items-center p-4 py-4 md:py-8">
+      <div className="min-h-svh w-full flex flex-col items-center justify-center p-4 py-4 md:py-8">
         <Card className="w-full max-w-md shadow-2xl border-none bg-card animate-in fade-in zoom-in-95 duration-500 my-auto">
           <CardHeader className="space-y-0.5 text-center pb-1 pt-4">
             <div className="flex flex-col items-center mb-1">
@@ -197,7 +198,7 @@ export function AuthScreen() {
                       exit={{ opacity: 0, scale: 0.9 }}
                     >
                       <motion.path
-                        d="M10,25 C15,10 25,10 30,25 M15,18 H25 M40,25 V15 C40,10 50,10 50,15 V25 M60,15 V25 M60,8 V10"
+                        d="M15,25 C15,10 25,10 30,25 M15,18 H25 M40,25 V15 C40,10 50,10 50,15 V25 M60,15 V25 M60,8 V10"
                         stroke="currentColor"
                         strokeWidth="2.5"
                         strokeLinecap="round"
@@ -213,9 +214,9 @@ export function AuthScreen() {
                   ) : (
                     <motion.svg
                       key="sanu-sig"
-                      width="100"
+                      width="80"
                       height="36"
-                      viewBox="0 0 100 36"
+                      viewBox="0 0 80 36"
                       fill="none"
                       xmlns="http://www.w3.org/2000/svg"
                       className="text-primary transition-transform group-hover:scale-110"

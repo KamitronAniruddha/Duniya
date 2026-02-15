@@ -10,7 +10,7 @@ import { DuniyaPanel } from "@/components/duniya/duniya-panel";
 import { useUser, useFirestore, useMemoFirebase, useAuth, useDoc, useCollection } from "@/firebase";
 import { doc, collection, query, limit, where } from "firebase/firestore";
 import { Loader2, Menu, Heart, Monitor, Tablet, Smartphone, Globe, MessageSquare, User, Compass, LayoutGrid, X } from "lucide-react";
-import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { updateDocumentNonBlocking, setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { Button } from "@/components/ui/button";
 import { InvitationManager } from "@/components/invitations/invitation-manager";
 import { cn } from "@/lib/utils";
@@ -72,10 +72,11 @@ export default function DuniyaApp() {
       
       if (lastSentStatusRef.current !== finalStatus || (finalStatus !== "offline" && Math.random() > 0.8)) {
         lastSentStatusRef.current = finalStatus;
-        updateDocumentNonBlocking(doc(db, "users", user.uid), {
+        // CRITICAL FIX: Use setDocumentNonBlocking with merge:true to ensure new users don't trigger permission errors if their profile is still pending
+        setDocumentNonBlocking(doc(db, "users", user.uid), {
           onlineStatus: finalStatus,
           lastOnlineAt: new Date().toISOString()
-        });
+        }, { merge: true });
       }
     };
 

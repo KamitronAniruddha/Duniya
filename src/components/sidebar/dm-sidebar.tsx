@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -31,10 +32,10 @@ export function DMSidebar({ activeConversationId, onSelectConversation }: DMSide
 
   const convsQuery = useMemoFirebase(() => {
     if (!db || !currentUser) return null;
+    // CRITICAL FIX: Removed orderBy("updatedAt") to avoid index requirement which often triggers permission-style errors when missing.
     return query(
       collection(db, "conversations"),
-      where("participantIds", "array-contains", currentUser.uid),
-      orderBy("updatedAt", "desc")
+      where("participantIds", "array-contains", currentUser.uid)
     );
   }, [db, currentUser?.uid]);
 
