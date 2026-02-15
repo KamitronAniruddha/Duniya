@@ -2,7 +2,7 @@
 
 import { useRef, useEffect, useState, useMemo, useCallback } from "react";
 import { useCollection, useFirestore, useUser, useDoc, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy, limit, doc, arrayUnion, writeBatch, deleteField } from "firebase/firestore";
+import { collection, query, orderBy, limit, doc, arrayUnion, writeBatch, deleteField, where, or } from "firebase/firestore";
 import { MessageBubble } from "./message-bubble";
 import { MessageInput } from "./message-input";
 import { Hash, Users, Loader2, MessageCircle, X, Trash2, MoreVertical, Eraser, Forward, Settings, Heart } from "lucide-react";
@@ -59,7 +59,14 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
 
   const messagesQuery = useMemoFirebase(() => {
     if (!db || !basePath || !user) return null;
-    return query(collection(db, basePath, "messages"), orderBy("sentAt", "asc"), limit(100));
+    // CRITICAL PERFORMANCE FIX: We only query messages that are public OR addressed to us OR sent by us.
+    // This prevents the Firestore listener from crashing on 'Missing or insufficient permissions'.
+    return query(
+      collection(db, basePath, "messages"), 
+      where("visibleTo", "array-contains-any", ["all", user.uid]),
+      orderBy("sentAt", "asc"), 
+      limit(100)
+    );
   }, [db, basePath, user?.uid]);
 
   const { data: rawMessages, isLoading: messagesLoading } = useCollection(messagesQuery);
@@ -68,10 +75,6 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
     if (!rawMessages || !user) return [];
     return rawMessages.filter(msg => {
       if (msg.fullyDeleted || msg.deletedFor?.includes(user.uid)) return false;
-      // Whisper filtering: Only show if it's not a whisper, or if I am sender/receiver
-      if (msg.whisperTo) {
-        return msg.whisperTo === user.uid || msg.senderId === user.uid;
-      }
       return true;
     });
   }, [rawMessages, user?.uid]);
@@ -83,7 +86,8 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
     replySenderName?: string, 
     disappearing?: { enabled: boolean; duration: number }, 
     imageUrl?: string,
-    file?: { url: string; name: string; type: string }
+    file?: { url: string; name: string; type: string },
+    whisperTarget?: { id: string; username: string } | null
   ) => {
     if (!db || !basePath || !user) return;
     const messageRef = doc(collection(db, basePath, "messages"));
@@ -92,6 +96,8 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
     let messageType = "text";
     if (videoUrl || audioUrl || imageUrl) messageType = "media";
     if (file) messageType = "file";
+
+    const finalWhisper = whisperTarget !== undefined ? whisperTarget : whisperingTo;
 
     const data: any = {
       id: messageRef.id,
@@ -114,8 +120,10 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
       seenBy: [],
       deletedFor: [],
       viewerExpireAt: {},
-      whisperTo: whisperingTo?.id || null,
-      whisperToUsername: whisperingTo?.username || null
+      whisperTo: finalWhisper?.id || null,
+      whisperToUsername: finalWhisper?.username || null,
+      // Permission array for high-performance filtering and security compliance
+      visibleTo: finalWhisper ? [user.uid, finalWhisper.id] : ["all"]
     };
     if (disappearing?.enabled) data.senderExpireAt = new Date(sentAt.getTime() + disappearing.duration).toISOString();
     if (replyingTo && replySenderName) data.replyTo = { messageId: replyingTo.id, senderName: replySenderName, text: replyingTo.content || 'Media Message' };

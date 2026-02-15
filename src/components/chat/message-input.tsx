@@ -24,7 +24,8 @@ interface MessageInputProps {
     replySenderName?: string, 
     disappearing?: DisappearingConfig, 
     imageUrl?: string,
-    file?: { url: string; name: string; type: string }
+    file?: { url: string; name: string; type: string },
+    whisperTarget?: { id: string; username: string } | null
   ) => void;
   inputRef?: React.RefObject<HTMLInputElement>;
   replyingTo?: any | null;
@@ -97,38 +98,6 @@ export function MessageInput({ onSendMessage, inputRef: externalInputRef, replyi
     }
   }, []);
 
-  // Intelligent Whisper Command Parser
-  useEffect(() => {
-    const detectWhisperCommand = async () => {
-      if (text.startsWith("@whisper @")) {
-        const parts = text.split(" ");
-        if (parts.length >= 2) {
-          const usernameWithAt = parts[1];
-          const username = usernameWithAt.startsWith("@") ? usernameWithAt.substring(1) : usernameWithAt;
-          
-          if (parts.length > 2) {
-            // User finished the command and pressed space
-            try {
-              const q = query(collection(db, "users"), where("username", "==", username.toLowerCase()), limit(1));
-              const snap = await getDocs(q);
-              if (!snap.empty) {
-                const targetUser = { id: snap.docs[0].id, username: snap.docs[0].data().username };
-                onTriggerWhisper?.(targetUser);
-                // Clear the command from input
-                const remainingText = parts.slice(2).join(" ");
-                setText(remainingText);
-              }
-            } catch (e) {
-              console.error("Whisper resolution failed", e);
-            }
-          }
-        }
-      }
-    };
-
-    detectWhisperCommand();
-  }, [text, db, onTriggerWhisper]);
-
   const applyFormatting = (prefix: string, suffix: string) => {
     if (!inputRef.current) return;
     const start = inputRef.current.selectionStart || 0;
@@ -147,19 +116,50 @@ export function MessageInput({ onSendMessage, inputRef: externalInputRef, replyi
     }, 0);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (text.trim() || imagePreview || filePreview) {
-      const duration = disappearDuration === -1 ? (parseInt(customSeconds) || 10) * 1000 : disappearDuration;
-      onSendMessage(text, undefined, undefined, replyUser?.username, {
-        enabled: disappearingEnabled,
-        duration: duration
-      }, imagePreview || undefined, filePreview || undefined);
-      setText("");
-      setImagePreview(null);
-      setFilePreview(null);
-      setShowFormatting(false);
+    if (!text.trim() && !imagePreview && !filePreview) return;
+
+    let finalContent = text;
+    let finalWhisperTo = whisperingTo;
+
+    // HIGH-PERFORMANCE COMMAND PARSER: Detect "@whisper @username message"
+    const whisperRegex = /^@whisper\s+@?([a-zA-Z0-9._-]+)\s+(.+)$/i;
+    const match = text.match(whisperRegex);
+    
+    if (match) {
+      const targetUsername = match[1].toLowerCase();
+      const messageContent = match[2];
+      setIsProcessing(true);
+      
+      try {
+        const q = query(collection(db, "users"), where("username", "==", targetUsername), limit(1));
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+          finalWhisperTo = { id: snap.docs[0].id, username: snap.docs[0].data().username };
+          finalContent = messageContent;
+        } else {
+          toast({ variant: "destructive", title: "Whisper Error", description: `User @${targetUsername} not found.` });
+          setIsProcessing(false);
+          return;
+        }
+      } catch (e) {
+        console.error("Whisper resolution failed", e);
+      } finally {
+        setIsProcessing(false);
+      }
     }
+
+    const duration = disappearDuration === -1 ? (parseInt(customSeconds) || 10) * 1000 : disappearDuration;
+    onSendMessage(finalContent, undefined, undefined, replyUser?.username, {
+      enabled: disappearingEnabled,
+      duration: duration
+    }, imagePreview || undefined, filePreview || undefined, finalWhisperTo);
+    
+    setText("");
+    setImagePreview(null);
+    setFilePreview(null);
+    setShowFormatting(false);
   };
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -472,6 +472,7 @@ export function MessageInput({ onSendMessage, inputRef: externalInputRef, replyi
                     placeholder={replyingTo ? "Write a reply..." : (whisperingTo ? `Whisper to @${whisperingTo.username}...` : "Karo Chutiyapaa...")}
                     value={text}
                     onChange={(e) => setText(e.target.value)}
+                    disabled={isProcessing}
                     className="w-full bg-transparent border-none rounded-xl px-2 py-2.5 text-sm font-body font-medium focus:outline-none transition-all text-foreground placeholder:text-muted-foreground/70 tracking-tight"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
@@ -511,8 +512,8 @@ export function MessageInput({ onSendMessage, inputRef: externalInputRef, replyi
 
                 <div className="flex items-center gap-1 pr-1.5">
                   {(text.trim() || imagePreview || filePreview) ? (
-                    <Button type="submit" size="icon" className={cn("rounded-xl h-10 w-10 shrink-0 shadow-lg transition-transform active:scale-90", whisperingTo ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-500/20" : "bg-primary text-primary-foreground hover:bg-primary/90")}>
-                      <SendHorizontal className="h-4 w-4" />
+                    <Button type="submit" size="icon" disabled={isProcessing} className={cn("rounded-xl h-10 w-10 shrink-0 shadow-lg transition-transform active:scale-90", whisperingTo ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-500/20" : "bg-primary text-primary-foreground hover:bg-primary/90")}>
+                      {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <SendHorizontal className="h-4 w-4" />}
                     </Button>
                   ) : (
                     <>

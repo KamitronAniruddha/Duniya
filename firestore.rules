@@ -4,18 +4,25 @@ service cloud.firestore {
   match /databases/{database}/documents {
     // Helper to check if a message is a whisper
     function isWhisper(data) {
-      return data.whisperTo != null;
+      return data.whisperTo != null || (data.visibleTo != null && !data.visibleTo.hasAny(['all']));
     }
 
     // Helper to check if user is sender or recipient of a whisper
     function canReadWhisper(data) {
-      return data.senderId == request.auth.uid || data.whisperTo == request.auth.uid;
+      return data.senderId == request.auth.uid || 
+             data.whisperTo == request.auth.uid || 
+             (data.visibleTo != null && data.visibleTo.hasAny([request.auth.uid]));
     }
 
     match /communities/{communityId}/channels/{channelId}/messages/{messageId} {
       allow create: if request.auth != null;
       allow update, delete: if request.auth != null && resource.data.senderId == request.auth.uid;
-      allow read: if request.auth != null && (!isWhisper(resource.data) || canReadWhisper(resource.data));
+      // Allow reading if it's public (visibleTo includes 'all' or no whisper fields)
+      // OR if the user is part of the visibility array
+      allow read: if request.auth != null && (
+        (!isWhisper(resource.data)) || 
+        canReadWhisper(resource.data)
+      );
     }
 
     // BROAD AUTHENTICATED ACCESS FOR OTHER DOCS
