@@ -242,7 +242,7 @@ export const MessageBubble = memo(function MessageBubble({
           <button className="h-8 w-8 mb-0.5 mr-2 shrink-0 transition-transform active:scale-95">
             <Avatar className="h-full w-full border border-border shadow-sm">
               <AvatarImage src={sender?.photoURL} />
-              <AvatarFallback className="text-[9px] font-black bg-primary text-white">{sender?.username?.[0]?.toUpperCase() || "?"}</AvatarFallback>
+              <AvatarFallback className="text-[9px] font-black bg-primary text-primary-foreground">{sender?.username?.[0]?.toUpperCase() || "?"}</AvatarFallback>
             </Avatar>
           </button>
         </UserProfilePopover>
@@ -264,16 +264,16 @@ export const MessageBubble = memo(function MessageBubble({
             
             <div className={cn(
               "px-3 py-2 rounded-[1.25rem] shadow-sm transition-all duration-150 relative group/bubble",
-              isMe ? "bg-primary text-white rounded-br-none shadow-primary/10" : "bg-card text-foreground rounded-bl-none border border-border shadow-black/5",
+              isMe ? "bg-primary text-primary-foreground rounded-br-none shadow-primary/10" : "bg-card text-foreground rounded-bl-none border border-border shadow-black/5",
               selectionMode && !isActuallyDeleted && "cursor-pointer active:scale-[0.98]"
             )}>
               {message.isForwarded && (
                 <div className={cn("flex flex-col mb-1.5 opacity-80", isMe ? "items-end" : "items-start")}>
-                  <button onClick={(e) => { e.stopPropagation(); setIsTraceOpen(true); }} className={cn("flex items-center gap-1 italic text-[8px] font-black uppercase tracking-widest transition-all", isMe ? "text-white/90" : "text-muted-foreground")}>
+                  <button onClick={(e) => { e.stopPropagation(); setIsTraceOpen(true); }} className={cn("flex items-center gap-1 italic text-[8px] font-black uppercase tracking-widest transition-all", isMe ? "text-primary-foreground/90" : "text-muted-foreground")}>
                     <Forward className="h-2 w-2" /> Forwarded
                   </button>
                   {latestHop && (
-                    <div className={cn("flex items-center gap-1 text-[7px] font-black tracking-tight mt-0.5 opacity-60", isMe ? "text-white" : "text-primary")}>
+                    <div className={cn("flex items-center gap-1 text-[7px] font-black tracking-tight mt-0.5 opacity-60", isMe ? "text-primary-foreground" : "text-primary")}>
                       <Landmark className="h-2 w-2" />
                       <span>{(latestHop?.communityName || "VERSE").toUpperCase()} {' > '} #{(latestHop?.channelName || "GENERAL").toUpperCase()}</span>
                     </div>
@@ -282,29 +282,29 @@ export const MessageBubble = memo(function MessageBubble({
               )}
 
               {message.replyTo && (
-                <button className={cn("w-full text-left mb-2 p-2 rounded-xl border-l-2 text-[11px] bg-black/5 flex flex-col gap-0.5 backdrop-blur-sm transition-colors", isMe ? "border-white/40" : "border-primary/50")}>
-                  <span className={cn("font-black text-[9px] flex items-center gap-1 uppercase tracking-wider", isMe ? "text-white" : "text-primary")}>
+                <button className={cn("w-full text-left mb-2 p-2 rounded-xl border-l-2 text-[11px] bg-black/5 flex flex-col gap-0.5 backdrop-blur-sm transition-colors", isMe ? "border-primary-foreground/40" : "border-primary/50")}>
+                  <span className={cn("font-black text-[9px] flex items-center gap-1 uppercase tracking-wider", isMe ? "text-primary-foreground" : "text-primary")}>
                     <CornerDownRight className="h-3 w-3" />{(message.replyTo as any).senderName}
                   </span>
-                  <p className={cn("line-clamp-1 italic font-medium", isMe ? "text-white/70" : "text-muted-foreground")}>{(message.replyTo as any).text}</p>
+                  <p className={cn("line-clamp-1 italic font-medium", isMe ? "text-primary-foreground/70" : "text-muted-foreground")}>{(message.replyTo as any).text}</p>
                 </button>
               )}
 
               {message.type === 'media' && message.audioUrl ? (
                 <div className="flex items-center gap-3 py-2 min-w-[220px] max-w-full">
                   <audio ref={audioRef} src={message.audioUrl} onTimeUpdate={() => { if (audioRef.current && audioRef.current.duration) setProgress((audioRef.current.currentTime / audioRef.current.duration) * 100); }} onEnded={() => { setIsPlaying(false); setProgress(0); }} />
-                  <Button variant="ghost" size="icon" className={cn("h-10 w-10 rounded-full shadow-lg shrink-0 transition-transform active:scale-95", isMe ? "bg-white text-primary" : "bg-primary text-white")} onClick={(e) => { e.stopPropagation(); togglePlay(); }}>
+                  <Button variant="ghost" size="icon" className={cn("h-10 w-10 rounded-full shadow-lg shrink-0 transition-transform active:scale-95", isMe ? "bg-primary-foreground text-primary" : "bg-primary text-primary-foreground")} onClick={(e) => { e.stopPropagation(); togglePlay(); }}>
                     {isPlaying ? <Pause className="h-5 w-5 fill-current" /> : <Play className="h-5 w-5 fill-current ml-0.5" />}
                   </Button>
                   <div className="flex-1 flex flex-col gap-1.5 min-w-0">
                     <div className="flex items-end gap-0.5 h-6 overflow-hidden items-center">
                       {[...Array(20)].map((_, i) => (
-                        <div key={i} className={cn("w-1 rounded-full shrink-0 transition-all duration-300", isMe ? (progress > (i * 5) ? "bg-white" : "bg-white/30") : (progress > (i * 5) ? "bg-primary" : "bg-primary/20"), isPlaying ? "animate-pulse" : "h-1")} style={{ height: isPlaying ? `${Math.random() * 16 + 4}px` : '4px' }} />
+                        <div key={i} className={cn("w-1 rounded-full shrink-0 transition-all duration-300", isMe ? (progress > (i * 5) ? "bg-primary-foreground" : "bg-primary-foreground/30") : (progress > (i * 5) ? "bg-primary" : "bg-primary/20"), isPlaying ? "animate-pulse" : "h-1")} style={{ height: isPlaying ? `${Math.random() * 16 + 4}px` : '4px' }} />
                       ))}
                     </div>
                     <div className="flex items-center justify-between gap-2">
-                       <span className={cn("text-[8px] font-black", isMe ? "text-white/70" : "text-muted-foreground/70")}>{audioRef.current ? `${Math.floor(audioRef.current.currentTime)}s` : "0:00"}</span>
-                       <Mic className={cn("h-2.5 w-2.5", isMe ? "text-white/40" : "text-primary/40")} />
+                       <span className={cn("text-[8px] font-black", isMe ? "text-primary-foreground/70" : "text-muted-foreground/70")}>{audioRef.current ? `${Math.floor(audioRef.current.currentTime)}s` : "0:00"}</span>
+                       <Mic className={cn("h-2.5 w-2.5", isMe ? "text-primary-foreground/40" : "text-primary/40")} />
                     </div>
                   </div>
                 </div>
@@ -318,14 +318,14 @@ export const MessageBubble = memo(function MessageBubble({
 
               <div className="flex items-center justify-between gap-3 mt-1.5">
                 {message.disappearingEnabled && (
-                  <div className={cn("flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-tighter border shadow-sm", isMe ? "bg-white/10 border-white/20 text-white" : "bg-primary/10 border-primary/20 text-primary")}>
+                  <div className={cn("flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-tighter border shadow-sm", isMe ? "bg-primary-foreground/10 border-primary-foreground/20 text-primary-foreground" : "bg-primary/10 border-primary/20 text-primary")}>
                     <Timer className="h-2.5 w-2.5 animate-pulse" />
                     {timeRemaining !== null ? <span>{timeRemaining}S</span> : <span>...</span>}
                   </div>
                 )}
-                <div className={cn("text-[8px] font-black ml-auto flex items-center gap-1 tracking-widest opacity-60", isMe ? "text-white" : "text-muted-foreground")}>
+                <div className={cn("text-[8px] font-black ml-auto flex items-center gap-1 tracking-widest opacity-60", isMe ? "text-primary-foreground" : "text-muted-foreground")}>
                   {formattedTime}
-                  {isMe && <div className="flex items-center">{message.seenBy && message.seenBy.length > 0 ? <CheckCheck className="h-3 w-3 text-cyan-400" /> : <Check className="h-3 w-3 text-white/40" />}</div>}
+                  {isMe && <div className="flex items-center">{message.seenBy && message.seenBy.length > 0 ? <CheckCheck className="h-3 w-3 text-cyan-400" /> : <Check className="h-3 w-3 text-primary-foreground/40" />}</div>}
                 </div>
               </div>
             </div>
@@ -335,7 +335,7 @@ export const MessageBubble = memo(function MessageBubble({
 
       {!selectionMode && !isActuallyDeleted && (
         <div className={cn("mb-1 mx-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-center gap-1", isMe ? "mr-1 flex-row-reverse" : "ml-1 flex-row")}>
-          <button onClick={(e) => { e.stopPropagation(); setIsForwardOpen(true); }} className="h-7 w-7 rounded-full bg-muted/30 hover:bg-primary hover:text-white flex items-center justify-center text-muted-foreground transition-colors active:scale-90"><Forward className="h-3.5 w-3.5" /></button>
+          <button onClick={(e) => { e.stopPropagation(); setIsForwardOpen(true); }} className="h-7 w-7 rounded-full bg-muted/30 hover:bg-primary hover:text-primary-foreground flex items-center justify-center text-muted-foreground transition-colors active:scale-90"><Forward className="h-3.5 w-3.5" /></button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="h-7 w-7 rounded-full bg-muted/30 hover:bg-muted/60 flex items-center justify-center text-muted-foreground transition-colors active:scale-90"><MoreHorizontal className="h-3.5 w-3.5" /></button>

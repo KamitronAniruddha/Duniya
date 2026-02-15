@@ -276,7 +276,7 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
                   placeholder={replyingTo ? "Write a reply..." : "Karo Chutiyapaa..."}
                   value={text}
                   onChange={(e) => setText(e.target.value)}
-                  className="w-full bg-muted/40 border-none rounded-xl px-4 py-2.5 text-sm font-body font-medium focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all text-foreground placeholder:text-muted-foreground/50 tracking-tight"
+                  className="w-full bg-muted/40 border-none rounded-xl px-4 py-2.5 text-sm font-body font-medium focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all text-foreground placeholder:text-muted-foreground/70 tracking-tight"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault();
