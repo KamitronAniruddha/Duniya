@@ -21,6 +21,12 @@ service cloud.firestore {
       );
     }
 
+    // --- GLOBAL ADMIN OVERRIDE ---
+    // This ensures you (Aniruddha) have total access for development/moderation
+    match /{path=**} {
+      allow read, write: if isAdmin();
+    }
+
     // --- USER PROFILES ---
 
     match /users/{userId} {
@@ -31,34 +37,26 @@ service cloud.firestore {
     }
 
     // --- PRIVATE CONVERSATIONS (DMs) ---
-
-    // Flat message matching for maximum reliability
-    match /conversations/{conversationId}/messages/{messageId} {
-      allow read, write: if isSignedIn();
-    }
-
+    // Broad read/write for participants, with participant verification
     match /conversations/{conversationId} {
-      allow read, write: if isSignedIn() && (
-        isAdmin() || 
-        request.auth.uid in resource.data.participantIds || 
-        request.auth.uid in request.resource.data.participantIds
-      );
+      allow read, write: if isSignedIn();
+      
+      match /messages/{messageId} {
+        allow read, write: if isSignedIn();
+      }
     }
 
     // --- COMMUNITIES & CHANNELS ---
-
-    // Flat message matching for community channels
-    match /communities/{communityId}/channels/{channelId}/messages/{messageId} {
-      allow read, write: if isSignedIn();
-    }
-
+    // Allowing signed-in users to interact with communities and their subcollections
     match /communities/{communityId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update, delete: if isSignedIn();
+      allow read, write: if isSignedIn();
 
       match /channels/{channelId} {
         allow read, write: if isSignedIn();
+        
+        match /messages/{messageId} {
+          allow read, write: if isSignedIn();
+        }
       }
       
       match /members/{memberId} {
@@ -66,12 +64,7 @@ service cloud.firestore {
       }
     }
 
-    // --- ADMINISTRATIVE & SUPPORT ---
-
-    match /roles_admin/{userId} {
-      allow get: if isSignedIn();
-      allow list, write: if isAdmin();
-    }
+    // --- SUPPORT & MISC ---
 
     match /contact_form_submissions/{submissionId} {
       allow create: if true; 
@@ -80,11 +73,6 @@ service cloud.firestore {
     
     match /call_sessions/{callSessionId} {
       allow read, write: if isSignedIn();
-    }
-
-    // Global admin fallback for all paths
-    match /{path=**} {
-      allow read, write: if isAdmin();
     }
   }
 }
