@@ -10,23 +10,37 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, User, Lock, Camera, ShieldAlert, Eye, EyeOff, Users } from "lucide-react";
+import { Loader2, User, Lock, Camera, ShieldAlert, Eye, EyeOff, Users, Palette, Check } from "lucide-react";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
+import { useTheme } from "next-themes";
+import { cn } from "@/lib/utils";
 
 interface ProfileDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
+const THEMES = [
+  { id: "light", name: "Duniya Classic", color: "bg-white", border: "border-slate-200" },
+  { id: "dark", name: "Deep Dark", color: "bg-slate-900", border: "border-slate-800" },
+  { id: "midnight", name: "Midnight Purple", color: "bg-indigo-950", border: "border-indigo-900" },
+  { id: "cyberpunk", name: "Neon Cyber", color: "bg-black", border: "border-pink-500" },
+  { id: "rosegold", name: "Rose Gold", color: "bg-rose-50", border: "border-rose-200" },
+  { id: "forest", name: "Forest Green", color: "bg-emerald-950", border: "border-emerald-900" },
+  { id: "ocean", name: "Ocean Breeze", color: "bg-sky-50", border: "border-sky-200" },
+  { id: "crimson", name: "Crimson Fury", color: "bg-red-950", border: "border-red-900" },
+  { id: "amber", name: "Amber Sunset", color: "bg-amber-950", border: "border-amber-900" },
+];
+
 export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
   const { user } = useUser();
-  const auth = useAuth();
   const db = useFirestore();
   const { toast } = useToast();
+  const { theme, setTheme } = useTheme();
 
   const userDocRef = useMemoFirebase(() => (user ? doc(db, "users", user.uid) : null), [db, user?.uid]);
   const { data: userData } = useDoc(userDocRef);
@@ -141,13 +155,14 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
         </DialogHeader>
         
         <Tabs defaultValue="profile" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 bg-muted/50 rounded-none h-12">
-            <TabsTrigger value="profile" className="data-[state=active]:bg-background data-[state=active]:shadow-none font-bold text-xs uppercase tracking-widest">Profile</TabsTrigger>
-            <TabsTrigger value="privacy" className="data-[state=active]:bg-background data-[state=active]:shadow-none font-bold text-xs uppercase tracking-widest">Privacy</TabsTrigger>
-            <TabsTrigger value="security" className="data-[state=active]:bg-background data-[state=active]:shadow-none font-bold text-xs uppercase tracking-widest">Security</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-4 bg-muted/50 rounded-none h-12">
+            <TabsTrigger value="profile" className="data-[state=active]:bg-background data-[state=active]:shadow-none font-bold text-[10px] uppercase tracking-widest">Profile</TabsTrigger>
+            <TabsTrigger value="themes" className="data-[state=active]:bg-background data-[state=active]:shadow-none font-bold text-[10px] uppercase tracking-widest">Themes</TabsTrigger>
+            <TabsTrigger value="privacy" className="data-[state=active]:bg-background data-[state=active]:shadow-none font-bold text-[10px] uppercase tracking-widest">Privacy</TabsTrigger>
+            <TabsTrigger value="security" className="data-[state=active]:bg-background data-[state=active]:shadow-none font-bold text-[10px] uppercase tracking-widest">Security</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="profile" className="p-6 focus-visible:ring-0">
+          <TabsContent value="profile" className="p-6 focus-visible:ring-0 custom-scrollbar max-h-[450px] overflow-y-auto">
             <form onSubmit={handleUpdateProfile} className="space-y-4">
               <div className="flex flex-col items-center justify-center gap-4 mb-4">
                 <Avatar className="h-20 w-20 ring-4 ring-primary/10 ring-offset-2">
@@ -184,6 +199,35 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
                 {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Profile"}
               </Button>
             </form>
+          </TabsContent>
+
+          <TabsContent value="themes" className="p-6 focus-visible:ring-0 custom-scrollbar max-h-[450px] overflow-y-auto">
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Palette className="h-4 w-4 text-primary" />
+                <h4 className="text-xs font-black uppercase tracking-widest">Select Verse Vibe</h4>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                {THEMES.map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={() => setTheme(t.id)}
+                    className={cn(
+                      "flex flex-col items-center gap-2 p-3 rounded-2xl border-2 transition-all group relative",
+                      theme === t.id ? "border-primary bg-primary/5" : "border-transparent bg-muted/30 hover:bg-muted/50"
+                    )}
+                  >
+                    <div className={cn("h-12 w-full rounded-xl border shadow-sm", t.color, t.border)} />
+                    <span className={cn("text-[10px] font-bold uppercase tracking-tight", theme === t.id ? "text-primary" : "text-muted-foreground")}>{t.name}</span>
+                    {theme === t.id && (
+                      <div className="absolute top-1 right-1 bg-primary text-white rounded-full p-0.5">
+                        <Check className="h-3 w-3" />
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
           </TabsContent>
 
           <TabsContent value="privacy" className="p-6 focus-visible:ring-0 space-y-6">
