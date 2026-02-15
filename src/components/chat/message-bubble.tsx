@@ -61,6 +61,7 @@ interface MessageBubbleProps {
   onReply?: () => void;
 }
 
+// Optimized with custom comparison to prevent infinite freeze loops
 export const MessageBubble = memo(function MessageBubble({ 
   message, 
   messagePath,
@@ -241,7 +242,7 @@ export const MessageBubble = memo(function MessageBubble({
         <UserProfilePopover userId={message.senderId}>
           <button className="h-8 w-8 mb-0.5 mr-2 shrink-0 transition-transform active:scale-95">
             <Avatar className="h-full w-full border border-border shadow-sm">
-              <AvatarImage src={sender?.photoURL} />
+              <AvatarImage src={sender?.photoURL} className="aspect-square object-cover" />
               <AvatarFallback className="text-[9px] font-black bg-primary text-primary-foreground">{sender?.username?.[0]?.toUpperCase() || "?"}</AvatarFallback>
             </Avatar>
           </button>
@@ -355,4 +356,12 @@ export const MessageBubble = memo(function MessageBubble({
       {!isActuallyDeleted && <DeleteOptionsDialog open={isDeleteDialogOpen} onOpenChange={(val) => { setIsDeleteDialogOpen(val); if (!val && selectionMode) { onSelect?.(""); } }} onDeleteForMe={() => { if (!db || !messagePath || !user) return; updateDocumentNonBlocking(doc(db, messagePath), { deletedFor: arrayUnion(user.uid) }); toast({ title: "Removed Locally" }); }} onDeleteForEveryone={() => { if (!db || !messagePath) return; updateDocumentNonBlocking(doc(db, messagePath), { isDeleted: true, content: "This message was deleted", audioUrl: deleteField(), videoUrl: deleteField(), type: "text" }); toast({ title: "Wiped" }); }} isSender={isMe} />}
     </div>
   );
+}, (prev, next) => {
+  // Enhanced memo comparison to stop infinite rerender loops during "seen" updates
+  return prev.message.id === next.message.id && 
+         prev.message.content === next.message.content &&
+         prev.message.seenBy?.length === next.message.seenBy?.length &&
+         prev.isSelected === next.isSelected &&
+         prev.selectionMode === next.selectionMode &&
+         prev.message.senderExpireAt === next.message.senderExpireAt;
 });
