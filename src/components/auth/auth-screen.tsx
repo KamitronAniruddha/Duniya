@@ -29,7 +29,6 @@ export function AuthScreen() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   
-  // State for toggling between Ani and Sanu signature
   const [signatureType, setSignatureType] = useState<"ani" | "sanu">("ani");
 
   useEffect(() => {
@@ -94,7 +93,6 @@ export function AuthScreen() {
           interfaceMode: "laptop"
         };
         
-        // CRITICAL FIX: Await the initial user document creation to prevent permission errors in main layout
         await setDoc(userRef, userData, { merge: true });
       }
     } catch (error: any) {
@@ -177,7 +175,6 @@ export function AuthScreen() {
                 <Logo size={32} />
               </div>
               
-              {/* Refined Upright Handwriting Signature */}
               <button 
                 type="button"
                 onClick={() => setSignatureType(prev => prev === "ani" ? "sanu" : "ani")}

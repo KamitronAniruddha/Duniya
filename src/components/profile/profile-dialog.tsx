@@ -82,8 +82,9 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
     const file = e.target.files?.[0];
     if (!file) return;
     
-    if (file.size > 1024 * 1024) { 
-      toast({ variant: "destructive", title: "Image too large", description: "Please select an image under 1MB." });
+    // REDUCED LIMIT: 200KB to prevent "long path" errors and ensure WhatsApp-fast performance
+    if (file.size > 200 * 1024) { 
+      toast({ variant: "destructive", title: "Image too large", description: "Limit: 200KB. Please use a URL for high-res images." });
       return;
     }
 
@@ -107,13 +108,11 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
     setIsLoading(true);
 
     try {
-      // Update Firebase Auth Profile
       await updateProfile(user, {
         displayName: username.trim(),
         photoURL: photoURL.trim() || null
       });
 
-      // Update Firestore Document
       const userRef = doc(db, "users", user.uid);
       updateDocumentNonBlocking(userRef, {
         displayName: username.trim(),
