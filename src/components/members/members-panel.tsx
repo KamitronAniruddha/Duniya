@@ -53,10 +53,11 @@ export function MembersPanel({ serverId, onWhisper }: MembersPanelProps) {
 
   const pendingInvitesQuery = useMemoFirebase(() => {
     if (!db || !serverId || !isAdmin) return null;
+    // Fetch both pending and declined invitations so admins can re-invite
     return query(
       collection(db, "invitations"),
       where("communityId", "==", serverId),
-      where("status", "==", "pending")
+      where("status", "in", ["pending", "declined"])
     );
   }, [db, serverId, isAdmin]);
 
@@ -134,7 +135,6 @@ export function MembersPanel({ serverId, onWhisper }: MembersPanelProps) {
 
     try {
       for (const target of selectedUsers) {
-        // Use a unique ID based on community and user to prevent duplicates
         const inviteId = `${serverId}_${target.id}`;
         const inviteRef = doc(db, "invitations", inviteId);
         
@@ -170,10 +170,12 @@ export function MembersPanel({ serverId, onWhisper }: MembersPanelProps) {
 
   const handleRemind = (invite: any) => {
     const inviteRef = doc(db, "invitations", invite.id);
+    // Reset status to pending so it pops up for the user again
     updateDocumentNonBlocking(inviteRef, {
+      status: "pending",
       createdAt: new Date().toISOString()
     });
-    toast({ title: "Reminder Sent", description: `@${invite.targetUsername} notified.` });
+    toast({ title: "Reminder Sent", description: `@${invite.targetUsername} notified in the Verse.` });
   };
 
   const toggleUserSelection = (user: any) => {
@@ -233,7 +235,7 @@ export function MembersPanel({ serverId, onWhisper }: MembersPanelProps) {
                 <div className="space-y-2">
                   <h4 className="text-[10px] font-bold uppercase tracking-wider text-primary/80 px-2 flex items-center gap-2">
                     <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse shadow-[0_0_4px_rgba(var(--primary),0.6)]" />
-                    Pending — {pendingInvites.length}
+                    Awaiting Action — {pendingInvites.length}
                   </h4>
                   <div className="space-y-0.5">
                     {pendingInvites.map((invite: any) => (
@@ -245,11 +247,17 @@ export function MembersPanel({ serverId, onWhisper }: MembersPanelProps) {
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex flex-col min-w-0 flex-1">
-                          <span className="text-xs font-bold truncate leading-none text-muted-foreground">
+                          <span className={cn(
+                            "text-xs font-bold truncate leading-none",
+                            invite.status === "declined" ? "text-destructive/70" : "text-muted-foreground"
+                          )}>
                             @{invite.targetUsername}
                           </span>
-                          <span className="text-[8px] text-muted-foreground/60 uppercase font-black tracking-tighter mt-0.5">
-                            Waiting for User
+                          <span className={cn(
+                            "text-[8px] uppercase font-black tracking-tighter mt-0.5",
+                            invite.status === "declined" ? "text-destructive/50" : "text-muted-foreground/60"
+                          )}>
+                            {invite.status === "declined" ? "Declined (Notify to Retry)" : "Waiting for User"}
                           </span>
                         </div>
                         <Button 
@@ -257,7 +265,7 @@ export function MembersPanel({ serverId, onWhisper }: MembersPanelProps) {
                           size="icon" 
                           className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-primary hover:text-primary hover:bg-primary/10"
                           onClick={() => handleRemind(invite)}
-                          title="Remind User"
+                          title={invite.status === "declined" ? "Notify Again" : "Remind User"}
                         >
                           <Bell className="h-3.5 w-3.5" />
                         </Button>
