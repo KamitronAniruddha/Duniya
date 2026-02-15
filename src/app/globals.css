@@ -65,7 +65,7 @@
   }
 
   /* 8 THEMES */
-  [data-theme='midnight'] {
+  .midnight {
     --background: 240 10% 4%;
     --foreground: 0 0% 98%;
     --card: 240 10% 6%;
@@ -76,7 +76,7 @@
     --border: 240 10% 12%;
   }
 
-  [data-theme='cyberpunk'] {
+  .cyberpunk {
     --background: 0 0% 0%;
     --foreground: 300 100% 50%;
     --card: 0 0% 2%;
@@ -87,7 +87,7 @@
     --border: 300 100% 20%;
   }
 
-  [data-theme='rosegold'] {
+  .rosegold {
     --background: 340 20% 98%;
     --foreground: 340 40% 20%;
     --card: 0 0% 100%;
@@ -98,7 +98,7 @@
     --border: 340 20% 90%;
   }
 
-  [data-theme='forest'] {
+  .forest {
     --background: 150 20% 10%;
     --foreground: 150 10% 90%;
     --card: 150 20% 12%;
@@ -109,7 +109,7 @@
     --border: 150 20% 15%;
   }
 
-  [data-theme='ocean'] {
+  .ocean {
     --background: 200 30% 96%;
     --foreground: 200 50% 15%;
     --card: 0 0% 100%;
@@ -120,7 +120,7 @@
     --border: 200 30% 88%;
   }
 
-  [data-theme='crimson'] {
+  .crimson {
     --background: 0 10% 5%;
     --foreground: 0 0% 95%;
     --card: 0 10% 8%;
@@ -131,7 +131,7 @@
     --border: 0 10% 15%;
   }
 
-  [data-theme='amber'] {
+  .amber {
     --background: 30 10% 5%;
     --foreground: 38 10% 90%;
     --card: 30 10% 8%;

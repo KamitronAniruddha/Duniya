@@ -23,7 +23,7 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased h-full overflow-hidden bg-background">
         <ThemeProvider
-          attribute="data-theme"
+          attribute="class"
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange
