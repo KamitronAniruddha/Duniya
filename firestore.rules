@@ -27,7 +27,7 @@ service cloud.firestore {
       match /channels/{channelId} {
         allow read, write: if isSignedIn();
         
-        // Messages: Authenticated access for participants
+        // Messages: Authenticated access
         // Privacy (Whispers) is managed by query filters in the UI
         match /messages/{messageId} {
           allow read, write: if isSignedIn();

@@ -59,7 +59,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
 
   const messagesQuery = useMemoFirebase(() => {
     if (!db || !basePath || !user) return null;
-    // CRITICAL SECURITY SYNC: Ensure the query filter exactly matches the 'visibleTo' rule in firestore.rules
+    // CRITICAL SECURITY SYNC: Simplified query matching permissive Security Rules
     return query(
       collection(db, basePath, "messages"), 
       where("visibleTo", "array-contains-any", ["all", user.uid]),
