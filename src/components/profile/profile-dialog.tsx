@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, User, Lock, Camera, ShieldAlert, Eye, EyeOff, Users, Palette, Check, Upload } from "lucide-react";
+import { Loader2, User, Lock, Camera, ShieldAlert, Eye, EyeOff, Users, Palette, Check, Upload, Link } from "lucide-react";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -73,7 +73,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
     const file = e.target.files?.[0];
     if (!file) return;
     
-    if (file.size > 1024 * 1024) { // 1MB limit for profile pics
+    if (file.size > 1024 * 1024) { 
       toast({ variant: "destructive", title: "Image too large", description: "Please select an image under 1MB." });
       return;
     }
@@ -93,9 +93,8 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
     setIsLoading(true);
 
     try {
-      // CRITICAL FIX: Only update displayName in Firebase Auth.
-      // Firebase Auth photoURL has a strict length limit (approx 2048 chars).
-      // Base64 image strings are much longer and must be stored in Firestore instead.
+      // CRITICAL FIX: Base64 strings for uploaded photos exceed Firebase Auth's 2048-char limit.
+      // We store the photo URL exclusively in Firestore to bypass this crash.
       await updateProfile(user, {
         displayName: username,
       });
@@ -209,50 +208,65 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="username" className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Username</Label>
+                <Label htmlFor="username" className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Verse Handle</Label>
                 <div className="relative">
                   <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input id="username" className="pl-9 bg-muted/30 border-none rounded-xl" value={username} onChange={(e) => setUsername(e.target.value)} />
+                  <Input id="username" className="pl-9 bg-muted/30 border-none rounded-xl font-bold" value={username} onChange={(e) => setUsername(e.target.value)} />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Avatar Source</Label>
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <Camera className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Profile Picture (URL or Upload)</Label>
+                <div className="flex flex-col gap-3">
+                  <div className="relative">
+                    <Link className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input 
-                      id="photo" 
                       className="pl-9 bg-muted/30 border-none rounded-xl" 
-                      placeholder="Paste Image URL..." 
-                      value={photoURL} 
+                      placeholder="Paste Image URL here..." 
+                      value={photoURL.startsWith('data:') ? 'Image uploaded from device' : photoURL} 
                       onChange={(e) => setPhotoURL(e.target.value)} 
                     />
                   </div>
-                  <input 
-                    type="file" 
-                    ref={fileInputRef} 
-                    className="hidden" 
-                    accept="image/*" 
-                    onChange={handleFileChange} 
-                  />
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    className="rounded-xl h-10 w-10 p-0 border-dashed hover:bg-primary/10 hover:text-primary transition-all"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isUploading}
-                  >
-                    {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                  </Button>
+                  
+                  <div className="flex items-center gap-3">
+                    <input 
+                      type="file" 
+                      ref={fileInputRef} 
+                      className="hidden" 
+                      accept="image/*" 
+                      onChange={handleFileChange} 
+                    />
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      className="flex-1 rounded-xl h-11 border-dashed hover:bg-primary/10 hover:text-primary transition-all gap-2"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploading}
+                    >
+                      {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                      {photoURL.startsWith('data:') ? "Change Uploaded Image" : "Upload from Device"}
+                    </Button>
+                    {photoURL.startsWith('data:') && (
+                      <Button 
+                        type="button" 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-11 w-11 rounded-xl text-destructive hover:bg-destructive/10"
+                        onClick={() => setPhotoURL("")}
+                      >
+                        <ShieldAlert className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
-                <p className="text-[9px] text-muted-foreground italic px-1">Paste a link or upload from your device (Max 1MB).</p>
+                <p className="text-[9px] text-muted-foreground italic px-1">Tip: Square images look best in the Verse (Max 1MB).</p>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="bio" className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Bio</Label>
-                <Textarea id="bio" className="bg-muted/30 border-none rounded-xl resize-none" placeholder="Tell us about yourself" value={bio} onChange={(e) => setBio(e.target.value)} />
+                <Textarea id="bio" className="bg-muted/30 border-none rounded-xl resize-none font-medium" placeholder="Tell us about yourself" value={bio} onChange={(e) => setBio(e.target.value)} />
               </div>
+              
               <Button type="submit" className="w-full h-12 rounded-xl font-black shadow-lg shadow-primary/20" disabled={isLoading || isUploading}>
                 {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Changes"}
               </Button>

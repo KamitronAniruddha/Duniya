@@ -215,10 +215,10 @@ export function MembersPanel({ serverId, onWhisper }: MembersPanelProps) {
       </ScrollArea>
 
       <Dialog open={isInviteOpen} onOpenChange={setIsInviteOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] rounded-[2rem] border-none shadow-2xl">
           <DialogHeader>
-            <DialogTitle>Invite Members</DialogTitle>
-            <DialogDescription>Search for users by username. Only users who allow group invites will appear.</DialogDescription>
+            <DialogTitle className="text-xl font-black uppercase">Invite Members</DialogTitle>
+            <DialogDescription className="font-medium">Search the Verse by username to expand your community.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             {selectedUsers.length > 0 && (
@@ -233,20 +233,20 @@ export function MembersPanel({ serverId, onWhisper }: MembersPanelProps) {
               </div>
             )}
             <div className="space-y-2">
-              <Label htmlFor="search">Search Users</Label>
+              <Label htmlFor="search" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Search Universe</Label>
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input id="search" className="pl-9" placeholder="Type a username..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} disabled={isInviting} />
+                <Input id="search" className="pl-9 bg-muted/40 border-none rounded-xl" placeholder="Type a username..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} disabled={isInviting} />
               </div>
             </div>
             <div className="space-y-2 min-h-[120px]">
-              <h4 className="text-[10px] font-bold uppercase text-muted-foreground px-1">Search Results</h4>
+              <h4 className="text-[10px] font-bold uppercase text-muted-foreground px-1">Results</h4>
               {isSearching ? <div className="flex items-center justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground/30" /></div> : (searchQuery.trim().length < 2 ? <div className="flex items-center justify-center py-8 opacity-30"><p className="text-xs text-foreground">Type at least 2 characters...</p></div> : (searchResults.length === 0 ? <div className="flex items-center justify-center py-8 opacity-30"><p className="text-xs text-foreground">No users found or available.</p></div> : <div className="space-y-1">{searchResults.map((u) => { const isSelected = selectedUsers.some(sel => sel.id === u.id); return ( <button key={u.id} type="button" onClick={() => toggleUserSelection(u)} className={cn("w-full flex items-center gap-2 p-2 rounded-lg transition-colors text-left", isSelected ? "bg-primary/10 border border-primary/20" : "hover:bg-muted border border-transparent")}> <Avatar className="h-6 w-6"><AvatarImage src={u.photoURL} /><AvatarFallback className="text-[8px] bg-primary text-primary-foreground">{u.username?.[0]?.toUpperCase()}</AvatarFallback></Avatar> <span className="text-xs font-bold flex-1 text-foreground">@{u.username}</span> {isSelected && <Check className="h-3 w-3 text-primary" />} </button> ); })}</div>))}
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="ghost" onClick={() => { setIsInviteOpen(false); setSelectedUsers([]); }} disabled={isInviting}>Cancel</Button>
-            <Button onClick={handleInvite} disabled={isInviting || selectedUsers.length === 0}>{isInviting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <UserPlus className="h-4 w-4 mr-2" />}Invite {selectedUsers.length > 0 ? `(${selectedUsers.length})` : ""}</Button>
+            <Button type="button" variant="ghost" className="rounded-xl font-bold" onClick={() => { setIsInviteOpen(false); setSelectedUsers([]); }} disabled={isInviting}>Cancel</Button>
+            <Button className="rounded-xl font-black shadow-lg shadow-primary/20" onClick={handleInvite} disabled={isInviting || selectedUsers.length === 0}>{isInviting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <UserPlus className="h-4 w-4 mr-2" />}Invite {selectedUsers.length > 0 ? `(${selectedUsers.length})` : ""}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

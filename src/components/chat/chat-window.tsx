@@ -62,7 +62,8 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
 
   const messagesQuery = useMemoFirebase(() => {
     if (!db || !basePath || !user) return null;
-    // CRITICAL: Removed visibleTo filter to avoid composite index requirement and fix misreported permission errors.
+    // CRITICAL: Fetches the latest 100 messages for in-memory privacy filtering.
+    // This avoids misreported "Permission Denied" errors caused by missing composite indexes.
     return query(
       collection(db, basePath, "messages"), 
       orderBy("sentAt", "asc"), 
@@ -74,7 +75,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
 
   const messages = useMemo(() => {
     if (!rawMessages || !user) return [];
-    // IN-MEMORY PRIVACY FILTER: Instantaneous and avoids Permission Denied errors caused by query engine limitations.
+    // IN-MEMORY PRIVACY FILTER: Instantaneous and bypasses query engine metadata constraints.
     return rawMessages.filter(msg => {
       if (msg.fullyDeleted || msg.deletedFor?.includes(user.uid)) return false;
       const visibleTo = msg.visibleTo || ["all"];
@@ -105,7 +106,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
     const finalWhisper = whisperTarget !== undefined ? whisperTarget : whisperingTo;
 
     // DEFENSIVE METADATA: null-coalesce all fields to avoid Firestore undefined crashes.
-    // Use userData?.photoURL as the primary source for the sender's avatar.
+    // Use userData?.photoURL as the primary source for high-fidelity profile pictures.
     const data: any = {
       id: messageRef.id,
       channelId: channelId || null,
