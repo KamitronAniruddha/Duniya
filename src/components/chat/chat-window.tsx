@@ -1,12 +1,11 @@
-
 "use client";
 
 import { useRef, useEffect, useState, useMemo, useCallback } from "react";
 import { useCollection, useFirestore, useUser, useDoc, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy, limit, doc, where, writeBatch, arrayUnion, deleteField } from "firebase/firestore";
+import { collection, query, orderBy, limit, doc, arrayUnion, writeBatch, deleteField } from "firebase/firestore";
 import { MessageBubble } from "./message-bubble";
 import { MessageInput } from "./message-input";
-import { Hash, Users, Loader2, MessageCircle, X, Trash2, MoreVertical, Eraser, Forward, MessageSquare } from "lucide-react";
+import { Hash, Users, Loader2, MessageCircle, X, Trash2, MoreVertical, Eraser } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { setDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { cn } from "@/lib/utils";
@@ -14,7 +13,6 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { MembersPanel } from "@/components/members/members-panel";
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { ForwardDialog } from "./forward-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 interface ChatWindowProps {
@@ -36,9 +34,8 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isClearChatDialogOpen, setIsClearChatDialogOpen] = useState(false);
-  const [isForwardDialogOpen, setIsForwardDialogOpen] = useState(false);
 
-  // Path resolution logic
+  // Path resolution logic - Community only
   const basePath = useMemo(() => {
     if (serverId && channelId) {
       return `communities/${serverId}/channels/${channelId}`;
@@ -46,12 +43,8 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
     return null;
   }, [serverId, channelId]);
 
-  // Document references
   const contextRef = useMemoFirebase(() => (basePath ? doc(db, basePath) : null), [db, basePath]);
   const { data: contextData } = useDoc(contextRef);
-
-  const serverRef = useMemoFirebase(() => (serverId ? doc(db, "communities", serverId) : null), [db, serverId]);
-  const { data: server } = useDoc(serverRef);
 
   // Message querying
   const messagesQuery = useMemoFirebase(() => {
@@ -69,20 +62,6 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
     if (!rawMessages || !user) return [];
     return rawMessages.filter(msg => !msg.fullyDeleted && !msg.deletedFor?.includes(user.uid));
   }, [rawMessages, user?.uid]);
-
-  // Member lookup
-  const membersQuery = useMemoFirebase(() => {
-    if (!db || !serverId) return null;
-    return query(collection(db, "users"), where("serverIds", "array-contains", serverId));
-  }, [db, serverId]);
-  const { data: members } = useCollection(membersQuery);
-
-  const memberMap = useMemo(() => {
-    const map: Record<string, any> = {};
-    if (members) members.forEach(m => map[m.id] = m);
-    if (user) map[user.uid] = user;
-    return map;
-  }, [members, user]);
 
   const handleSendMessage = useCallback(async (text: string, audioUrl?: string, videoUrl?: string, replySenderName?: string, disappearing?: { enabled: boolean; duration: number }) => {
     if (!db || !basePath || !user) return;
@@ -115,7 +94,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
       data.replyTo = {
         messageId: replyingTo.id,
         senderName: replySenderName,
-        text: replyingTo.content || (replyingTo.type === 'media' ? 'Media Message' : 'Message')
+        text: replyingTo.content || 'Media Message'
       };
     }
 
@@ -131,7 +110,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
     
     selectedMessages.forEach(msg => {
       const msgRef = doc(db, basePath, "messages", msg.id);
-      if (type === "everyone" && msg.senderId === user.uid && !msg.isDeleted) {
+      if (type === "everyone" && msg.senderId === user.uid) {
         batch.update(msgRef, {
           isDeleted: true,
           content: "This message was deleted",
@@ -146,15 +125,11 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
       }
     });
 
-    try {
-      await batch.commit();
-      toast({ title: `Removed ${selectedIds.size} message(s)` });
-      setSelectionMode(false);
-      setSelectedIds(new Set());
-      setIsDeleteDialogOpen(false);
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Action Failed", description: e.message });
-    }
+    await batch.commit();
+    toast({ title: `Removed ${selectedIds.size} message(s)` });
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+    setIsDeleteDialogOpen(false);
   }, [db, basePath, user, selectedIds, rawMessages, toast]);
 
   const handleClearChat = useCallback(async () => {
@@ -168,13 +143,9 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
       });
     });
 
-    try {
-      await batch.commit();
-      toast({ title: "Chat Cleared" });
-      setIsClearChatDialogOpen(false);
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Clear Failed", description: e.message });
-    }
+    await batch.commit();
+    toast({ title: "Chat Cleared" });
+    setIsClearChatDialogOpen(false);
   }, [db, basePath, user, messages, toast]);
 
   const toggleMessageSelection = (id: string) => {
@@ -195,15 +166,6 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
     setSelectedIds(new Set([id]));
   };
 
-  const handleJumpToMessage = (messageId: string) => {
-    const el = messageRefs.current[messageId];
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      el.classList.add('bg-primary/20');
-      setTimeout(() => el.classList.remove('bg-primary/20'), 2000);
-    }
-  };
-
   useEffect(() => {
     if (scrollRef.current && !selectionMode) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -216,7 +178,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
         <MessageCircle className="h-16 w-16 text-primary/20 mb-4" />
         <h2 className="text-2xl font-black mb-2 tracking-tight">Duniya Verse Chat</h2>
         <p className="text-muted-foreground text-xs max-w-xs font-medium uppercase tracking-widest">
-          Select a community to start messaging.
+          Select a community channel to start messaging.
         </p>
       </div>
     );
@@ -228,10 +190,10 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
     <div className="flex-1 flex flex-col h-full bg-background overflow-hidden relative">
       <header className={cn(
         "h-14 border-b flex items-center justify-between px-4 shrink-0 transition-all z-20",
-        selectionMode ? "bg-primary text-white shadow-lg" : "bg-background/80 backdrop-blur-md"
+        selectionMode ? "bg-primary text-white" : "bg-background/80 backdrop-blur-md"
       )}>
         {selectionMode ? (
-          <div className="flex items-center gap-4 w-full animate-in slide-in-from-top-4 duration-300">
+          <div className="flex items-center gap-4 w-full">
             <Button variant="ghost" size="icon" className="text-white hover:bg-white/10" onClick={() => {
               setSelectionMode(false);
               setSelectedIds(new Set());
@@ -239,19 +201,9 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
               <X className="h-5 w-5" />
             </Button>
             <span className="font-black text-lg flex-1 tracking-tight">{selectedIds.size} SELECTED</span>
-            <div className="flex items-center gap-1">
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="text-white hover:bg-white/10" 
-                onClick={() => setIsForwardDialogOpen(true)}
-              >
-                <Forward className="h-5 w-5" />
-              </Button>
-              <Button variant="ghost" size="icon" className="text-white hover:bg-white/10" onClick={() => setIsDeleteDialogOpen(true)}>
-                <Trash2 className="h-5 w-5" />
-              </Button>
-            </div>
+            <Button variant="ghost" size="icon" className="text-white hover:bg-white/10" onClick={() => setIsDeleteDialogOpen(true)}>
+              <Trash2 className="h-5 w-5" />
+            </Button>
           </div>
         ) : (
           <>
@@ -268,7 +220,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className={cn("h-9 w-9 rounded-xl transition-all", showMembers ? "bg-primary/10 text-primary" : "text-muted-foreground")} 
+                className={cn("h-9 w-9 rounded-xl", showMembers ? "bg-primary/10 text-primary" : "text-muted-foreground")} 
                 onClick={onToggleMembers}
               >
                 <Users className="h-5 w-5" />
@@ -292,7 +244,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
 
       <div className="flex-1 flex min-h-0 overflow-hidden bg-background">
         <div className="flex-1 flex flex-col min-w-0 h-full relative">
-          <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-1 bg-muted/5 custom-scrollbar min-h-0">
+          <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-1 custom-scrollbar min-h-0">
             {messagesLoading ? (
               <div className="flex flex-col items-center justify-center py-20 opacity-30 gap-3">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -307,24 +259,17 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
             ) : (
               <div className="flex flex-col justify-end min-h-full">
                 {messages.map((msg) => (
-                  <div key={msg.id} ref={(el) => { messageRefs.current[msg.id] = el; }}>
-                    <MessageBubble 
-                      message={msg}
-                      messagePath={`${basePath}/messages/${msg.id}`}
-                      sender={memberMap[msg.senderId]}
-                      isMe={msg.senderId === user?.uid}
-                      isSelected={selectedIds.has(msg.id)}
-                      selectionMode={selectionMode}
-                      onLongPress={enterSelectionMode}
-                      onSelect={toggleMessageSelection}
-                      onReply={() => setReplyingTo(msg)}
-                      onQuoteClick={handleJumpToMessage}
-                      onForward={() => {
-                        setSelectedIds(new Set([msg.id]));
-                        setIsForwardDialogOpen(true);
-                      }}
-                    />
-                  </div>
+                  <MessageBubble 
+                    key={msg.id}
+                    message={msg}
+                    messagePath={`${basePath}/messages/${msg.id}`}
+                    isMe={msg.senderId === user?.uid}
+                    isSelected={selectedIds.has(msg.id)}
+                    selectionMode={selectionMode}
+                    onLongPress={enterSelectionMode}
+                    onSelect={toggleMessageSelection}
+                    onReply={() => setReplyingTo(msg)}
+                  />
                 ))}
               </div>
             )}
@@ -339,66 +284,39 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
           </div>
         </div>
 
-        {showMembers && (
-          <div className="hidden lg:block animate-in slide-in-from-right duration-300 border-l z-10 bg-background">
-            <MembersPanel serverId={serverId!} />
+        {showMembers && serverId && (
+          <div className="hidden lg:block border-l z-10 bg-background">
+            <MembersPanel serverId={serverId} />
           </div>
         )}
       </div>
       
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent className="rounded-[2.5rem] border-none shadow-2xl p-0 overflow-hidden max-w-[400px]">
-          <div className="bg-destructive/10 p-8 text-center">
-            <Trash2 className="h-12 w-12 text-destructive mx-auto mb-4" />
-            <AlertDialogTitle className="text-2xl font-black tracking-tight mb-2">Delete {selectedIds.size} Messages?</AlertDialogTitle>
-            <AlertDialogDescription>This action will remove the selected messages from your view.</AlertDialogDescription>
-          </div>
-          <div className="p-6 bg-background flex flex-col gap-2">
-            <AlertDialogAction onClick={() => handleBatchDelete("me")} className="w-full h-12 rounded-xl font-black bg-destructive text-white">
-              Delete for Me
-            </AlertDialogAction>
-            <AlertDialogAction onClick={() => handleBatchDelete("everyone")} className="w-full h-12 rounded-xl font-black bg-destructive text-white">
-              Delete for Everyone
-            </AlertDialogAction>
-            <AlertDialogCancel className="w-full h-12 rounded-xl font-bold border-none" onClick={() => {
-              setSelectionMode(false);
-              setSelectedIds(new Set());
-            }}>
-              Cancel
-            </AlertDialogCancel>
-          </div>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {selectedIds.size} Messages?</AlertDialogTitle>
+            <AlertDialogDescription>Choose how you want to remove these messages.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col gap-2">
+            <AlertDialogAction onClick={() => handleBatchDelete("me")} className="w-full">Delete for Me</AlertDialogAction>
+            <AlertDialogAction onClick={() => handleBatchDelete("everyone")} className="w-full variant-destructive">Delete for Everyone</AlertDialogAction>
+            <AlertDialogCancel className="w-full">Cancel</AlertDialogCancel>
+          </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
       <AlertDialog open={isClearChatDialogOpen} onOpenChange={setIsClearChatDialogOpen}>
-        <AlertDialogContent className="rounded-[2.5rem] border-none shadow-2xl p-0 overflow-hidden max-w-[400px]">
-          <div className="p-8 text-center bg-muted/30">
-            <Eraser className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <AlertDialogTitle className="text-2xl font-black tracking-tight mb-2">Clear Chat?</AlertDialogTitle>
-            <AlertDialogDescription>All messages in this channel will be hidden for you.</AlertDialogDescription>
-          </div>
-          <div className="p-6 bg-background flex flex-col gap-2">
-            <AlertDialogAction onClick={handleClearChat} className="w-full h-12 rounded-xl font-black">
-              Yes, Clear Everything
-            </AlertDialogAction>
-            <AlertDialogCancel className="w-full h-12 rounded-xl font-bold border-none">Cancel</AlertDialogCancel>
-          </div>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clear Chat?</AlertDialogTitle>
+            <AlertDialogDescription>This will hide all current messages from your view.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleClearChat}>Clear Everything</AlertDialogAction>
+          </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      <ForwardDialog 
-        open={isForwardDialogOpen} 
-        onOpenChange={(open) => {
-          setIsForwardDialogOpen(open);
-          if (!open) {
-            setSelectionMode(false);
-            setSelectedIds(new Set());
-          }
-        }} 
-        messagesToForward={rawMessages?.filter(m => selectedIds.has(m.id)) || []}
-        currentCommunityName={server?.name}
-        memberMap={memberMap}
-      />
     </div>
   );
 }

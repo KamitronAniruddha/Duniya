@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -58,10 +57,7 @@ export default function DuniyaApp() {
   if (isUserLoading) {
     return (
       <div className="h-[100dvh] w-full flex items-center justify-center bg-background">
-        <div className="text-center space-y-4">
-          <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto" />
-          <p className="text-sm font-medium text-muted-foreground">Connecting to Duniya...</p>
-        </div>
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
       </div>
     );
   }
@@ -71,7 +67,7 @@ export default function DuniyaApp() {
   }
 
   return (
-    <div className="flex h-[100dvh] w-full bg-background overflow-hidden selection:bg-primary/20">
+    <div className="flex h-[100dvh] w-full bg-background overflow-hidden">
       <div className="hidden md:flex shrink-0 h-full overflow-hidden border-r border-border">
         <ServerSidebar 
           activeServerId={view === "chat" ? activeCommunityId : view} 
@@ -140,10 +136,10 @@ export default function DuniyaApp() {
               </div>
             </SheetContent>
           </Sheet>
-          <span className="font-bold text-sm truncate">Duniya</span>
+          <span className="font-bold text-sm">Duniya</span>
         </div>
         
-        <div className="flex-1 min-h-0 flex relative overflow-hidden bg-background">
+        <div className="flex-1 min-h-0 flex relative overflow-hidden">
           {view === "duniya" ? (
             <DuniyaPanel onJoinSuccess={(id) => {
               setView("chat");

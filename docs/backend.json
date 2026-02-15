@@ -1,4 +1,3 @@
-
 {
   "entities": {
     "User": {
@@ -7,58 +6,17 @@
       "type": "object",
       "description": "Represents a user's profile and core identity within the application.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the User entity."
-        },
-        "displayName": {
-          "type": "string",
-          "description": "The user's publicly visible name."
-        },
-        "email": {
-          "type": "string",
-          "description": "User's primary email address, used for identification and communication.",
-          "format": "email"
-        },
-        "avatarUrl": {
-          "type": "string",
-          "description": "URL to the user's profile picture or avatar.",
-          "format": "uri"
-        },
-        "bio": {
-          "type": "string",
-          "description": "A short biographical description provided by the user."
-        },
-        "onlineStatus": {
-          "type": "string",
-          "description": "User's current online status (online, idle, offline)."
-        },
-        "lastOnlineAt": {
-          "type": "string",
-          "description": "Timestamp indicating the last time the user was actively online.",
-          "format": "date-time"
-        },
-        "isBlocked": {
-          "type": "boolean",
-          "description": "Boolean flag indicating if the user's account is currently blocked."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the user profile was created.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp when the user profile was last updated.",
-          "format": "date-time"
-        }
+        "id": { "type": "string" },
+        "displayName": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "avatarUrl": { "type": "string", "format": "uri" },
+        "bio": { "type": "string" },
+        "onlineStatus": { "type": "string" },
+        "lastOnlineAt": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
       },
-      "required": [
-        "id",
-        "displayName",
-        "email",
-        "createdAt"
-      ]
+      "required": ["id", "displayName", "email", "createdAt"]
     },
     "Community": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -66,51 +24,17 @@
       "type": "object",
       "description": "Represents a server or community where users can interact in channels.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the community/server."
-        },
-        "name": {
-          "type": "string",
-          "description": "The name of the community."
-        },
-        "description": {
-          "type": "string",
-          "description": "A brief description of the community."
-        },
-        "ownerId": {
-          "type": "string",
-          "description": "Unique identifier of the user who owns/created the community."
-        },
-        "icon": {
-          "type": "string",
-          "description": "URL to the community's icon.",
-          "format": "uri"
-        },
-        "joinCode": {
-          "type": "string",
-          "description": "A 5-digit code for joining the community."
-        },
-        "members": {
-          "type": "array",
-          "items": { "type": "string" }
-        },
-        "isPublic": {
-          "type": "boolean",
-          "description": "Boolean indicating if the community is publicly discoverable."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the community was created.",
-          "format": "date-time"
-        }
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "icon": { "type": "string", "format": "uri" },
+        "joinCode": { "type": "string" },
+        "members": { "type": "array", "items": { "type": "string" } },
+        "isPublic": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": [
-        "id",
-        "name",
-        "ownerId",
-        "createdAt"
-      ]
+      "required": ["id", "name", "ownerId", "createdAt"]
     },
     "Channel": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -118,35 +42,13 @@
       "type": "object",
       "description": "Represents a channel within a Community.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the channel."
-        },
-        "communityId": {
-          "type": "string",
-          "description": "Unique identifier of the community this channel belongs to."
-        },
-        "name": {
-          "type": "string",
-          "description": "The name of the channel."
-        },
-        "type": {
-          "type": "string",
-          "description": "The type of channel (e.g., 'text')."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the channel was created.",
-          "format": "date-time"
-        }
+        "id": { "type": "string" },
+        "communityId": { "type": "string" },
+        "name": { "type": "string" },
+        "type": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": [
-        "id",
-        "communityId",
-        "name",
-        "type",
-        "createdAt"
-      ]
+      "required": ["id", "communityId", "name", "type", "createdAt"]
     },
     "Message": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -154,35 +56,17 @@
       "type": "object",
       "description": "Represents a single chat message.",
       "properties": {
-        "id": {
-          "type": "string"
-        },
-        "senderId": {
-          "type": "string"
-        },
-        "content": {
-          "type": "string"
-        },
-        "type": {
-          "type": "string"
-        },
-        "sentAt": {
-          "type": "string",
-          "format": "date-time"
-        }
+        "id": { "type": "string" },
+        "senderId": { "type": "string" },
+        "content": { "type": "string" },
+        "type": { "type": "string" },
+        "sentAt": { "type": "string", "format": "date-time" }
       },
-      "required": [
-        "id",
-        "senderId",
-        "content",
-        "sentAt"
-      ]
+      "required": ["id", "senderId", "content", "sentAt"]
     }
   },
   "auth": {
-    "providers": [
-      "password"
-    ]
+    "providers": ["password"]
   },
   "firestore": {
     "structure": [
@@ -190,9 +74,7 @@
         "path": "/users/{userId}",
         "definition": {
           "entityName": "User",
-          "schema": {
-            "$ref": "#/backend/entities/User"
-          },
+          "schema": { "$ref": "#/backend/entities/User" },
           "description": "Stores core user profiles."
         }
       },
@@ -200,27 +82,21 @@
         "path": "/communities/{communityId}",
         "definition": {
           "entityName": "Community",
-          "schema": {
-            "$ref": "#/backend/entities/Community"
-          }
+          "schema": { "$ref": "#/backend/entities/Community" }
         }
       },
       {
         "path": "/communities/{communityId}/channels/{channelId}",
         "definition": {
           "entityName": "Channel",
-          "schema": {
-            "$ref": "#/backend/entities/Channel"
-          }
+          "schema": { "$ref": "#/backend/entities/Channel" }
         }
       },
       {
         "path": "/communities/{communityId}/channels/{channelId}/messages/{messageId}",
         "definition": {
           "entityName": "Message",
-          "schema": {
-            "$ref": "#/backend/entities/Message"
-          }
+          "schema": { "$ref": "#/backend/entities/Message" }
         }
       }
     ]

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -7,7 +6,7 @@ import { collection, query, where, doc, arrayUnion, getDocs, limit, writeBatch }
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Plus, Compass, Globe, Heart, Loader2, Share2, Check, MessageSquare } from "lucide-react";
+import { Plus, Compass, Globe, Heart, Loader2, Share2 } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -66,15 +65,6 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive }
       
       batch.set(communityRef, communityData);
 
-      const memberRef = doc(db, "communities", communityId, "members", user.uid);
-      batch.set(memberRef, {
-        id: user.uid,
-        communityId: communityId,
-        userId: user.uid,
-        role: "owner",
-        joinedAt: new Date().toISOString()
-      });
-
       const channelRef = doc(collection(db, "communities", communityId, "channels"));
       batch.set(channelRef, {
         id: channelRef.id,
@@ -129,13 +119,6 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive }
       batch.update(doc(db, "communities", targetId), {
         members: arrayUnion(user.uid)
       });
-      batch.set(doc(db, "communities", targetId, "members", user.uid), {
-        id: user.uid,
-        communityId: targetId,
-        userId: user.uid,
-        role: "member",
-        joinedAt: new Date().toISOString()
-      });
       batch.update(doc(db, "users", user.uid), {
         serverIds: arrayUnion(targetId)
       });
@@ -158,7 +141,7 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive }
   };
 
   return (
-    <aside className="w-[72px] bg-sidebar flex flex-col items-center py-4 gap-4 shrink-0 h-full overflow-y-auto custom-scrollbar border-r border-sidebar-border shadow-[4px_0_24px_rgba(0,0,0,0.1)] z-30">
+    <aside className="w-[72px] bg-sidebar flex flex-col items-center py-4 gap-4 shrink-0 h-full overflow-y-auto custom-scrollbar border-r border-sidebar-border z-30">
       <TooltipProvider delayDuration={0}>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -196,7 +179,7 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive }
                   <TooltipTrigger asChild>
                     <button onClick={() => onSelectServer(s.id)} className="group relative flex items-center justify-center h-12 w-full">
                       <div className={cn("absolute left-0 w-1 bg-white rounded-r-full transition-all duration-300", activeServerId === s.id ? "h-8 opacity-100" : "h-0 opacity-0 group-hover:h-4 group-hover:opacity-100")} />
-                      <div className={cn("w-12 h-12 flex items-center justify-center transition-all duration-300 overflow-hidden shadow-lg rounded-[24px] group-hover:rounded-[12px] bg-sidebar-accent group-hover:scale-105", activeServerId === s.id && "rounded-[12px] ring-2 ring-primary ring-offset-2 ring-offset-sidebar shadow-primary/20")}>
+                      <div className={cn("w-12 h-12 flex items-center justify-center transition-all duration-300 overflow-hidden shadow-lg rounded-[24px] group-hover:rounded-[12px] bg-sidebar-accent group-hover:scale-105", activeServerId === s.id && "rounded-[12px] ring-2 ring-primary ring-offset-2 ring-offset-sidebar")}>
                         <Avatar className="w-full h-full rounded-none">
                           <AvatarImage src={s.icon} />
                           <AvatarFallback className="bg-primary text-white font-black text-lg">{s.name?.[0]?.toUpperCase()}</AvatarFallback>
@@ -208,7 +191,7 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive }
                 <DropdownMenuContent side="right" align="start" className="w-48">
                   <DropdownMenuItem onClick={() => onSelectServer(s.id)}>Open Community</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handleShare(s)} className="gap-2">
-                    <Share2 className="h-4 w-4" /> Share Invite Link
+                    <Share2 className="h-4 w-4" /> Share Invite
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -253,10 +236,7 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive }
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
                   <Label>5-Digit Join Code</Label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-3 h-4 w-4 text-muted-foreground">#</span>
-                    <Input className="pl-9" value={joinId} onChange={(e) => setJoinId(e.target.value)} placeholder="e.g. 12345" />
-                  </div>
+                  <Input value={joinId} onChange={(e) => setJoinId(e.target.value)} placeholder="e.g. 12345" />
                 </div>
               </div>
               <DialogFooter>
@@ -266,9 +246,9 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive }
             </DialogContent>
           </Dialog>
           
-          <div className="flex flex-col items-center gap-1 opacity-40 hover:opacity-100 transition-all duration-500 mt-2 cursor-help group">
-            <Heart className="h-3 w-3 text-red-500 fill-red-500 group-hover:scale-150 transition-transform animate-pulse" />
-            <span className="text-[7px] font-black uppercase text-white/50 group-hover:text-white text-center leading-[1.2] tracking-tighter transition-colors">Aniruddha</span>
+          <div className="flex flex-col items-center gap-1 opacity-40 hover:opacity-100 transition-all mt-2 group">
+            <Heart className="h-3 w-3 text-red-500 fill-red-500 animate-pulse" />
+            <span className="text-[7px] font-black uppercase text-white/50 group-hover:text-white text-center leading-[1.2] tracking-tighter">Aniruddha</span>
           </div>
         </div>
       </TooltipProvider>

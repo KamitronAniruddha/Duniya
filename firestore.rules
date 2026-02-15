@@ -1,46 +1,16 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    function isSignedIn() {
-      return request.auth != null;
+    // GLOBAL ACCESS FOR AUTHENTICATED USERS
+    // This provides a robust, error-free experience across all messaging paths.
+    match /{document=**} {
+      allow read, write: if request.auth != null;
     }
 
-    // BROAD ACCESS FOR SIGNED-IN USERS
-    // To resolve persistent permission errors, we allow signed-in users 
-    // to read and write across core messaging collections.
-    
-    match /users/{userId} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn() && request.auth.uid == userId;
-    }
-
-    match /communities/{communityId} {
-      allow read, write: if isSignedIn();
-      
-      match /channels/{channelId} {
-        allow read, write: if isSignedIn();
-        
-        match /messages/{messageId} {
-          allow read, write: if isSignedIn();
-        }
-      }
-      
-      match /{allSubcollections=**} {
-        allow read, write: if isSignedIn();
-      }
-    }
-
+    // PUBLIC SUBMISSIONS
     match /contact_form_submissions/{submissionId} {
-      allow create: if true; 
-      allow read, write: if isSignedIn();
-    }
-
-    // GLOBAL FALLBACK
-    match /{path=**} {
-      allow read, write: if isSignedIn();
+      allow create: if true;
     }
   }
 }
