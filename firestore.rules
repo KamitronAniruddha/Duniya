@@ -10,69 +10,56 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.get('email', '') == "aniruddha@duniya.app" ||
+        request.auth.token.get('email', '') == "aniruddha@gmail.com"
+      );
+    }
+
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    function isAdmin() {
-      return isSignedIn() && (
-        request.auth.token.email == "aniruddha@duniya.app" ||
-        request.auth.token.email == "aniruddha@gmail.com"
-      );
-    }
-
-    // --- GLOBAL ADMIN OVERRIDE ---
-    // This ensures you (Aniruddha) have total access for development/moderation
-    match /{path=**} {
-      allow read, write: if isAdmin();
-    }
-
-    // --- USER PROFILES ---
-
+    // --- GLOBAL ACCESS ---
+    // Allow any signed-in user to read and write to core chat collections.
+    // This ensures high reliability while we refine granular access.
+    
     match /users/{userId} {
-      allow read: if isSignedIn(); 
+      allow read: if isSignedIn();
       allow create: if isOwner(userId);
       allow update: if isOwner(userId) || isAdmin();
       allow delete: if isAdmin();
     }
 
-    // --- PRIVATE CONVERSATIONS (DMs) ---
-    // Broad read/write for participants, with participant verification
-    match /conversations/{conversationId} {
+    match /communities/{communityId} {
       allow read, write: if isSignedIn();
       
-      match /messages/{messageId} {
+      // Explicitly allow subcollection access
+      match /{allSubcollections=**} {
         allow read, write: if isSignedIn();
       }
     }
 
-    // --- COMMUNITIES & CHANNELS ---
-    // Allowing signed-in users to interact with communities and their subcollections
-    match /communities/{communityId} {
+    match /conversations/{conversationId} {
       allow read, write: if isSignedIn();
-
-      match /channels/{channelId} {
-        allow read, write: if isSignedIn();
-        
-        match /messages/{messageId} {
-          allow read, write: if isSignedIn();
-        }
-      }
       
-      match /members/{memberId} {
+      // Explicitly allow subcollection access
+      match /{allSubcollections=**} {
         allow read, write: if isSignedIn();
       }
     }
 
     // --- SUPPORT & MISC ---
-
+    
     match /contact_form_submissions/{submissionId} {
       allow create: if true; 
       allow read, write: if isAdmin();
     }
-    
-    match /call_sessions/{callSessionId} {
-      allow read, write: if isSignedIn();
+
+    // Catch-all for any other path to ensure admins always have access
+    match /{path=**} {
+      allow read, write: if isAdmin();
     }
   }
 }

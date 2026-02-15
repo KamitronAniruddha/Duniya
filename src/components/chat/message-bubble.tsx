@@ -107,7 +107,7 @@ export const MessageBubble = memo(function MessageBubble({
 
   // Mark as seen
   useEffect(() => {
-    if (!user || isMe || message.isDeleted || message.fullyDeleted || !messagePath) return;
+    if (!user || isMe || message.isDeleted || message.fullyDeleted || !messagePath || messagePath.includes('null')) return;
     const hasSeen = message.seenBy?.includes(user.uid);
     if (!hasSeen && message.id) {
       const msgRef = doc(db, messagePath);
@@ -123,7 +123,7 @@ export const MessageBubble = memo(function MessageBubble({
       
       updateDocumentNonBlocking(msgRef, updateData);
     }
-  }, [message.id, user?.uid, isMe, message.disappearingEnabled, message.seenBy, db, messagePath, message.fullyDeleted, message.isDeleted]);
+  }, [message.id, user?.uid, isMe, message.disappearingEnabled, message.seenBy, db, messagePath, message.fullyDeleted, message.isDeleted, message.disappearDuration, message.viewerExpireAt]);
 
   // Disappearing Timer
   useEffect(() => {
@@ -239,7 +239,7 @@ export const MessageBubble = memo(function MessageBubble({
   };
 
   const handleDeleteForEveryone = () => {
-    if (!db || !messagePath) return;
+    if (!db || !messagePath || messagePath.includes('null')) return;
     const msgRef = doc(db, messagePath);
     updateDocumentNonBlocking(msgRef, {
       isDeleted: true,
