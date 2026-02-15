@@ -103,20 +103,35 @@ export function AuthScreen() {
               <div className="p-2.5 bg-primary/10 rounded-[1.25rem] shadow-inner animate-bounce [animation-duration:4s]">
                 <Logo size={36} />
               </div>
-              <motion.div
-                initial={{ opacity: 0, y: 5 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6, duration: 0.8 }}
-              >
-                <motion.span 
-                  animate={{ scale: [1, 1.05, 1] }}
-                  transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-                  className="font-['Playfair_Display'] italic text-primary text-sm font-black mt-1 block"
+              
+              {/* Animated Handwriting Signature */}
+              <div className="h-10 w-24 flex items-center justify-center -mt-1 -mb-1">
+                <motion.svg
+                  width="80"
+                  height="36"
+                  viewBox="0 0 80 36"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="text-primary"
                 >
-                  ~ Ani
-                </motion.span>
-              </motion.div>
+                  <motion.path
+                    d="M15,28 C20,5 30,5 35,28 M22,20 L38,20 M45,28 L45,16 C45,10 55,10 55,16 L55,28 M65,16 L65,28 M65,8 L65,10"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    initial={{ pathLength: 0, opacity: 0 }}
+                    animate={{ pathLength: 1, opacity: 1 }}
+                    transition={{ 
+                      duration: 2.5, 
+                      ease: "easeInOut",
+                      delay: 0.5
+                    }}
+                  />
+                </motion.svg>
+              </div>
             </div>
+            
             <CardTitle className="text-2xl font-black tracking-tighter text-foreground uppercase">Duniya</CardTitle>
             <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
               {isLogin ? "Welcome back to the Verse" : "Join the modern community platform"}
