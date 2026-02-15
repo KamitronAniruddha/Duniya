@@ -99,27 +99,27 @@ export function AuthScreen() {
 
   return (
     <div className="fixed inset-0 w-full flex flex-col bg-background overflow-y-auto custom-scrollbar selection:bg-primary/30">
-      <div className="min-h-svh w-full flex flex-col items-center p-4 py-8 md:py-12">
+      <div className="min-h-svh w-full flex flex-col items-center p-4 py-4 md:py-8">
         <Card className="w-full max-w-md shadow-2xl border-none bg-card animate-in fade-in zoom-in-95 duration-500 my-auto">
-          <CardHeader className="space-y-1 text-center pb-2 pt-6">
-            <div className="flex flex-col items-center mb-2">
-              <div className="p-2.5 bg-primary/10 rounded-[1.25rem] shadow-inner animate-bounce [animation-duration:4s]">
-                <Logo size={36} />
+          <CardHeader className="space-y-0.5 text-center pb-1 pt-4">
+            <div className="flex flex-col items-center mb-1">
+              <div className="p-2 bg-primary/10 rounded-[1.25rem] shadow-inner animate-bounce [animation-duration:4s]">
+                <Logo size={32} />
               </div>
               
               {/* Animated Interactive Handwriting Signature */}
               <button 
                 type="button"
                 onClick={() => setSignatureType(prev => prev === "ani" ? "sanu" : "ani")}
-                className="h-12 w-32 flex items-center justify-center -mt-1 outline-none group cursor-pointer"
+                className="h-10 w-32 flex items-center justify-center outline-none group cursor-pointer"
               >
                 <AnimatePresence mode="wait">
                   {signatureType === "ani" ? (
                     <motion.svg
                       key="ani-sig"
                       width="80"
-                      height="40"
-                      viewBox="0 0 80 40"
+                      height="36"
+                      viewBox="0 0 80 36"
                       fill="none"
                       xmlns="http://www.w3.org/2000/svg"
                       className="text-primary transition-transform group-hover:scale-110"
@@ -128,7 +128,7 @@ export function AuthScreen() {
                       exit={{ opacity: 0, scale: 0.9 }}
                     >
                       <motion.path
-                        d="M15,30 L25,10 L35,30 M20,22 L30,22 M45,30 L45,20 C45,16 55,16 55,20 L55,30 M65,20 L65,30 M65,12 L65,14"
+                        d="M15,28 L25,8 L35,28 M20,20 L30,20 M45,28 V18 C45,14 55,14 55,18 V28 M65,18 V28 M65,10 V12"
                         stroke="currentColor"
                         strokeWidth="2.5"
                         strokeLinecap="round"
@@ -145,8 +145,8 @@ export function AuthScreen() {
                     <motion.svg
                       key="sanu-sig"
                       width="100"
-                      height="40"
-                      viewBox="0 0 100 40"
+                      height="36"
+                      viewBox="0 0 100 36"
                       fill="none"
                       xmlns="http://www.w3.org/2000/svg"
                       className="text-primary transition-transform group-hover:scale-110"
@@ -155,7 +155,7 @@ export function AuthScreen() {
                       exit={{ opacity: 0, scale: 0.9 }}
                     >
                       <motion.path
-                        d="M15,25 C15,15 25,15 25,20 C25,25 15,25 15,30 C15,35 25,35 25,30 M35,30 C35,25 45,25 45,30 C45,35 35,35 35,30 M45,25 L45,35 M55,35 L55,25 C55,20 65,20 65,25 L65,35 M75,25 L75,30 C75,35 85,35 85,30 L85,25 M85,25 L85,35"
+                        d="M15,22 C15,12 30,12 30,18 C30,24 15,24 15,30 C15,36 30,36 30,30 M40,30 C40,24 55,24 55,30 V36 M65,36 V22 C65,18 75,18 75,22 V36 M85,22 V30 C85,36 100,36 100,30 V22"
                         stroke="currentColor"
                         strokeWidth="2.5"
                         strokeLinecap="round"
@@ -173,16 +173,16 @@ export function AuthScreen() {
               </button>
             </div>
             
-            <CardTitle className="text-2xl font-black tracking-tighter text-foreground uppercase">Duniya</CardTitle>
-            <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
+            <CardTitle className="text-xl font-black tracking-tighter text-foreground uppercase">Duniya</CardTitle>
+            <CardDescription className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/60">
               {isLogin ? "Welcome back to the Verse" : "Join the modern community platform"}
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleSubmit}>
-            <CardContent className="space-y-3 px-6 md:px-8 pt-4">
+            <CardContent className="space-y-2 px-6 md:px-8 pt-2">
               {!isLogin && (
-                <div className="space-y-1">
-                  <Label htmlFor="username" className="text-[9px] font-black uppercase tracking-wider text-muted-foreground/80 ml-1">Unique Username</Label>
+                <div className="space-y-0.5">
+                  <Label htmlFor="username" className="text-[8px] font-black uppercase tracking-wider text-muted-foreground/80 ml-1">Unique Username</Label>
                   <Input 
                     id="username" 
                     placeholder="johndoe" 
@@ -190,12 +190,12 @@ export function AuthScreen() {
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     disabled={isLoading}
-                    className="bg-muted/50 border-none h-10 rounded-xl focus:ring-2 focus:ring-primary/20 transition-all text-sm"
+                    className="bg-muted/50 border-none h-9 rounded-xl focus:ring-2 focus:ring-primary/20 transition-all text-sm"
                   />
                 </div>
               )}
-              <div className="space-y-1">
-                <Label htmlFor="email" className="text-[9px] font-black uppercase tracking-wider text-muted-foreground/80 ml-1">Email Address</Label>
+              <div className="space-y-0.5">
+                <Label htmlFor="email" className="text-[8px] font-black uppercase tracking-wider text-muted-foreground/80 ml-1">Email Address</Label>
                 <Input 
                   id="email" 
                   type="email" 
@@ -204,11 +204,11 @@ export function AuthScreen() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={isLoading}
-                  className="bg-muted/50 border-none h-10 rounded-xl focus:ring-2 focus:ring-primary/20 transition-all text-sm"
+                  className="bg-muted/50 border-none h-9 rounded-xl focus:ring-2 focus:ring-primary/20 transition-all text-sm"
                 />
               </div>
-              <div className="space-y-1">
-                <Label htmlFor="password" className="text-[9px] font-black uppercase tracking-wider text-muted-foreground/80 ml-1">Password</Label>
+              <div className="space-y-0.5">
+                <Label htmlFor="password" className="text-[8px] font-black uppercase tracking-wider text-muted-foreground/80 ml-1">Password</Label>
                 <Input 
                   id="password" 
                   type="password" 
@@ -216,12 +216,12 @@ export function AuthScreen() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={isLoading}
-                  className="bg-muted/50 border-none h-10 rounded-xl focus:ring-2 focus:ring-primary/20 transition-all text-sm"
+                  className="bg-muted/50 border-none h-9 rounded-xl focus:ring-2 focus:ring-primary/20 transition-all text-sm"
                 />
               </div>
               {!isLogin && (
-                <div className="space-y-1">
-                  <Label htmlFor="confirmPassword" className="text-[9px] font-black uppercase tracking-wider text-muted-foreground/80 ml-1">Confirm Password</Label>
+                <div className="space-y-0.5">
+                  <Label htmlFor="confirmPassword" className="text-[8px] font-black uppercase tracking-wider text-muted-foreground/80 ml-1">Confirm Password</Label>
                   <Input 
                     id="confirmPassword" 
                     type="password" 
@@ -229,18 +229,18 @@ export function AuthScreen() {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     disabled={isLoading}
-                    className="bg-muted/50 border-none h-10 rounded-xl focus:ring-2 focus:ring-primary/20 transition-all text-sm"
+                    className="bg-muted/50 border-none h-9 rounded-xl focus:ring-2 focus:ring-primary/20 transition-all text-sm"
                   />
                 </div>
               )}
             </CardContent>
-            <CardFooter className="flex flex-col space-y-4 px-6 md:px-8 pb-6 pt-2">
-              <Button type="submit" className="w-full h-11 text-sm font-black rounded-xl shadow-xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98] uppercase tracking-widest" disabled={isLoading}>
+            <CardFooter className="flex flex-col space-y-3 px-6 md:px-8 pb-4 pt-1">
+              <Button type="submit" className="w-full h-10 text-sm font-black rounded-xl shadow-xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98] uppercase tracking-widest" disabled={isLoading}>
                 {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (isLogin ? "Sign In" : "Create Account")}
               </Button>
               <button 
                 type="button"
-                className="text-[10px] text-primary hover:text-primary/80 font-black tracking-widest transition-colors uppercase"
+                className="text-[9px] text-primary hover:text-primary/80 font-black tracking-widest transition-colors uppercase"
                 onClick={() => setIsLogin(!isLogin)}
                 disabled={isLoading}
               >
@@ -250,10 +250,10 @@ export function AuthScreen() {
           </form>
         </Card>
         
-        <div className="flex flex-col items-center gap-3 mt-6 mb-4 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-300">
-          <div className="flex items-center gap-2 px-4 py-1.5 bg-muted/40 backdrop-blur-md rounded-full border border-border shadow-sm">
-            <span className="text-[8px] font-black uppercase tracking-[0.3em] text-muted-foreground/70">Made by Aniruddha with love</span>
-            <Heart className="h-2.5 w-2.5 text-red-500 fill-red-500 animate-pulse" />
+        <div className="flex flex-col items-center gap-2 mt-4 mb-2 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-300">
+          <div className="flex items-center gap-2 px-4 py-1 bg-muted/40 backdrop-blur-md rounded-full border border-border shadow-sm">
+            <span className="text-[7px] font-black uppercase tracking-[0.3em] text-muted-foreground/70">Made by Aniruddha with love</span>
+            <Heart className="h-2 w-2 text-red-500 fill-red-500 animate-pulse" />
           </div>
         </div>
       </div>
