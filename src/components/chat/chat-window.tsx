@@ -84,7 +84,7 @@ export function ChatWindow({ channelId, serverId, conversationId, mode, showMemb
     }
     if (mode === "dm" && otherUser && user) {
       map[otherUser.id] = otherUser;
-      map[user.uid] = user; // Simplification, ideally we'd have full user data from Firestore
+      map[user.uid] = user; 
     }
     return map;
   }, [members, otherUser, user, mode]);
@@ -144,7 +144,6 @@ export function ChatWindow({ channelId, serverId, conversationId, mode, showMemb
 
     setDocumentNonBlocking(messageRef, data, { merge: true });
     
-    // Update conversation last message if in DM
     if (mode === "dm" && conversationRef) {
       updateDocumentNonBlocking(conversationRef, {
         lastMessage: text || (audioUrl ? "Audio Message" : "Video Message"),
@@ -382,6 +381,7 @@ export function ChatWindow({ channelId, serverId, conversationId, mode, showMemb
                       message={msg}
                       channelId={channelId || "dm"}
                       serverId={serverId || "dm"}
+                      conversationId={conversationId}
                       sender={memberMap[msg.senderId]}
                       isMe={msg.senderId === user?.uid}
                       isSelected={selectedIds.has(msg.id)}

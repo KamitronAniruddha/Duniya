@@ -52,6 +52,7 @@ interface MessageBubbleProps {
   };
   channelId: string;
   serverId: string;
+  conversationId?: string | null;
   sender?: any;
   isMe: boolean;
   isSelected?: boolean;
@@ -67,6 +68,7 @@ export const MessageBubble = memo(function MessageBubble({
   message, 
   channelId, 
   serverId, 
+  conversationId,
   sender, 
   isMe, 
   isSelected, 
@@ -116,16 +118,23 @@ export const MessageBubble = memo(function MessageBubble({
     if (!user || isMe || message.isDeleted || message.fullyDeleted) return;
     const hasSeen = message.seenBy?.includes(user.uid);
     if (!hasSeen && message.id) {
-      const msgRef = doc(db, "communities", serverId, "channels", channelId, "messages", message.id);
+      // Corrected path resolution based on mode
+      const path = conversationId && conversationId !== "dm"
+        ? `conversations/${conversationId}/messages/${message.id}`
+        : `communities/${serverId}/channels/${channelId}/messages/${message.id}`;
+      
+      const msgRef = doc(db, path);
       const updateData: any = { seenBy: arrayUnion(user.uid) };
+      
       if (message.disappearingEnabled) {
         const now = new Date();
         const expireAt = new Date(now.getTime() + (message.disappearDuration || 10000)).toISOString();
         updateData[`viewerExpireAt.${user.uid}`] = expireAt;
       }
+      
       updateDocumentNonBlocking(msgRef, updateData);
     }
-  }, [message.id, user?.uid, isMe, message.disappearingEnabled, message.seenBy, db, serverId, channelId]);
+  }, [message.id, user?.uid, isMe, message.disappearingEnabled, message.seenBy, db, serverId, channelId, conversationId]);
 
   // Disappearing Timer
   useEffect(() => {
@@ -241,8 +250,12 @@ export const MessageBubble = memo(function MessageBubble({
   };
 
   const handleDeleteForEveryone = () => {
-    if (!db || !serverId || !channelId || !message.id) return;
-    const msgRef = doc(db, "communities", serverId, "channels", channelId, "messages", message.id);
+    if (!db || !message.id) return;
+    const path = conversationId && conversationId !== "dm"
+      ? `conversations/${conversationId}/messages/${message.id}`
+      : `communities/${serverId}/channels/${channelId}/messages/${message.id}`;
+      
+    const msgRef = doc(db, path);
     updateDocumentNonBlocking(msgRef, {
       isDeleted: true,
       content: "This message was deleted",
@@ -260,7 +273,6 @@ export const MessageBubble = memo(function MessageBubble({
 
   const isActuallyDeleted = message.isDeleted || isDisappeared || message.fullyDeleted;
 
-  // Latest hop for the bubble label as requested
   const latestHop = message.forwardingChain && message.forwardingChain.length > 0 
     ? message.forwardingChain[message.forwardingChain.length - 1] 
     : null;
