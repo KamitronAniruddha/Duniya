@@ -1,14 +1,14 @@
 
 "use client";
 
+import React, { memo, useState, useRef, useEffect, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useFirestore, useUser } from "@/firebase";
 import { doc, arrayUnion, deleteField } from "firebase/firestore";
 import { UserProfilePopover } from "@/components/profile/user-profile-popover";
-import { Reply, CornerDownRight, Play, Pause, Volume2, MoreHorizontal, Trash2, Ban, Copy, Timer, Check, CheckCheck, CheckSquare, Square, Forward } from "lucide-react";
+import { Reply, CornerDownRight, Play, Pause, Volume2, MoreHorizontal, Trash2, Ban, Copy, Timer, Check, CheckCheck, Forward } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState, useRef, useEffect } from "react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { useToast } from "@/hooks/use-toast";
@@ -17,13 +17,12 @@ interface MessageBubbleProps {
   message: {
     id: string;
     senderId: string;
-    text: string;
+    content: string;
     type?: string;
     audioUrl?: string;
     videoUrl?: string;
-    createdAt: any;
+    sentAt: any;
     isDeleted?: boolean;
-    deletedBy?: string[];
     replyTo?: {
       messageId: string;
       senderName: string;
@@ -43,14 +42,14 @@ interface MessageBubbleProps {
   isMe: boolean;
   isSelected?: boolean;
   selectionMode?: boolean;
-  onSelect?: () => void;
-  onLongPress?: () => void;
+  onSelect?: (id: string) => void;
+  onLongPress?: (id: string) => void;
   onReply?: () => void;
   onForward?: () => void;
-  onQuoteClick?: () => void;
+  onQuoteClick?: (messageId: string) => void;
 }
 
-export function MessageBubble({ 
+export const MessageBubble = memo(function MessageBubble({ 
   message, 
   channelId, 
   serverId, 
@@ -84,21 +83,20 @@ export function MessageBubble({
   const isHorizontalSwipe = useRef<boolean | null>(null);
   const swipeThreshold = 60;
 
-  // Long press logic
+  // Long press timer
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const LONG_PRESS_DURATION = 500;
 
-  const [formattedTime, setFormattedTime] = useState("");
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [isDisappeared, setIsDisappeared] = useState(false);
 
-  useEffect(() => {
-    if (message.createdAt) {
-      const date = typeof message.createdAt === 'string' ? new Date(message.createdAt) : message.createdAt.toDate?.() || new Date(message.createdAt);
-      setFormattedTime(date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-    }
-  }, [message.createdAt]);
+  const formattedTime = useMemo(() => {
+    if (!message.sentAt) return "";
+    const date = new Date(message.sentAt);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }, [message.sentAt]);
 
+  // Mark as seen
   useEffect(() => {
     if (!user || isMe || message.isDeleted || message.fullyDeleted) return;
     const hasSeen = message.seenBy?.includes(user.uid);
@@ -114,6 +112,7 @@ export function MessageBubble({
     }
   }, [message.id, user?.uid, isMe, message.disappearingEnabled, message.seenBy, db, serverId, channelId]);
 
+  // Disappearing Timer
   useEffect(() => {
     if (!message.disappearingEnabled || !user || message.isDeleted || message.fullyDeleted) return;
     const timer = setInterval(() => {
@@ -143,7 +142,7 @@ export function MessageBubble({
 
     longPressTimer.current = setTimeout(() => {
       if (!selectionMode && onLongPress) {
-        onLongPress();
+        onLongPress(message.id);
         setIsDragging(false);
       }
     }, LONG_PRESS_DURATION);
@@ -178,7 +177,6 @@ export function MessageBubble({
       }
       const rubberBand = Math.pow(diffX, 0.85);
       setDragX(Math.min(rubberBand * 2, 100));
-      if ('touches' in e) e.stopPropagation();
     }
   };
 
@@ -203,7 +201,7 @@ export function MessageBubble({
   const handleBubbleClick = (e: React.MouseEvent) => {
     if (selectionMode) {
       e.stopPropagation();
-      onSelect?.();
+      onSelect?.(message.id);
     }
   };
 
@@ -221,16 +219,9 @@ export function MessageBubble({
     setIsPlaying(!isPlaying);
   };
 
-  const toggleVideoPlay = () => {
-    if (!videoRef.current) return;
-    if (isVideoPlaying) videoRef.current.pause();
-    else videoRef.current.play();
-    setIsVideoPlaying(!isVideoPlaying);
-  };
-
   const handleCopy = () => {
-    if (!message.text) return;
-    navigator.clipboard.writeText(message.text);
+    if (!message.content) return;
+    navigator.clipboard.writeText(message.content);
     toast({ title: "Copied" });
   };
 
@@ -257,7 +248,7 @@ export function MessageBubble({
   return (
     <div 
       className={cn(
-        "flex w-full py-1 group items-end relative transition-all duration-300 rounded-lg select-none", 
+        "flex w-full py-0.5 group items-end relative transition-all duration-300 rounded-lg select-none", 
         isMe ? "flex-row-reverse" : "flex-row",
         isSelected && "bg-primary/5 shadow-inner"
       )}
@@ -277,9 +268,9 @@ export function MessageBubble({
       )}>
         <div className={cn(
           "h-5 w-5 rounded-full border-2 flex items-center justify-center transition-all animate-in zoom-in-50 duration-200",
-          isSelected ? "bg-primary border-primary text-white scale-110" : "border-muted-foreground/40 scale-100"
+          isSelected ? "bg-primary border-primary text-white scale-110 shadow-lg shadow-primary/20" : "border-muted-foreground/40 scale-100"
         )}>
-          {isSelected && <CheckSquare className="h-3.5 w-3.5" />}
+          {isSelected && <Check className="h-3 w-3 stroke-[4px]" />}
         </div>
       </div>
 
@@ -301,8 +292,7 @@ export function MessageBubble({
       <div className={cn("flex flex-col max-w-[75%] relative transition-transform ease-out", isMe ? "items-end" : "items-start")} style={{ transform: `translateX(${dragX}px)` }}>
         {isActuallyDeleted ? (
           <div className={cn(
-            "px-3.5 py-2.5 rounded-2xl text-[11px] italic opacity-60 flex items-center gap-2 border shadow-none relative transition-all",
-            isSelected ? "ring-2 ring-primary ring-offset-1 bg-primary/20 scale-[0.98]" : "bg-card",
+            "px-3.5 py-2.5 rounded-2xl text-[11px] italic opacity-60 flex items-center gap-2 border shadow-none bg-card",
             isMe ? "rounded-br-none" : "rounded-bl-none"
           )}>
             <Ban className="h-3 w-3" />
@@ -319,7 +309,6 @@ export function MessageBubble({
             <div className={cn(
               "px-3.5 py-2.5 rounded-2xl shadow-sm transition-all relative",
               message.disappearingEnabled && "ring-1 ring-primary/30",
-              isSelected && "ring-2 ring-primary ring-offset-1 bg-primary/10",
               isMe ? "bg-primary text-white rounded-br-none" : "bg-card text-foreground rounded-bl-none border border-border"
             )}>
               {message.isForwarded && (
@@ -328,7 +317,7 @@ export function MessageBubble({
                 </div>
               )}
               {message.replyTo && (
-                <button onClick={onQuoteClick} className={cn("w-full text-left mb-2 p-2 rounded-lg border-l-4 text-xs bg-black/5 flex flex-col gap-0.5 backdrop-blur-sm", isMe ? "border-white/40" : "border-primary/50")}>
+                <button onClick={() => onQuoteClick?.(message.replyTo!.messageId)} className={cn("w-full text-left mb-2 p-2 rounded-lg border-l-4 text-xs bg-black/5 flex flex-col gap-0.5 backdrop-blur-sm", isMe ? "border-white/40" : "border-primary/50")}>
                   <span className={cn("font-bold text-[10px] flex items-center gap-1 uppercase tracking-tighter", isMe ? "text-white/90" : "text-primary")}><CornerDownRight className="h-3 w-3" />{message.replyTo.senderName}</span>
                   <p className={cn("line-clamp-2 italic", isMe ? "text-white/70" : "text-muted-foreground")}>{message.replyTo.text}</p>
                 </button>
@@ -358,13 +347,10 @@ export function MessageBubble({
                 </div>
               ) : message.type === 'media' && message.videoUrl ? (
                 <div className="relative group/video overflow-hidden rounded-xl aspect-square w-64 md:w-80 shadow-lg bg-black/90">
-                  <video ref={videoRef} src={message.videoUrl} className="w-full h-full object-cover" loop muted={!isVideoPlaying} autoPlay playsInline onClick={toggleVideoPlay} />
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/video:opacity-100 transition-all bg-black/30 backdrop-blur-sm pointer-events-none">
-                     <div className="p-4 bg-white/20 rounded-full">{isVideoPlaying ? <Volume2 className="h-8 w-8 text-white" /> : <Play className="h-8 w-8 text-white" />}</div>
-                  </div>
+                  <video ref={videoRef} src={message.videoUrl} className="w-full h-full object-cover" loop muted={!isVideoPlaying} autoPlay playsInline onClick={() => setIsVideoPlaying(!isVideoPlaying)} />
                 </div>
               ) : (
-                <p className="whitespace-pre-wrap break-words leading-relaxed text-sm tracking-tight">{message.text}</p>
+                <p className="whitespace-pre-wrap break-words leading-relaxed text-sm tracking-tight">{message.content}</p>
               )}
 
               <div className="flex items-center justify-between gap-4 mt-1.5">
@@ -411,4 +397,17 @@ export function MessageBubble({
       )}
     </div>
   );
-}
+}, (prev, next) => {
+  // custom compare for performance
+  return (
+    prev.isSelected === next.isSelected &&
+    prev.selectionMode === next.selectionMode &&
+    prev.message.id === next.message.id &&
+    prev.message.content === next.message.content &&
+    prev.message.isDeleted === next.message.isDeleted &&
+    prev.message.seenBy?.length === next.message.seenBy?.length &&
+    prev.sender?.id === next.sender?.id &&
+    prev.sender?.photoURL === next.sender?.photoURL &&
+    prev.sender?.username === next.sender?.username
+  );
+});

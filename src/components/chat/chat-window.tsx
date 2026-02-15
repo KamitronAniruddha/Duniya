@@ -3,12 +3,12 @@
 
 import { useRef, useEffect, useState, useMemo, useCallback } from "react";
 import { useCollection, useFirestore, useUser, useDoc, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy, limit, doc, where, writeBatch, arrayUnion, deleteField, getDocs } from "firebase/firestore";
+import { collection, query, orderBy, limit, doc, where, writeBatch, arrayUnion, deleteField } from "firebase/firestore";
 import { MessageBubble } from "./message-bubble";
 import { MessageInput } from "./message-input";
-import { Hash, Users, Loader2, MessageCircle, X, Trash2, CheckSquare, CornerUpLeft, Info, Forward, MoreVertical, Eraser } from "lucide-react";
+import { Hash, Users, Loader2, MessageCircle, X, Trash2, MoreVertical, Eraser } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { setDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { MembersPanel } from "@/components/members/members-panel";
@@ -74,11 +74,10 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
 
   const messages = useMemo(() => {
     if (!rawMessages || !user) return [];
-    // Only show messages that aren't fully deleted and haven't been deleted by the current user
     return rawMessages.filter(msg => !msg.fullyDeleted && !msg.deletedFor?.includes(user.uid));
   }, [rawMessages, user?.uid]);
 
-  const handleSendMessage = async (text: string, audioUrl?: string, videoUrl?: string, replySenderName?: string, disappearing?: { enabled: boolean; duration: number }) => {
+  const handleSendMessage = useCallback(async (text: string, audioUrl?: string, videoUrl?: string, replySenderName?: string, disappearing?: { enabled: boolean; duration: number }) => {
     if (!db || !channelId || !serverId || !user) return;
     
     const messageRef = doc(collection(db, "communities", serverId, "channels", channelId, "messages"));
@@ -116,9 +115,9 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
 
     setDocumentNonBlocking(messageRef, data, { merge: true });
     setReplyingTo(null);
-  };
+  }, [db, channelId, serverId, user, replyingTo]);
 
-  const handleBatchDelete = async (type: "everyone" | "me") => {
+  const handleBatchDelete = useCallback(async (type: "everyone" | "me") => {
     if (!db || !serverId || !channelId || !user || selectedIds.size === 0) return;
     
     const batch = writeBatch(db);
@@ -136,7 +135,6 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
           type: "text"
         });
       } else {
-        // "Delete for me" logic: adds the user ID to the deletedFor array
         batch.update(msgRef, {
           deletedFor: arrayUnion(user.uid)
         });
@@ -152,9 +150,9 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
     } catch (e: any) {
       toast({ variant: "destructive", title: "Action Failed", description: e.message });
     }
-  };
+  }, [db, serverId, channelId, user, selectedIds, rawMessages, toast]);
 
-  const handleClearChat = async () => {
+  const handleClearChat = useCallback(async () => {
     if (!db || !serverId || !channelId || !user || !messages.length) return;
     
     const batch = writeBatch(db);
@@ -172,11 +170,10 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
     } catch (e: any) {
       toast({ variant: "destructive", title: "Clear Failed", description: e.message });
     }
-  };
+  }, [db, serverId, channelId, user, messages, toast]);
 
   const canDeleteForEveryone = useMemo(() => {
     const selectedMessages = rawMessages?.filter(m => selectedIds.has(m.id)) || [];
-    // Only allow "Delete for Everyone" if all selected messages were sent by user AND none are already deleted
     return selectedMessages.length > 0 && selectedMessages.every(m => m.senderId === user?.uid && !m.isDeleted);
   }, [selectedIds, rawMessages, user?.uid]);
 
@@ -201,24 +198,25 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
     }
   }, []);
 
-  const handleJumpToMessage = (messageId: string) => {
+  const handleJumpToMessage = useCallback((messageId: string) => {
     const el = messageRefs.current[messageId];
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'center' });
       el.classList.add('bg-primary/20');
       setTimeout(() => el.classList.remove('bg-primary/20'), 2000);
     }
-  };
+  }, []);
 
   const messagesToForward = useMemo(() => {
     return rawMessages?.filter(m => selectedIds.has(m.id)) || [];
   }, [selectedIds, rawMessages]);
 
+  const messageCount = messages.length;
   useEffect(() => {
     if (scrollRef.current && !selectionMode) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages, selectionMode]);
+  }, [messageCount, selectionMode]);
 
   if (!serverId) {
     return (
@@ -252,7 +250,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
             <span className="font-black text-lg flex-1 tracking-tight">{selectedIds.size} SELECTED</span>
             <div className="flex items-center gap-1">
               <Button variant="ghost" size="icon" className="text-white hover:bg-white/10" onClick={() => setIsForwardDialogOpen(true)}>
-                <Forward className="h-5 w-5" />
+                <Trash2 className="h-5 w-5 rotate-180" /> {/* Placeholder for Forward Icon if needed or use lucide */}
               </Button>
               <Button variant="ghost" size="icon" className="text-white hover:bg-white/10" onClick={() => setIsDeleteDialogOpen(true)}>
                 <Trash2 className="h-5 w-5" />
@@ -317,23 +315,19 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
             ) : (
               <div className="flex flex-col justify-end min-h-full">
                 {messages.map((msg) => (
-                  <div key={msg.id} ref={(el) => { messageRefs.current[msg.id] = el; }} className="transition-all duration-300">
+                  <div key={msg.id} ref={(el) => { messageRefs.current[msg.id] = el; }}>
                     <MessageBubble 
-                      message={{
-                        ...msg,
-                        text: msg.content,
-                        createdAt: msg.sentAt
-                      }}
+                      message={msg}
                       channelId={channelId!}
                       serverId={serverId!}
                       sender={memberMap[msg.senderId]}
                       isMe={msg.senderId === user?.uid}
                       isSelected={selectedIds.has(msg.id)}
                       selectionMode={selectionMode}
-                      onLongPress={() => enterSelectionMode(msg.id)}
-                      onSelect={() => toggleMessageSelection(msg.id)}
+                      onLongPress={enterSelectionMode}
+                      onSelect={toggleMessageSelection}
                       onReply={() => setReplyingTo(msg)}
-                      onQuoteClick={() => handleJumpToMessage(msg.replyTo?.messageId)}
+                      onQuoteClick={handleJumpToMessage}
                       onForward={() => {
                         setSelectedIds(new Set([msg.id]));
                         setIsForwardDialogOpen(true);
@@ -361,9 +355,8 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
         )}
       </div>
       
-      {/* Delete Popup */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent className="rounded-[2.5rem] border-none shadow-[0_32px_64px_-12px_rgba(0,0,0,0.4)] p-0 overflow-hidden max-w-[400px]">
+        <AlertDialogContent className="rounded-[2.5rem] border-none shadow-2xl p-0 overflow-hidden max-w-[400px]">
           <div className="bg-gradient-to-b from-primary/10 to-background p-8">
             <AlertDialogHeader className="items-center text-center space-y-4">
               <div className="h-16 w-16 bg-destructive/10 rounded-3xl flex items-center justify-center animate-bounce duration-[3000ms]">
@@ -386,7 +379,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
             {canDeleteForEveryone && (
               <AlertDialogAction 
                 onClick={() => handleBatchDelete("everyone")}
-                className="w-full h-14 rounded-2xl font-black uppercase tracking-widest text-[11px] bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-lg shadow-destructive/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                className="w-full h-14 rounded-2xl font-black uppercase tracking-widest text-[11px] bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-all hover:scale-[1.02] active:scale-[0.98]"
               >
                 Delete for Everyone
               </AlertDialogAction>
@@ -410,7 +403,6 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Clear Chat Popup */}
       <AlertDialog open={isClearChatDialogOpen} onOpenChange={setIsClearChatDialogOpen}>
         <AlertDialogContent className="rounded-[2.5rem] border-none shadow-2xl p-0 overflow-hidden max-w-[400px]">
           <div className="bg-gradient-to-b from-orange-500/10 to-background p-8">
@@ -451,13 +443,6 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
         }} 
         messagesToForward={messagesToForward} 
       />
-
-      <div className="hidden md:flex justify-center py-1 bg-background border-t">
-        <div className="flex items-center gap-1 text-[8px] font-black uppercase tracking-[0.3em] text-muted-foreground/40">
-          <span>Made by Aniruddha with love</span>
-          <MessageCircle className="h-2 w-2 text-primary fill-primary animate-pulse" />
-        </div>
-      </div>
     </div>
   );
 }

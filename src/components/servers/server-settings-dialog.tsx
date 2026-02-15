@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, memo } from "react";
 import { useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { doc, Timestamp } from "firebase/firestore";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Camera, Hash, Copy, Check, Globe, Clock, TimerOff, Timer } from "lucide-react";
+import { Loader2, Camera, Hash, Copy, Check, Globe, Clock, Timer } from "lucide-react";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -38,7 +38,7 @@ const DISAPPEARING_OPTIONS = [
   { label: "90 Days", value: "90d" },
 ];
 
-export function ServerSettingsDialog({ open, onOpenChange, serverId }: ServerSettingsDialogProps) {
+export const ServerSettingsDialog = memo(function ServerSettingsDialog({ open, onOpenChange, serverId }: ServerSettingsDialogProps) {
   const db = useFirestore();
   const { toast } = useToast();
   const serverRef = useMemoFirebase(() => (serverId ? doc(db, "communities", serverId) : null), [db, serverId]);
@@ -54,14 +54,14 @@ export function ServerSettingsDialog({ open, onOpenChange, serverId }: ServerSet
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    if (server) {
+    if (server && open) {
       setName(server.name || "");
       setIcon(server.icon || "");
       setDescription(server.description || "");
       setIsBroadcasted(server.isBroadcasted || false);
       setDisappearingDuration(server.disappearingMessagesDuration || "off");
     }
-  }, [server]);
+  }, [server, open]);
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,7 +84,7 @@ export function ServerSettingsDialog({ open, onOpenChange, serverId }: ServerSet
         icon: icon.trim(),
         description: description.trim(),
         isBroadcasted: isBroadcasted,
-        isPublic: isBroadcasted, // Link public directory with broadcasting
+        isPublic: isBroadcasted,
         broadcastExpiry: broadcastExpiry,
         disappearingMessagesDuration: disappearingDuration,
       });
@@ -144,7 +144,6 @@ export function ServerSettingsDialog({ open, onOpenChange, serverId }: ServerSet
 
               <Separator />
 
-              {/* Privacy: Disappearing Messages */}
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <Timer className="h-4 w-4 text-primary" />
@@ -169,7 +168,6 @@ export function ServerSettingsDialog({ open, onOpenChange, serverId }: ServerSet
 
               <Separator />
 
-              {/* Discovery: Duniya */}
               <div className="space-y-3 p-3 bg-primary/5 rounded-xl border border-primary/10">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -237,4 +235,4 @@ export function ServerSettingsDialog({ open, onOpenChange, serverId }: ServerSet
       </DialogContent>
     </Dialog>
   );
-}
+});
