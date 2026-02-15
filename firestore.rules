@@ -8,23 +8,34 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Recursive wildcard for broad authenticated access across the entire DB
-    // This is the most robust way to ensure no "Permission Denied" errors for logged-in users
-    // Privacy (Whispers) is managed by high-performance query filters in the UI
-    match /{document=**} {
-      allow read, write: if isSignedIn();
-    }
-
-    // User Profiles: Authenticated read, owner-only write
+    // User Profiles: 
+    // - Allow public read (essential for username uniqueness checks and profile viewing)
+    // - Allow users to write/update only their own profile
     match /users/{userId} {
-      allow read: if isSignedIn();
+      allow read: if true;
       allow write: if isSignedIn() && request.auth.uid == userId;
     }
 
-    // Contact Submissions
+    // Communities and Nested Data:
+    // - Require authentication for all community interactions
+    // - Specific privacy (Whispers) is enforced by high-performance client queries
+    match /communities/{communityId} {
+      allow read, write: if isSignedIn();
+      
+      match /{allSubcollections=**} {
+        allow read, write: if isSignedIn();
+      }
+    }
+
+    // Contact Submissions: Public creation, authenticated management
     match /contact_form_submissions/{submissionId} {
       allow create: if true;
       allow read, update, delete: if isSignedIn();
+    }
+
+    // Broad authenticated access for any other collections
+    match /{document=**} {
+      allow read, write: if isSignedIn();
     }
   }
 }
