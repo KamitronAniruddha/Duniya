@@ -161,6 +161,11 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
     setIsClearChatDialogOpen(false);
   }, [db, basePath, user, messages, toast]);
 
+  const handleCancelSelection = useCallback(() => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  }, []);
+
   const toggleMessageSelection = (id: string) => {
     setSelectedIds(prev => {
       const next = new Set(prev);
@@ -172,11 +177,6 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
       }
       return next;
     });
-  };
-
-  const handleCancelSelection = () => {
-    setSelectionMode(false);
-    setSelectedIds(new Set());
   };
 
   const enterSelectionMode = (id: string) => {
@@ -196,7 +196,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
         <motion.div 
           initial={{ opacity: 0, scale: 0.95, y: 30 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          transition={{ duration: 0.2, ease: "easeOut" }}
+          transition={{ duration: 0.15, ease: "easeOut" }}
           className="flex flex-col items-center"
         >
           <div className="relative mb-12">
@@ -396,7 +396,12 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
       
       <DeleteOptionsDialog 
         open={isDeleteDialogOpen} 
-        onOpenChange={setIsDeleteDialogOpen} 
+        onOpenChange={(val) => {
+          setIsDeleteDialogOpen(val);
+          if (!val) {
+            handleCancelSelection();
+          }
+        }} 
         onDeleteForMe={() => handleBatchDelete("me")} 
         onDeleteForEveryone={allSelectedFromMe ? () => handleBatchDelete("everyone") : undefined} 
         isSender={allSelectedFromMe}
