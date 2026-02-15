@@ -111,15 +111,15 @@ export function AuthScreen() {
               <button 
                 type="button"
                 onClick={() => setSignatureType(prev => prev === "ani" ? "sanu" : "ani")}
-                className="h-10 w-32 flex items-center justify-center -mt-1 -mb-1 outline-none group cursor-pointer"
+                className="h-12 w-32 flex items-center justify-center -mt-1 outline-none group cursor-pointer"
               >
                 <AnimatePresence mode="wait">
                   {signatureType === "ani" ? (
                     <motion.svg
                       key="ani-sig"
                       width="80"
-                      height="36"
-                      viewBox="0 0 80 36"
+                      height="40"
+                      viewBox="0 0 80 40"
                       fill="none"
                       xmlns="http://www.w3.org/2000/svg"
                       className="text-primary transition-transform group-hover:scale-110"
@@ -128,7 +128,7 @@ export function AuthScreen() {
                       exit={{ opacity: 0, scale: 0.9 }}
                     >
                       <motion.path
-                        d="M15,28 L25,8 L35,28 M20,20 L30,20 M45,28 L45,18 C45,14 55,14 55,18 L55,28 M65,18 L65,28 M65,10 L65,12"
+                        d="M15,30 L25,10 L35,30 M20,22 L30,22 M45,30 L45,20 C45,16 55,16 55,20 L55,30 M65,20 L65,30 M65,12 L65,14"
                         stroke="currentColor"
                         strokeWidth="2.5"
                         strokeLinecap="round"
@@ -136,7 +136,7 @@ export function AuthScreen() {
                         initial={{ pathLength: 0 }}
                         animate={{ pathLength: 1 }}
                         transition={{ 
-                          duration: 1.5, 
+                          duration: 1.2, 
                           ease: "easeInOut",
                         }}
                       />
@@ -145,8 +145,8 @@ export function AuthScreen() {
                     <motion.svg
                       key="sanu-sig"
                       width="100"
-                      height="36"
-                      viewBox="0 0 100 36"
+                      height="40"
+                      viewBox="0 0 100 40"
                       fill="none"
                       xmlns="http://www.w3.org/2000/svg"
                       className="text-primary transition-transform group-hover:scale-110"
@@ -155,7 +155,7 @@ export function AuthScreen() {
                       exit={{ opacity: 0, scale: 0.9 }}
                     >
                       <motion.path
-                        d="M20,10 C10,10 10,20 20,20 C30,20 30,30 20,30 M35,30 C30,30 30,22 35,22 C40,22 40,30 35,30 M40,22 L40,30 M50,30 L50,22 C50,18 60,18 60,22 L60,30 M70,22 L70,26 C70,32 80,32 80,26 L80,22 M80,22 L80,30"
+                        d="M15,25 C15,15 25,15 25,20 C25,25 15,25 15,30 C15,35 25,35 25,30 M35,30 C35,25 45,25 45,30 C45,35 35,35 35,30 M45,25 L45,35 M55,35 L55,25 C55,20 65,20 65,25 L65,35 M75,25 L75,30 C75,35 85,35 85,30 L85,25 M85,25 L85,35"
                         stroke="currentColor"
                         strokeWidth="2.5"
                         strokeLinecap="round"
@@ -163,7 +163,7 @@ export function AuthScreen() {
                         initial={{ pathLength: 0 }}
                         animate={{ pathLength: 1 }}
                         transition={{ 
-                          duration: 1.8, 
+                          duration: 1.5, 
                           ease: "easeInOut",
                         }}
                       />
