@@ -99,8 +99,8 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
 
     const finalWhisper = whisperTarget !== undefined ? whisperTarget : whisperingTo;
 
-    // CRITICAL FIX: Ensure NO "undefined" values are passed to Firestore.
-    // Firestore accepts null, but crashes on undefined.
+    // CRITICAL FIX: Explicitly ensure NO "undefined" values are passed to Firestore.
+    // Every field uses null-coalescing to avoid Runtime FirebaseError.
     const data: any = {
       id: messageRef.id,
       channelId: channelId || null,
@@ -131,7 +131,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
       data.senderExpireAt = new Date(sentAt.getTime() + (disappearing.duration || 10000)).toISOString();
     }
 
-    if (replyingTo && replySenderName) {
+    if (replyingTo) {
       data.replyTo = { 
         messageId: replyingTo.id || "", 
         senderName: replySenderName || "User", 

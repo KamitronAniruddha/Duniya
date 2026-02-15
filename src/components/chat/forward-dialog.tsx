@@ -83,10 +83,10 @@ export function ForwardDialog({ open, onOpenChange, messagesToForward, currentCo
                });
              }
              newChain.push({
-               communityName: target.communityName,
-               channelName: target.channelName,
-               viaCommunity: currentCommunityName,
-               viaChannel: currentChannelName,
+               communityName: target.communityName || "Community",
+               channelName: target.channelName || "Channel",
+               viaCommunity: currentCommunityName || null,
+               viaChannel: currentChannelName || null,
                senderName: currentSenderName,
                timestamp: new Date().toISOString()
              });
@@ -98,6 +98,7 @@ export function ForwardDialog({ open, onOpenChange, messagesToForward, currentCo
           if (msg.audioUrl && (msgType === "text" || !msgType)) msgType = "media";
 
           // CRITICAL FIX: Explicitly handle potential "undefined" fields.
+          // Firestore does not allow undefined; every field uses null-coalescing.
           const data = {
             id: newMsgRef.id,
             channelId: target.channelId || null,
