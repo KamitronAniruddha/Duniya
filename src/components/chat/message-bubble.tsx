@@ -130,7 +130,6 @@ export function MessageBubble({
   }, [message.disappearingEnabled, message.senderExpireAt, message.viewerExpireAt, user?.uid, isMe, message.isDeleted, message.fullyDeleted]);
 
   const handleStart = (e: React.TouchEvent | React.MouseEvent) => {
-    if (message.isDeleted || isDisappeared) return;
     const clientX = 'touches' in e ? (e as React.TouchEvent).touches[0].clientX : (e as React.MouseEvent).clientX;
     const clientY = 'touches' in e ? (e as React.TouchEvent).touches[0].clientY : (e as React.MouseEvent).clientY;
     
@@ -148,7 +147,7 @@ export function MessageBubble({
   };
 
   const handleMove = (e: React.TouchEvent | React.MouseEvent) => {
-    if (!isDragging || message.isDeleted || isDisappeared) return;
+    if (!isDragging) return;
     const clientX = 'touches' in e ? (e as React.TouchEvent).touches[0].clientX : (e as React.MouseEvent).clientX;
     const clientY = 'touches' in e ? (e as React.TouchEvent).touches[0].clientY : (e as React.MouseEvent).clientY;
     
@@ -171,7 +170,7 @@ export function MessageBubble({
     }
 
     // If it's a horizontal move, handle swipe-to-reply
-    if (isHorizontalSwipe.current && !selectionMode && diffX > 0) {
+    if (isHorizontalSwipe.current && !selectionMode && diffX > 0 && !message.isDeleted && !isDisappeared) {
       if (longPressTimer.current) {
         clearTimeout(longPressTimer.current);
         longPressTimer.current = null;
@@ -252,23 +251,7 @@ export function MessageBubble({
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  if (message.isDeleted || isDisappeared || message.fullyDeleted) {
-    return (
-      <div className={cn("flex w-full py-0.5 items-end", isMe ? "flex-row-reverse" : "flex-row")}>
-        <div className={cn("flex flex-col max-w-[85%] relative", isMe ? "items-end" : "items-start")}>
-          <div className={cn(
-            "px-3 py-2 rounded-2xl text-[11px] italic opacity-60 flex items-center gap-2 border shadow-none",
-            isMe ? "bg-muted/50 rounded-br-none" : "bg-card rounded-bl-none"
-          )}>
-            <Ban className="h-3 w-3" />
-            {isDisappeared ? "This message disappeared" : (isMe ? "You deleted this message" : "This message was deleted")}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const isSeenByOthers = (message.seenBy?.length || 0) > 0;
+  const isActuallyDeleted = message.isDeleted || isDisappeared || message.fullyDeleted;
 
   return (
     <div 
@@ -286,7 +269,7 @@ export function MessageBubble({
       onTouchEnd={handleEnd}
       onClick={handleBubbleClick}
     >
-      {/* Fixed Selection Container - Prevents Bubble Jumping */}
+      {/* Selection UI for ALL states */}
       <div className={cn(
         "shrink-0 flex items-center justify-center transition-all duration-300 overflow-hidden",
         selectionMode ? "w-10 opacity-100" : "w-0 opacity-0",
@@ -317,86 +300,99 @@ export function MessageBubble({
       )}
       
       <div className={cn("flex flex-col max-w-[75%] relative transition-transform ease-out", isMe ? "items-end" : "items-start")} style={{ transform: `translateX(${dragX}px)` }}>
-        {!isMe && !selectionMode && (
-          <UserProfilePopover userId={message.senderId}>
-            <button className="text-[10px] font-black text-muted-foreground ml-1 mb-0.5 hover:text-primary transition-colors uppercase tracking-wider">{sender?.username || "..."}</button>
-          </UserProfilePopover>
-        )}
-        
-        <div className={cn(
-          "px-3.5 py-2.5 rounded-2xl shadow-sm transition-all relative",
-          message.disappearingEnabled && "ring-1 ring-primary/30",
-          isSelected && "ring-2 ring-primary ring-offset-1 bg-primary/10",
-          isMe ? "bg-primary text-white rounded-br-none" : "bg-card text-foreground rounded-bl-none border border-border"
-        )}>
-          {message.replyTo && (
-            <button onClick={onQuoteClick} className={cn("w-full text-left mb-2 p-2 rounded-lg border-l-4 text-xs bg-black/5 flex flex-col gap-0.5 backdrop-blur-sm", isMe ? "border-white/40" : "border-primary/50")}>
-              <span className={cn("font-bold text-[10px] flex items-center gap-1 uppercase tracking-tighter", isMe ? "text-white/90" : "text-primary")}><CornerDownRight className="h-3 w-3" />{message.replyTo.senderName}</span>
-              <p className={cn("line-clamp-2 italic", isMe ? "text-white/70" : "text-muted-foreground")}>{message.replyTo.text}</p>
-            </button>
-          )}
-
-          {message.type === 'media' && message.audioUrl ? (
-            <div className="flex items-center gap-3 py-1 min-w-[220px]">
-              <audio ref={audioRef} src={message.audioUrl} preload="metadata" onTimeUpdate={() => {
-                if (audioRef.current) {
-                  setCurrentTime(audioRef.current.currentTime);
-                  setProgress((audioRef.current.currentTime / audioRef.current.duration) * 100);
-                }
-              }} onLoadedMetadata={() => {
-                if (audioRef.current) setDuration(audioRef.current.duration);
-              }} />
-              <Button variant="ghost" size="icon" className={cn("h-10 w-10 rounded-full", isMe ? "text-white hover:bg-white/10" : "text-primary hover:bg-primary/10")} onClick={togglePlay}>
-                {isPlaying ? <Pause className="h-5 w-5 fill-current" /> : <Play className="h-5 w-5 fill-current ml-0.5" />}
-              </Button>
-              <div className="flex-1 space-y-1.5">
-                <div className={cn("h-1.5 w-full rounded-full overflow-hidden relative shadow-inner", isMe ? "bg-white/30" : "bg-muted")}>
-                  <div className={cn("h-full transition-all duration-300 ease-linear", isMe ? "bg-white" : "bg-primary")} style={{ width: `${progress}%` }} />
-                </div>
-                <div className={cn("text-[10px] font-mono font-bold flex items-center gap-1", isMe ? "text-white/80" : "text-primary")}>
-                  <Volume2 className="h-3 w-3" />{formatAudioTime(isPlaying ? currentTime : duration)}
-                </div>
-              </div>
-            </div>
-          ) : message.type === 'media' && message.videoUrl ? (
-            <div className="relative group/video overflow-hidden rounded-xl aspect-square w-64 md:w-80 shadow-lg bg-black/90">
-              <video ref={videoRef} src={message.videoUrl} className="w-full h-full object-cover" loop muted={!isVideoPlaying} autoPlay playsInline onClick={toggleVideoPlay} />
-              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/video:opacity-100 transition-all bg-black/30 backdrop-blur-sm pointer-events-none">
-                 <div className="p-4 bg-white/20 rounded-full">{isVideoPlaying ? <Volume2 className="h-8 w-8 text-white" /> : <Play className="h-8 w-8 text-white" />}</div>
-              </div>
-            </div>
-          ) : (
-            <p className="whitespace-pre-wrap break-words leading-relaxed text-sm tracking-tight">{message.text}</p>
-          )}
-
-          <div className="flex items-center justify-between gap-4 mt-1.5">
-            {message.disappearingEnabled && (
-              <div className={cn("flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tighter", isMe ? "bg-white/10 text-white" : "bg-primary/10 text-primary")}>
-                <Timer className="h-2.5 w-2.5" />
-                {timeRemaining !== null ? (
-                  <span>Vanish in {formatCountdown(timeRemaining)}</span>
-                ) : (
-                  <span>Waiting for view</span>
-                )}
-              </div>
+        {isActuallyDeleted ? (
+          <div className={cn(
+            "px-3.5 py-2.5 rounded-2xl text-[11px] italic opacity-60 flex items-center gap-2 border shadow-none relative",
+            isSelected && "ring-2 ring-primary ring-offset-1 bg-primary/10",
+            isMe ? "bg-muted/50 rounded-br-none" : "bg-card rounded-bl-none"
+          )}>
+            <Ban className="h-3 w-3" />
+            {isDisappeared ? "This message disappeared" : (isMe ? "You deleted this message" : "This message was deleted")}
+          </div>
+        ) : (
+          <>
+            {!isMe && !selectionMode && (
+              <UserProfilePopover userId={message.senderId}>
+                <button className="text-[10px] font-black text-muted-foreground ml-1 mb-0.5 hover:text-primary transition-colors uppercase tracking-wider">{sender?.username || "..."}</button>
+              </UserProfilePopover>
             )}
-            <div className={cn("text-[9px] leading-none font-black ml-auto flex items-center gap-1 tracking-widest", isMe ? "text-white/80" : "text-muted-foreground")}>
-              {formattedTime}
-              {isMe && (
-                <div className="flex items-center ml-0.5">
-                  {isSeenByOthers ? (
-                    <CheckCheck className="h-3.5 w-3.5 text-[#00E0FF] drop-shadow-[0_0_4px_rgba(0,224,255,0.8)] animate-in zoom-in-50 duration-300" />
-                  ) : (
-                    <Check className="h-3.5 w-3.5 text-white/60" />
+            
+            <div className={cn(
+              "px-3.5 py-2.5 rounded-2xl shadow-sm transition-all relative",
+              message.disappearingEnabled && "ring-1 ring-primary/30",
+              isSelected && "ring-2 ring-primary ring-offset-1 bg-primary/10",
+              isMe ? "bg-primary text-white rounded-br-none" : "bg-card text-foreground rounded-bl-none border border-border"
+            )}>
+              {message.replyTo && (
+                <button onClick={onQuoteClick} className={cn("w-full text-left mb-2 p-2 rounded-lg border-l-4 text-xs bg-black/5 flex flex-col gap-0.5 backdrop-blur-sm", isMe ? "border-white/40" : "border-primary/50")}>
+                  <span className={cn("font-bold text-[10px] flex items-center gap-1 uppercase tracking-tighter", isMe ? "text-white/90" : "text-primary")}><CornerDownRight className="h-3 w-3" />{message.replyTo.senderName}</span>
+                  <p className={cn("line-clamp-2 italic", isMe ? "text-white/70" : "text-muted-foreground")}>{message.replyTo.text}</p>
+                </button>
+              )}
+
+              {message.type === 'media' && message.audioUrl ? (
+                <div className="flex items-center gap-3 py-1 min-w-[220px]">
+                  <audio ref={audioRef} src={message.audioUrl} preload="metadata" onTimeUpdate={() => {
+                    if (audioRef.current) {
+                      setCurrentTime(audioRef.current.currentTime);
+                      setProgress((audioRef.current.currentTime / audioRef.current.duration) * 100);
+                    }
+                  }} onLoadedMetadata={() => {
+                    if (audioRef.current) setDuration(audioRef.current.duration);
+                  }} />
+                  <Button variant="ghost" size="icon" className={cn("h-10 w-10 rounded-full", isMe ? "text-white hover:bg-white/10" : "text-primary hover:bg-primary/10")} onClick={togglePlay}>
+                    {isPlaying ? <Pause className="h-5 w-5 fill-current" /> : <Play className="h-5 w-5 fill-current ml-0.5" />}
+                  </Button>
+                  <div className="flex-1 space-y-1.5">
+                    <div className={cn("h-1.5 w-full rounded-full overflow-hidden relative shadow-inner", isMe ? "bg-white/30" : "bg-muted")}>
+                      <div className={cn("h-full transition-all duration-300 ease-linear", isMe ? "bg-white" : "bg-primary")} style={{ width: `${progress}%` }} />
+                    </div>
+                    <div className={cn("text-[10px] font-mono font-bold flex items-center gap-1", isMe ? "text-white/80" : "text-primary")}>
+                      <Volume2 className="h-3 w-3" />{formatAudioTime(isPlaying ? currentTime : duration)}
+                    </div>
+                  </div>
+                </div>
+              ) : message.type === 'media' && message.videoUrl ? (
+                <div className="relative group/video overflow-hidden rounded-xl aspect-square w-64 md:w-80 shadow-lg bg-black/90">
+                  <video ref={videoRef} src={message.videoUrl} className="w-full h-full object-cover" loop muted={!isVideoPlaying} autoPlay playsInline onClick={toggleVideoPlay} />
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/video:opacity-100 transition-all bg-black/30 backdrop-blur-sm pointer-events-none">
+                     <div className="p-4 bg-white/20 rounded-full">{isVideoPlaying ? <Volume2 className="h-8 w-8 text-white" /> : <Play className="h-8 w-8 text-white" />}</div>
+                  </div>
+                </div>
+              ) : (
+                <p className="whitespace-pre-wrap break-words leading-relaxed text-sm tracking-tight">{message.text}</p>
+              )}
+
+              <div className="flex items-center justify-between gap-4 mt-1.5">
+                {message.disappearingEnabled && (
+                  <div className={cn("flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tighter", isMe ? "bg-white/10 text-white" : "bg-primary/10 text-primary")}>
+                    <Timer className="h-2.5 w-2.5" />
+                    {timeRemaining !== null ? (
+                      <span>Vanish in {formatCountdown(timeRemaining)}</span>
+                    ) : (
+                      <span>Waiting for view</span>
+                    )}
+                  </div>
+                )}
+                <div className={cn("text-[9px] leading-none font-black ml-auto flex items-center gap-1 tracking-widest", isMe ? "text-white/80" : "text-muted-foreground")}>
+                  {formattedTime}
+                  {isMe && (
+                    <div className="flex items-center ml-0.5">
+                      {message.seenBy && message.seenBy.length > 0 ? (
+                        <CheckCheck className="h-3.5 w-3.5 text-[#00E0FF] drop-shadow-[0_0_4px_rgba(0,224,255,0.8)] animate-in zoom-in-50 duration-300" />
+                      ) : (
+                        <Check className="h-3.5 w-3.5 text-white/60" />
+                      )}
+                    </div>
                   )}
                 </div>
-              )}
+              </div>
             </div>
-          </div>
-        </div>
+          </>
+        )}
       </div>
 
-      {!selectionMode && (
+      {!selectionMode && !isActuallyDeleted && (
         <div className={cn("mb-2 mx-1 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5", isMe ? "mr-1" : "ml-1")}>
           <button onClick={onReply} className="h-7 w-7 rounded-full hover:bg-muted/50 flex items-center justify-center text-muted-foreground hover:text-primary transition-colors"><Reply className="h-3.5 w-3.5" /></button>
           <DropdownMenu>
