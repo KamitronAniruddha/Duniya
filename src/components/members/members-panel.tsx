@@ -127,7 +127,7 @@ export function MembersPanel({ serverId, onWhisper }: MembersPanelProps) {
       updateDocumentNonBlocking(serverRef, { members: arrayRemove(targetUserId), admins: arrayRemove(targetUserId) });
       const memberDocRef = doc(db, "communities", serverId, "members", targetUserId);
       deleteDocumentNonBlocking(memberDocRef);
-      toast({ title: "Member Removed", description: `${targetUsername} has been removed from the community.` });
+      toast({ title: "Member Removed", description: `@${targetUsername} has been removed from the community.` });
     } catch (error: any) {
       toast({ variant: "destructive", title: "Removal Failed", description: error.message });
     }
@@ -226,7 +226,7 @@ export function MembersPanel({ serverId, onWhisper }: MembersPanelProps) {
                 {selectedUsers.map(u => (
                   <Badge key={u.id} variant="secondary" className="pl-1 pr-1 py-1 flex items-center gap-1 bg-primary/10 text-primary border-primary/20">
                     <Avatar className="h-4 w-4"><AvatarImage src={u.photoURL} /><AvatarFallback className="text-[6px]">{u.username?.[0]}</AvatarFallback></Avatar>
-                    <span className="text-[10px] font-bold">{u.username}</span>
+                    <span className="text-[10px] font-bold">@{u.username}</span>
                     <button onClick={() => toggleUserSelection(u)} className="hover:bg-primary/20 rounded-full p-0.5 transition-colors"><X className="h-2 w-2" /></button>
                   </Badge>
                 ))}
@@ -241,7 +241,7 @@ export function MembersPanel({ serverId, onWhisper }: MembersPanelProps) {
             </div>
             <div className="space-y-2 min-h-[120px]">
               <h4 className="text-[10px] font-bold uppercase text-muted-foreground px-1">Search Results</h4>
-              {isSearching ? <div className="flex items-center justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground/30" /></div> : (searchQuery.trim().length < 2 ? <div className="flex items-center justify-center py-8 opacity-30"><p className="text-xs text-foreground">Type at least 2 characters...</p></div> : (searchResults.length === 0 ? <div className="flex items-center justify-center py-8 opacity-30"><p className="text-xs text-foreground">No users found or available.</p></div> : <div className="space-y-1">{searchResults.map((u) => { const isSelected = selectedUsers.some(sel => sel.id === u.id); return ( <button key={u.id} type="button" onClick={() => toggleUserSelection(u)} className={cn("w-full flex items-center gap-2 p-2 rounded-lg transition-colors text-left", isSelected ? "bg-primary/10 border border-primary/20" : "hover:bg-muted border border-transparent")}> <Avatar className="h-6 w-6"><AvatarImage src={u.photoURL} /><AvatarFallback className="text-[8px] bg-primary text-primary-foreground">{u.username?.[0]?.toUpperCase()}</AvatarFallback></Avatar> <span className="text-xs font-bold flex-1 text-foreground">{u.username}</span> {isSelected && <Check className="h-3 w-3 text-primary" />} </button> ); })}</div>))}
+              {isSearching ? <div className="flex items-center justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground/30" /></div> : (searchQuery.trim().length < 2 ? <div className="flex items-center justify-center py-8 opacity-30"><p className="text-xs text-foreground">Type at least 2 characters...</p></div> : (searchResults.length === 0 ? <div className="flex items-center justify-center py-8 opacity-30"><p className="text-xs text-foreground">No users found or available.</p></div> : <div className="space-y-1">{searchResults.map((u) => { const isSelected = selectedUsers.some(sel => sel.id === u.id); return ( <button key={u.id} type="button" onClick={() => toggleUserSelection(u)} className={cn("w-full flex items-center gap-2 p-2 rounded-lg transition-colors text-left", isSelected ? "bg-primary/10 border border-primary/20" : "hover:bg-muted border border-transparent")}> <Avatar className="h-6 w-6"><AvatarImage src={u.photoURL} /><AvatarFallback className="text-[8px] bg-primary text-primary-foreground">{u.username?.[0]?.toUpperCase()}</AvatarFallback></Avatar> <span className="text-xs font-bold flex-1 text-foreground">@{u.username}</span> {isSelected && <Check className="h-3 w-3 text-primary" />} </button> ); })}</div>))}
             </div>
           </div>
           <DialogFooter>
@@ -297,7 +297,7 @@ function MemberItem({
               "text-xs font-bold truncate leading-none hover:text-primary transition-colors",
               isOnline ? "text-foreground" : "text-muted-foreground"
             )}>
-              {member.username}
+              @{member.username}
             </span>
             {isOwner ? (
               <ShieldCheck className="h-3 w-3 text-orange-500 shrink-0" title="Server Owner" />
@@ -342,7 +342,7 @@ function MemberItem({
                     <AlertDialogHeader>
                       <AlertDialogTitle>Remove Member</AlertDialogTitle>
                       <AlertDialogDescription>
-                        Are you sure you want to remove <strong>{member.username}</strong> from this community?
+                        Are you sure you want to remove <strong>@{member.username}</strong> from this community?
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
