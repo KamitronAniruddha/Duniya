@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -7,7 +6,7 @@ import { collection, query, where, doc, arrayUnion, getDocs, limit, writeBatch }
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Plus, Compass, Globe, Heart, Loader2, Settings, Share2, Copy, Check } from "lucide-react";
+import { Plus, Compass, Globe, Heart, Loader2, Settings, Share2, Copy, Check, Info } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { ServerSettingsDialog } from "@/components/servers/server-settings-dialog";
+import { CommunityProfileDialog } from "@/components/communities/community-profile-dialog";
 
 interface ServerSidebarProps {
   activeServerId: string | null;
@@ -32,6 +32,7 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive }
   const [joinId, setJoinId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [editingServerId, setEditingServerId] = useState<string | null>(null);
+  const [viewingProfileId, setViewingProfileId] = useState<string | null>(null);
 
   const communitiesQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
@@ -194,6 +195,9 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive }
                   <ContextMenuItem onClick={() => onSelectServer(s.id)} className="gap-2 p-3 rounded-xl transition-all hover:bg-primary/10">
                     <Globe className="h-4 w-4" /> Open Community
                   </ContextMenuItem>
+                  <ContextMenuItem onClick={() => setViewingProfileId(s.id)} className="gap-2 p-3 rounded-xl transition-all hover:bg-primary/10">
+                    <Info className="h-4 w-4" /> View Profile
+                  </ContextMenuItem>
                   {isAdmin && (
                     <ContextMenuItem onClick={() => setEditingServerId(s.id)} className="gap-2 p-3 rounded-xl transition-all hover:bg-primary/10">
                       <Settings className="h-4 w-4" /> Edit Community Info
@@ -270,6 +274,14 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive }
           open={!!editingServerId} 
           onOpenChange={(open) => !open && setEditingServerId(null)} 
           serverId={editingServerId} 
+        />
+      )}
+
+      {viewingProfileId && (
+        <CommunityProfileDialog
+          open={!!viewingProfileId}
+          onOpenChange={(open) => !open && setViewingProfileId(null)}
+          serverId={viewingProfileId}
         />
       )}
     </aside>

@@ -1,10 +1,9 @@
-
 "use client";
 
 import { useState } from "react";
 import { useCollection, useFirestore, useUser, useDoc, useMemoFirebase, useAuth } from "@/firebase";
 import { collection, query, doc } from "firebase/firestore";
-import { Hash, Settings, ChevronDown, LogOut, Loader2, Plus, Timer, Globe, Mail } from "lucide-react";
+import { Hash, Settings, ChevronDown, LogOut, Loader2, Plus, Timer, Globe, Mail, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -13,6 +12,7 @@ import { ProfileDialog } from "@/components/profile/profile-dialog";
 import { ServerSettingsDialog } from "@/components/servers/server-settings-dialog";
 import { DisappearingMessagesDialog } from "@/components/servers/disappearing-messages-dialog";
 import { ContactFormDialog } from "@/components/contact/contact-form-dialog";
+import { CommunityProfileDialog } from "@/components/communities/community-profile-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -34,6 +34,7 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
   const [profileOpen, setProfileOpen] = useState(false);
   const [serverSettingsOpen, setServerSettingsOpen] = useState(false);
   const [disappearingOpen, setDisappearingOpen] = useState(false);
+  const [communityProfileOpen, setCommunityProfileOpen] = useState(false);
   const [createChannelOpen, setCreateChannelOpen] = useState(false);
   const [newChannelName, setNewChannelName] = useState("");
   const [isCreating, setIsCreating] = useState(false);
@@ -88,19 +89,31 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
         <>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <header className="h-16 px-4 border-b flex items-center justify-between hover:bg-muted/30 transition-all cursor-pointer shrink-0 group">
+              <header className="h-16 px-4 border-b flex items-center gap-3 hover:bg-muted/30 transition-all cursor-pointer shrink-0 group">
+                <div 
+                  className="relative shrink-0"
+                  onClick={(e) => { e.stopPropagation(); setCommunityProfileOpen(true); }}
+                >
+                  <Avatar className="h-10 w-10 border border-border shadow-sm group-hover:scale-105 transition-transform">
+                    <AvatarImage src={community?.icon} />
+                    <AvatarFallback className="bg-primary text-white font-black text-xs">{community?.name?.[0]?.toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                </div>
                 <div className="flex flex-col min-w-0 flex-1">
                   <h2 className="font-black truncate text-lg text-foreground tracking-tighter uppercase group-hover:text-primary transition-colors">{community?.name || "..." }</h2>
                   <div className="flex items-center gap-1.5">
                     {community?.joinCode && <span className="text-[9px] text-primary font-black font-mono tracking-widest uppercase opacity-70">CODE: {community.joinCode}</span>}
                   </div>
                 </div>
-                <div className="p-1.5 rounded-lg bg-muted group-hover:bg-primary/10 transition-all ml-2 shrink-0">
+                <div className="p-1.5 rounded-lg bg-muted group-hover:bg-primary/10 transition-all shrink-0">
                   <ChevronDown className="h-4 w-4" />
                 </div>
               </header>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-64 font-black uppercase text-[10px] tracking-widest p-1 border-none shadow-2xl bg-popover/95 backdrop-blur-md" align="start">
+              <DropdownMenuItem onClick={() => setCommunityProfileOpen(true)} className="gap-2 p-3 rounded-xl hover:bg-primary/10">
+                <Info className="h-4 w-4 text-primary" /> Group Profile
+              </DropdownMenuItem>
               {isAdmin && (
                 <>
                   <DropdownMenuItem onClick={() => setServerSettingsOpen(true)} className="gap-2 p-3 rounded-xl hover:bg-primary/10">
@@ -190,6 +203,8 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
       <ProfileDialog open={profileOpen} onOpenChange={setProfileOpen} />
       {serverId && <ServerSettingsDialog open={serverSettingsOpen} onOpenChange={setServerSettingsOpen} serverId={serverId} />}
       {serverId && <DisappearingMessagesDialog open={disappearingOpen} onOpenChange={setDisappearingOpen} serverId={serverId} />}
+      {serverId && <CommunityProfileDialog open={communityProfileOpen} onOpenChange={setCommunityProfileOpen} serverId={serverId} />}
+      
       <Dialog open={createChannelOpen} onOpenChange={setCreateChannelOpen}>
         <DialogContent className="rounded-[2.5rem] border-none shadow-2xl">
           <DialogHeader><DialogTitle className="text-xl font-black uppercase tracking-tighter">NEW CHANNEL</DialogTitle></DialogHeader>
