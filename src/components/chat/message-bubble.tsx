@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useFirestore, useUser, useDoc, useMemoFirebase } from "@/firebase";
 import { doc, arrayUnion, deleteField } from "firebase/firestore";
 import { UserProfilePopover } from "@/components/profile/user-profile-popover";
-import { Reply, CornerDownRight, Play, Pause, Volume2, MoreHorizontal, Trash2, Ban, Copy, Timer, Check, CheckCheck, Forward, Landmark, History } from "lucide-react";
+import { Reply, CornerDownRight, Play, Pause, MoreHorizontal, Trash2, Ban, Copy, Timer, Check, CheckCheck, Forward, Landmark, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
@@ -139,8 +139,10 @@ export const MessageBubble = memo(function MessageBubble({
     return () => clearInterval(timer);
   }, [message.disappearingEnabled, message.senderExpireAt, message.viewerExpireAt, user?.uid, isMe]);
 
+  const isActuallyDeleted = message.isDeleted || isDisappeared || message.fullyDeleted;
+
   const handleStart = (e: React.TouchEvent | React.MouseEvent) => {
-    if (selectionMode) return;
+    if (selectionMode || isActuallyDeleted) return;
     const clientX = 'touches' in e ? (e as React.TouchEvent).touches[0].clientX : (e as React.MouseEvent).clientX;
     const clientY = 'touches' in e ? (e as React.TouchEvent).touches[0].clientY : (e as React.MouseEvent).clientY;
     
@@ -150,7 +152,7 @@ export const MessageBubble = memo(function MessageBubble({
     setIsDragging(true);
 
     longPressTimer.current = setTimeout(() => {
-      if (!selectionMode && onLongPress) {
+      if (!selectionMode && onLongPress && !isActuallyDeleted) {
         onLongPress(message.id);
         setIsDragging(false);
       }
@@ -158,7 +160,7 @@ export const MessageBubble = memo(function MessageBubble({
   };
 
   const handleMove = (e: React.TouchEvent | React.MouseEvent) => {
-    if (!isDragging || selectionMode) return;
+    if (!isDragging || selectionMode || isActuallyDeleted) return;
     const clientX = 'touches' in e ? (e as React.TouchEvent).touches[0].clientX : (e as React.MouseEvent).clientX;
     const clientY = 'touches' in e ? (e as React.TouchEvent).touches[0].clientY : (e as React.MouseEvent).clientY;
     
@@ -175,7 +177,7 @@ export const MessageBubble = memo(function MessageBubble({
       }
     }
 
-    if (isHorizontalSwipe.current && !selectionMode && diffX > 0 && !message.isDeleted && !isDisappeared) {
+    if (isHorizontalSwipe.current && !selectionMode && diffX > 0 && !isActuallyDeleted) {
       if (longPressTimer.current) clearTimeout(longPressTimer.current);
       const rubberBand = Math.pow(diffX, 0.85);
       setDragX(Math.min(rubberBand * 2, 100));
@@ -185,7 +187,7 @@ export const MessageBubble = memo(function MessageBubble({
   const handleEnd = () => {
     if (longPressTimer.current) clearTimeout(longPressTimer.current);
     if (!isDragging) return;
-    if (dragX >= 60 && !selectionMode) onReply?.();
+    if (dragX >= 60 && !selectionMode && !isActuallyDeleted) onReply?.();
     setDragX(0);
     setIsDragging(false);
   };
@@ -197,13 +199,12 @@ export const MessageBubble = memo(function MessageBubble({
     setIsPlaying(!isPlaying);
   };
 
-  const isActuallyDeleted = message.isDeleted || isDisappeared || message.fullyDeleted;
   const latestHop = message.forwardingChain?.[message.forwardingChain.length - 1];
 
   return (
     <div 
       className={cn(
-        "flex w-full py-0.5 group items-end relative transition-colors duration-100 rounded-2xl select-none", 
+        "flex w-full py-0.5 group items-end relative transition-colors duration-150 rounded-2xl select-none", 
         isMe ? "flex-row-reverse" : "flex-row",
         isSelected && "bg-primary/10"
       )}
@@ -217,25 +218,25 @@ export const MessageBubble = memo(function MessageBubble({
       onClick={(e) => {
         if (selectionMode) {
           e.stopPropagation();
-          onSelect?.(message.id);
+          if (!isActuallyDeleted) {
+            onSelect?.(message.id);
+          }
         }
       }}
     >
       <div className={cn(
-        "shrink-0 flex items-center justify-center transition-all duration-150 overflow-hidden",
+        "shrink-0 flex items-center justify-center transition-all duration-200 overflow-hidden",
         selectionMode ? "w-10 opacity-100" : "w-0 opacity-0",
         isMe ? "ml-1" : "mr-1"
       )}>
-        <motion.div 
-          animate={isSelected ? { scale: 1.05 } : { scale: 1 }}
-          transition={{ duration: 0.1, ease: "easeOut" }}
-          className={cn(
-            "h-5 w-5 rounded-full border-2 flex items-center justify-center transition-all duration-100",
-            isSelected ? "bg-primary border-primary text-white" : "border-muted-foreground/20"
+        <div className={cn(
+            "h-5 w-5 rounded-full border-2 flex items-center justify-center transition-all duration-150",
+            isSelected ? "bg-primary border-primary text-white" : "border-muted-foreground/20",
+            isActuallyDeleted && "opacity-0 pointer-events-none"
           )}
         >
           {isSelected && <Check className="h-3 w-3 stroke-[3px]" />}
-        </motion.div>
+        </div>
       </div>
 
       <AnimatePresence>
@@ -265,9 +266,9 @@ export const MessageBubble = memo(function MessageBubble({
       
       <motion.div 
         layout
-        className={cn("flex flex-col max-w-[75%] relative transition-all duration-150 ease-out", isMe ? "items-end" : "items-start")} 
+        className={cn("flex flex-col max-w-[75%] relative transition-all duration-200 ease-out", isMe ? "items-end" : "items-start")} 
         style={{ x: dragX }}
-        transition={{ duration: 0.15, ease: "easeOut" }}
+        transition={{ duration: 0.2, ease: "easeOut" }}
       >
         {isActuallyDeleted ? (
           <div className={cn(
@@ -286,9 +287,9 @@ export const MessageBubble = memo(function MessageBubble({
             )}
             
             <div className={cn(
-              "px-3 py-2 rounded-[1.25rem] shadow-sm transition-all duration-100 relative group/bubble",
+              "px-3 py-2 rounded-[1.25rem] shadow-sm transition-all duration-150 relative group/bubble",
               isMe ? "bg-primary text-white rounded-br-none shadow-primary/10" : "bg-card text-foreground rounded-bl-none border border-border shadow-black/5",
-              selectionMode && "cursor-pointer active:scale-[0.99]"
+              selectionMode && !isActuallyDeleted && "cursor-pointer active:scale-[0.98]"
             )}>
               {message.isForwarded && (
                 <div className={cn("flex flex-col mb-1.5 opacity-80", isMe ? "items-end" : "items-start")}>
@@ -304,7 +305,7 @@ export const MessageBubble = memo(function MessageBubble({
                   {latestHop && (
                     <div className={cn("flex items-center gap-1 text-[7px] font-black tracking-tight mt-0.5 opacity-60", isMe ? "text-white" : "text-primary")}>
                       <Landmark className="h-2 w-2" />
-                      <span>{latestHop.communityName?.toUpperCase() || "VERSE"} {' > '} #{latestHop.channelName?.toUpperCase() || "GENERAL"}</span>
+                      <span>{(latestHop.communityName || "VERSE").toUpperCase()} {' > '} #{(latestHop.channelName || "GENERAL").toUpperCase()}</span>
                     </div>
                   )}
                 </div>
@@ -323,7 +324,7 @@ export const MessageBubble = memo(function MessageBubble({
                 <div className="flex items-center gap-3 py-1 min-w-[200px]">
                   <audio ref={audioRef} src={message.audioUrl} onTimeUpdate={() => audioRef.current && setProgress((audioRef.current.currentTime / audioRef.current.duration) * 100)} />
                   <Button variant="ghost" size="icon" className={cn("h-9 w-9 rounded-full shadow-md", isMe ? "bg-white/10 text-white" : "bg-primary/10 text-primary")} onClick={(e) => { e.stopPropagation(); togglePlay(); }}>
-                    {isPlaying ? <Pause className="h-5 w-5 fill-current" /> : <Play className="h-5 w-5 fill-current ml-1" />}
+                    {isPlaying ? <Pause className="h-5 w-5 fill-current" /> : <Reply className="h-5 w-5 fill-current ml-1 rotate-180" />}
                   </Button>
                   <div className="flex-1 space-y-1.5">
                     <div className={cn("h-1.5 w-full rounded-full overflow-hidden", isMe ? "bg-white/20" : "bg-muted")}>
@@ -365,7 +366,7 @@ export const MessageBubble = memo(function MessageBubble({
       </motion.div>
 
       {!selectionMode && !isActuallyDeleted && (
-        <div className={cn("mb-1 mx-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-center gap-1", isMe ? "mr-1 flex-row-reverse" : "ml-1 flex-row")}>
+        <div className={cn("mb-1 mx-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center gap-1", isMe ? "mr-1 flex-row-reverse" : "ml-1 flex-row")}>
           <button 
             onClick={(e) => { e.stopPropagation(); setIsForwardOpen(true); }} 
             className="h-7 w-7 rounded-full bg-muted/30 hover:bg-primary hover:text-white flex items-center justify-center text-muted-foreground transition-colors active:scale-90"
@@ -401,33 +402,37 @@ export const MessageBubble = memo(function MessageBubble({
         <MessageTraceDialog open={isTraceOpen} onOpenChange={setIsTraceOpen} chain={message.forwardingChain} />
       )}
       
-      <ForwardDialog 
-        open={isForwardOpen} 
-        onOpenChange={setIsForwardOpen} 
-        messagesToForward={[message]} 
-      />
+      {!isActuallyDeleted && (
+        <ForwardDialog 
+          open={isForwardOpen} 
+          onOpenChange={setIsForwardOpen} 
+          messagesToForward={[message]} 
+        />
+      )}
 
-      <DeleteOptionsDialog 
-        open={isDeleteDialogOpen} 
-        onOpenChange={setIsDeleteDialogOpen} 
-        onDeleteForMe={() => {
-          if (!db || !messagePath || !user) return;
-          updateDocumentNonBlocking(doc(db, messagePath), { deletedFor: arrayUnion(user.uid) });
-          toast({ title: "Removed Locally" });
-        }} 
-        onDeleteForEveryone={() => {
-          if (!db || !messagePath) return;
-          updateDocumentNonBlocking(doc(db, messagePath), {
-            isDeleted: true,
-            content: "This message was deleted",
-            audioUrl: deleteField(),
-            videoUrl: deleteField(),
-            type: "text"
-          });
-          toast({ title: "Wiped" });
-        }} 
-        isSender={isMe} 
-      />
+      {!isActuallyDeleted && (
+        <DeleteOptionsDialog 
+          open={isDeleteDialogOpen} 
+          onOpenChange={setIsDeleteDialogOpen} 
+          onDeleteForMe={() => {
+            if (!db || !messagePath || !user) return;
+            updateDocumentNonBlocking(doc(db, messagePath), { deletedFor: arrayUnion(user.uid) });
+            toast({ title: "Removed Locally" });
+          }} 
+          onDeleteForEveryone={() => {
+            if (!db || !messagePath) return;
+            updateDocumentNonBlocking(doc(db, messagePath), {
+              isDeleted: true,
+              content: "This message was deleted",
+              audioUrl: deleteField(),
+              videoUrl: deleteField(),
+              type: "text"
+            });
+            toast({ title: "Wiped" });
+          }} 
+          isSender={isMe} 
+        />
+      )}
     </div>
   );
 });

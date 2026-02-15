@@ -49,7 +49,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
   const { data: contextData } = useDoc(contextRef);
 
   const serverRef = useMemoFirebase(() => (serverId ? doc(db, "communities", serverId) : null), [db, serverId]);
-  const { data: serverData } = useDoc(serverRef);
+  const { data: server } = useDoc(serverRef);
 
   const messagesQuery = useMemoFirebase(() => {
     if (!db || !basePath || !user) return null;
@@ -195,23 +195,23 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
   }
 
   const headerTitle = contextData?.name || "...";
-  const selectedMessages = rawMessages?.filter(m => selectedIds.has(m.id)) || [];
-  const allSelectedFromMe = selectedMessages.every(m => m.senderId === user?.uid);
+  const selectedMessages = rawMessages?.filter(m => selectedIds.has(m.id) && !m.isDeleted) || [];
+  const allSelectedFromMe = selectedMessages.length > 0 && selectedMessages.every(m => m.senderId === user?.uid);
 
   return (
     <div className="flex-1 flex flex-col h-full bg-background overflow-hidden relative">
       <header className={cn(
-        "h-14 border-b flex items-center justify-between px-4 shrink-0 transition-colors duration-100 z-20 overflow-hidden",
+        "h-14 border-b flex items-center justify-between px-4 shrink-0 transition-all duration-200 z-20 overflow-hidden",
         selectionMode ? "bg-primary text-white" : "bg-background/80 backdrop-blur-md"
       )}>
         <AnimatePresence mode="wait">
           {selectionMode ? (
             <motion.div 
               key="selection-header"
-              initial={{ opacity: 0, y: -10 }} 
+              initial={{ opacity: 0, y: -20 }} 
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 10 }}
-              transition={{ duration: 0.1, ease: "easeOut" }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.15, ease: "easeOut" }}
               className="flex items-center gap-4 w-full h-full"
             >
               <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full h-8 w-8" onClick={handleCancelSelection}>
@@ -222,7 +222,13 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
                 <span className="text-[9px] font-bold uppercase tracking-widest opacity-60">Verse Operations</span>
               </div>
               <div className="flex items-center gap-1">
-                <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full h-9 w-9" onClick={() => setIsForwardOpen(true)}>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="text-white hover:bg-white/10 rounded-full h-9 w-9" 
+                  disabled={selectedMessages.length === 0}
+                  onClick={() => setIsForwardOpen(true)}
+                >
                   <Forward className="h-4 w-4" />
                 </Button>
                 <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full h-9 w-9" onClick={() => setIsDeleteDialogOpen(true)}>
@@ -235,8 +241,8 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
               key="normal-header"
               initial={{ opacity: 0, y: 10 }} 
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.1, ease: "easeOut" }}
+              exit={{ opacity: 0, y: 10 }}
+              transition={{ duration: 0.15, ease: "easeOut" }}
               className="flex items-center justify-between w-full h-full"
             >
               <div className="flex items-center gap-3">
@@ -292,7 +298,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
             ) : (
               <div className="flex flex-col justify-end min-h-full">
                 <AnimatePresence mode="popLayout" initial={false}>
-                  {messages.map((msg, index) => (
+                  {messages.map((msg) => (
                     <motion.div
                       key={msg.id}
                       layout
@@ -301,7 +307,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
                       exit={{ 
                         opacity: 0, 
                         scale: 0.95, 
-                        transition: { duration: 0.1, ease: "easeIn" } 
+                        transition: { duration: 0.15, ease: "easeIn" } 
                       }}
                       transition={{ duration: 0.15, ease: "easeOut" }}
                     >
