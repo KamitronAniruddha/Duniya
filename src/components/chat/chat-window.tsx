@@ -131,7 +131,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
     setSelectedIds(new Set());
   }, []);
 
-  const toggleMessageSelection = (id: string) => {
+  const toggleMessageSelection = useCallback((id: string) => {
     setSelectedIds(prev => {
       const next = new Set(prev);
       if (next.has(id)) {
@@ -142,12 +142,14 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
       }
       return next;
     });
-  };
+  }, []);
 
-  const enterSelectionMode = (id: string) => {
+  const enterSelectionMode = useCallback((id: string) => {
     setSelectionMode(true);
     setSelectedIds(new Set([id]));
-  };
+  }, []);
+
+  const handleCancelReply = useCallback(() => setReplyingTo(null), []);
 
   useEffect(() => {
     if (scrollRef.current && !selectionMode) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -242,13 +244,23 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
             ) : (
               <div className="flex flex-col justify-end min-h-full">
                 {messages.map((msg) => (
-                  <MessageBubble key={msg.id} message={msg} messagePath={`${basePath}/messages/${msg.id}`} isMe={msg.senderId === user?.uid} isSelected={selectedIds.has(msg.id)} selectionMode={selectionMode} onLongPress={enterSelectionMode} onSelect={toggleMessageSelection} onReply={() => setReplyingTo(msg)} />
+                  <MessageBubble 
+                    key={msg.id} 
+                    message={msg} 
+                    messagePath={`${basePath}/messages/${msg.id}`} 
+                    isMe={msg.senderId === user?.uid} 
+                    isSelected={selectedIds.has(msg.id)} 
+                    selectionMode={selectionMode} 
+                    onLongPress={enterSelectionMode} 
+                    onSelect={toggleMessageSelection} 
+                    onReply={() => setReplyingTo(msg)} 
+                  />
                 ))}
               </div>
             )}
           </div>
           <div className="shrink-0 border-t bg-background">
-            <MessageInput onSendMessage={handleSendMessage} replyingTo={replyingTo} onCancelReply={() => setReplyingTo(null)} />
+            <MessageInput onSendMessage={handleSendMessage} replyingTo={replyingTo} onCancelReply={handleCancelReply} />
           </div>
         </div>
         {showMembers && serverId && <div className="hidden lg:block border-l z-10 bg-background overflow-hidden"><MembersPanel serverId={serverId} /></div>}

@@ -52,7 +52,7 @@ export function UserProfilePopover({ userId, children }: UserProfilePopoverProps
                 onClick={() => setIsZoomOpen(true)}
                 className="group relative h-24 w-24 rounded-[2rem] border-4 border-background shadow-xl overflow-hidden transition-transform hover:scale-105 active:scale-95 bg-card"
               >
-                <Avatar className="h-full w-full rounded-none">
+                <Avatar className="h-full w-full rounded-none aspect-square">
                   <AvatarImage src={userData?.photoURL || undefined} className="object-cover" />
                   <AvatarFallback className="bg-primary text-white text-3xl font-black">
                     {userData?.username?.[0]?.toUpperCase() || "?"}

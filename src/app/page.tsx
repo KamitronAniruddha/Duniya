@@ -44,7 +44,6 @@ export default function DuniyaApp() {
     }
   }, [activeCommunityId, channels, activeChannelId]);
 
-  // USE REF FOR PRIVACY TO PREVENT LOOP: If updateStatus depends on userData, it loops
   const privacySettingsRef = useRef({ showOnlineStatus: true });
   useEffect(() => {
     if (userData) {
@@ -52,19 +51,24 @@ export default function DuniyaApp() {
     }
   }, [userData?.showOnlineStatus]);
 
-  // STABLE STATUS UPDATE: Removed dependencies that cause flip-flopping
+  const lastSentStatusRef = useRef<string | null>(null);
+
   useEffect(() => {
     if (!user?.uid || !db || !auth.currentUser) return;
 
     const setPresence = (status: "online" | "idle" | "offline") => {
       const finalStatus = privacySettingsRef.current.showOnlineStatus === false ? "offline" : status;
-      updateDocumentNonBlocking(doc(db, "users", user.uid), {
-        onlineStatus: finalStatus,
-        lastOnlineAt: new Date().toISOString()
-      });
+      
+      // ONLY UPDATE IF STATUS CHANGED TO PREVENT RE-RENDER LOOPS
+      if (lastSentStatusRef.current !== finalStatus) {
+        lastSentStatusRef.current = finalStatus;
+        updateDocumentNonBlocking(doc(db, "users", user.uid), {
+          onlineStatus: finalStatus,
+          lastOnlineAt: new Date().toISOString()
+        });
+      }
     };
 
-    // Initial online set
     setPresence("online");
 
     const handleVisibility = () => {
@@ -81,10 +85,24 @@ export default function DuniyaApp() {
     return () => {
       window.removeEventListener('visibilitychange', handleVisibility);
       window.removeEventListener('beforeunload', handleUnload);
-      // CRITICAL: We do NOT call handleUnload() here. React re-renders are frequent.
-      // Calling offline/online on every re-render causes the Firestore loop that freezes the site.
     };
-  }, [user?.uid, db]); // Only depend on stable UID and DB instance
+  }, [user?.uid, db]);
+
+  const handleSelectServer = useCallback((id: string | "duniya") => {
+    if (id === "duniya") {
+      setView("duniya");
+      setActiveCommunityId(null);
+      setActiveChannelId(null);
+    } else {
+      setView("chat");
+      setActiveCommunityId(id);
+      setActiveChannelId(null);
+    }
+  }, []);
+
+  const handleToggleMembers = useCallback(() => {
+    setShowMembers(prev => !prev);
+  }, []);
 
   if (isUserLoading) {
     return (
@@ -104,17 +122,7 @@ export default function DuniyaApp() {
         <ServerSidebar 
           activeServerId={view === "chat" ? activeCommunityId : view} 
           isDuniyaActive={view === "duniya"}
-          onSelectServer={(id) => {
-            if (id === "duniya") {
-              setView("duniya");
-              setActiveCommunityId(null);
-              setActiveChannelId(null);
-            } else {
-              setView("chat");
-              setActiveCommunityId(id);
-              setActiveChannelId(null);
-            }
-          }} 
+          onSelectServer={handleSelectServer} 
         />
         {view === "chat" && (
           <ChannelSidebar 
@@ -143,15 +151,7 @@ export default function DuniyaApp() {
                   activeServerId={view === "chat" ? activeCommunityId : view} 
                   isDuniyaActive={view === "duniya"}
                   onSelectServer={(id) => {
-                    if (id === "duniya") {
-                      setView("duniya");
-                      setActiveCommunityId(null);
-                      setActiveChannelId(null);
-                    } else {
-                      setView("chat");
-                      setActiveCommunityId(id);
-                      setActiveChannelId(null);
-                    }
+                    handleSelectServer(id);
                     setIsMobileMenuOpen(false);
                   }} 
                 />
@@ -182,7 +182,7 @@ export default function DuniyaApp() {
               channelId={activeChannelId}
               serverId={activeCommunityId}
               showMembers={showMembers}
-              onToggleMembers={() => setShowMembers(!showMembers)}
+              onToggleMembers={handleToggleMembers}
             />
           )}
         </div>
