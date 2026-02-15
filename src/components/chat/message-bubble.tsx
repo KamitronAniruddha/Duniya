@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { memo, useState, useRef, useEffect, useMemo } from "react";
@@ -124,7 +123,7 @@ export const MessageBubble = memo(function MessageBubble({
       }
       updateDocumentNonBlocking(msgRef, updateData);
     }
-  }, [message.id, user?.uid, isMe, messagePath]);
+  }, [message.id, user?.uid, isMe, messagePath, db]);
 
   useEffect(() => {
     if (!message.disappearingEnabled || !user || message.isDeleted || message.fullyDeleted) return;
@@ -142,7 +141,7 @@ export const MessageBubble = memo(function MessageBubble({
       }
     }, 1000);
     return () => clearInterval(timer);
-  }, [message.disappearingEnabled, message.senderExpireAt, message.viewerExpireAt, user?.uid, isMe]);
+  }, [message.disappearingEnabled, message.senderExpireAt, message.viewerExpireAt, user?.uid, isMe, message.isDeleted, message.fullyDeleted]);
 
   const isActuallyDeleted = message.isDeleted || isDisappeared || message.fullyDeleted;
 
@@ -156,11 +155,24 @@ export const MessageBubble = memo(function MessageBubble({
     toast({ title: "Starting Download", description: name });
   };
 
-  const renderContentWithLinks = (text: string) => {
+  const renderContent = (text: string) => {
     if (!text) return null;
+
+    // First handle URL detection
     const urlRegex = /(https?:\/\/[^\s]+)/g;
-    const parts = text.split(urlRegex);
+    
+    // Pattern for formatting
+    // **bold**
+    // __italic__
+    // [[serif]]text[[/serif]]
+    // [[mono]]text[[/mono]]
+    
+    const parts = text.split(/(\*\*.*?\*\*|__.*?__|\[\[serif\]\].*?\[\[\/serif\]\]|\[\[mono\]\].*?\[\[\/mono\]\]|https?:\/\/[^\s]+)/g);
+
     return parts.map((part, i) => {
+      if (!part) return null;
+
+      // URL detection
       if (part.match(urlRegex)) {
         return (
           <a 
@@ -178,6 +190,27 @@ export const MessageBubble = memo(function MessageBubble({
           </a>
         );
       }
+
+      // Bold detection
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return <strong key={i} className="font-black">{part.slice(2, -2)}</strong>;
+      }
+
+      // Italic detection
+      if (part.startsWith('__') && part.endsWith('__')) {
+        return <em key={i} className="italic font-semibold">{part.slice(2, -2)}</em>;
+      }
+
+      // Serif Font detection
+      if (part.startsWith('[[serif]]') && part.endsWith('[[/serif]]')) {
+        return <span key={i} className="font-['Playfair_Display'] italic text-[1.1em] leading-none">{part.slice(9, -10)}</span>;
+      }
+
+      // Mono Font detection
+      if (part.startsWith('[[mono]]') && part.endsWith('[[/mono]]')) {
+        return <span key={i} className="font-mono bg-black/10 px-1 rounded-sm">{part.slice(8, -9)}</span>;
+      }
+
       return part;
     });
   };
@@ -387,15 +420,15 @@ export const MessageBubble = memo(function MessageBubble({
                   </div>
                 </div>
               ) : (
-                <p className="whitespace-pre-wrap break-words leading-snug text-sm font-medium tracking-tight selection:bg-white/30 px-2">
-                  {renderContentWithLinks(message.content)}
-                </p>
+                <div className="whitespace-pre-wrap break-words leading-snug text-sm font-medium tracking-tight selection:bg-white/30 px-2">
+                  {renderContent(message.content)}
+                </div>
               )}
 
               {(message.imageUrl || message.type === 'file' || message.fileUrl) && message.content && (
-                <p className="mt-2 px-2 whitespace-pre-wrap break-words leading-snug text-sm font-medium tracking-tight selection:bg-white/30">
-                  {renderContentWithLinks(message.content)}
-                </p>
+                <div className="mt-2 px-2 whitespace-pre-wrap break-words leading-snug text-sm font-medium tracking-tight selection:bg-white/30">
+                  {renderContent(message.content)}
+                </div>
               )}
 
               <div className="flex items-center justify-between gap-3 mt-1.5 px-2">

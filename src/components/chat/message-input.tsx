@@ -1,9 +1,8 @@
-
 "use client";
 
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, SendHorizontal, Smile, History, Ghost, X, CornerDownRight, Mic, Square, Trash2, Video, Timer, Clock, Image as ImageIcon, Loader2, Paperclip, FileText } from "lucide-react";
+import { Plus, SendHorizontal, Smile, History, Ghost, X, CornerDownRight, Mic, Square, Trash2, Video, Timer, Clock, Image as ImageIcon, Loader2, Paperclip, FileText, Bold, Italic, Type, TypeOutline } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -15,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { motion, AnimatePresence } from "framer-motion";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 interface MessageInputProps {
   onSendMessage: (
@@ -52,7 +52,7 @@ const EMOJI_CATEGORIES = [
   { id: "animals", icon: <Ghost className="h-4 w-4" />, label: "Animals", emojis: ["🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯", "🦁", "🐮", "🐷", "🐽", "🐸", "🐵", "🙈", "🙉", "🙊", "🐒", "🐔", "🐧", "🐦", "🐤", "🐣", "🐥", "🦆", "🦅", "🦉", "🦇", "🐺", "🐗", "🐴", "🦄", "🐝", "🐛", "🦋", "🐌", "🐞", "🐜", "🦟", "🦗", "🕷", "🕸", "🐢", "🐍", "🦎", "🐙", "🦑", "🦐", "🦞", "🦀", "🐡", "🐠", "🐟", "🐬", "🐳", "🐋", "🦈", "🐊", "🐅", "🦓", "🦍", "🦧", "🐘", "🦛", "🦏", "🐪", "🐫", "🦒", "🦘", "🐃", "🐂", "🐄", "🐎", "🐖", "🐏", "🐑", "🐐", "🦌", "🐕", "🐩", "🦮", "🐈", "🐓", "🦃", "🦚", "🦜", "🦢", "🦩", "🕊", "🐇", "🦝", "🦨", "🦡", "🦦", "🦥", "🐁", "🐀", "🐿", "🦔"] }
 ];
 
-export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelReply }: MessageInputProps) {
+export function MessageInput({ onSendMessage, inputRef: externalInputRef, replyingTo, onCancelReply }: MessageInputProps) {
   const db = useFirestore();
   const { toast } = useToast();
   const [text, setText] = useState("");
@@ -68,7 +68,10 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [filePreview, setFilePreview] = useState<{ url: string; name: string; type: string } | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showFormatting, setShowFormatting] = useState(false);
   
+  const internalInputRef = useRef<HTMLInputElement>(null);
+  const inputRef = externalInputRef || internalInputRef;
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -91,6 +94,25 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
     }
   }, []);
 
+  const applyFormatting = (prefix: string, suffix: string) => {
+    if (!inputRef.current) return;
+    const start = inputRef.current.selectionStart || 0;
+    const end = inputRef.current.selectionEnd || 0;
+    const selectedText = text.substring(start, end);
+    const beforeText = text.substring(0, start);
+    const afterText = text.substring(end);
+
+    const newText = `${beforeText}${prefix}${selectedText}${suffix}${afterText}`;
+    setText(newText);
+    
+    // Maintain focus and set selection
+    setTimeout(() => {
+      inputRef.current?.focus();
+      const newPos = start + prefix.length + selectedText.length + suffix.length;
+      inputRef.current?.setSelectionRange(newPos, newPos);
+    }, 0);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (text.trim() || imagePreview || filePreview) {
@@ -102,6 +124,7 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
       setText("");
       setImagePreview(null);
       setFilePreview(null);
+      setShowFormatting(false);
     }
   };
 
@@ -124,7 +147,6 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    // Increased limit to 10MB (10 * 1024 * 1024)
     if (file.size > 10485760) {
       toast({ variant: "destructive", title: "File too large", description: "Limit: 10MB for high-fidelity sharing" });
       return;
@@ -306,7 +328,7 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" className="h-11 w-11 rounded-full hover:bg-destructive/10 hover:text-destructive" onClick={cancelRecording}><Trash2 className="h-5 w-5" /></Button>
+              <button onClick={cancelRecording} className="h-11 w-11 rounded-full hover:bg-destructive/10 hover:text-destructive flex items-center justify-center transition-colors"><Trash2 className="h-5 w-5" /></button>
               <Button size="icon" className="h-14 w-14 rounded-full bg-red-500 hover:bg-red-600 shadow-2xl shadow-red-500/30 text-white transition-transform active:scale-90" onClick={stopRecording}>
                 <Square className="h-6 w-6 fill-current" />
               </Button>
@@ -333,92 +355,131 @@ export function MessageInput({ onSendMessage, inputRef, replyingTo, onCancelRepl
                     <Input placeholder="Secs" className="h-7 w-16 text-[10px] p-1 font-bold" value={customSeconds} onChange={(e) => setCustomSeconds(e.target.value)} />
                   )}
                 </div>
-                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setDisappearingEnabled(false)}><X className="h-3 w-3" /></Button>
+                <button onClick={() => setDisappearingEnabled(false)} className="h-6 w-6 rounded-full hover:bg-muted flex items-center justify-center"><X className="h-3 w-3" /></button>
               </div>
             )}
 
-            <div className="flex items-center gap-2">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="ghost" size="icon" type="button" className={cn("shrink-0 transition-colors rounded-xl", disappearingEnabled ? "text-primary bg-primary/10" : "text-muted-foreground")}>
-                    <Clock className="h-5 w-5" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent side="top" align="start" className="w-56 p-3 rounded-2xl border-none shadow-2xl">
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-xs font-black uppercase tracking-wider">Ghost Mode</Label>
-                      <Button size="sm" variant={disappearingEnabled ? "default" : "outline"} className="h-6 text-[10px] font-black" onClick={() => setDisappearingEnabled(!disappearingEnabled)}>
-                        {disappearingEnabled ? "ACTIVE" : "OFF"}
-                      </Button>
-                    </div>
-                    {disappearingEnabled && <p className="text-[10px] text-muted-foreground leading-snug font-medium italic">Messages vanish after they are viewed by participants.</p>}
-                  </div>
-                </PopoverContent>
-              </Popover>
+            <div className="flex flex-col gap-2 bg-muted/20 rounded-2xl p-1.5 border border-border/50">
+              <AnimatePresence>
+                {showFormatting && (
+                  <motion.div 
+                    initial={{ height: 0, opacity: 0 }} 
+                    animate={{ height: "auto", opacity: 1 }} 
+                    exit={{ height: 0, opacity: 0 }} 
+                    className="flex items-center gap-1 px-2 py-1 border-b border-border/50 overflow-hidden"
+                  >
+                    <button type="button" onClick={() => applyFormatting("**", "**")} className="h-8 w-8 rounded-lg hover:bg-background flex items-center justify-center text-foreground/70 hover:text-primary transition-all"><Bold className="h-4 w-4" /></button>
+                    <button type="button" onClick={() => applyFormatting("__", "__")} className="h-8 w-8 rounded-lg hover:bg-background flex items-center justify-center text-foreground/70 hover:text-primary transition-all"><Italic className="h-4 w-4" /></button>
+                    <div className="w-[1px] h-4 bg-border/50 mx-1" />
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button type="button" className="flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-background text-[10px] font-black uppercase tracking-widest text-foreground/70 hover:text-primary transition-all">
+                          <Type className="h-3.5 w-3.5" /> Font
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="w-40 font-black uppercase text-[10px] tracking-widest p-1 border-none shadow-2xl bg-popover/95 backdrop-blur-md">
+                        <DropdownMenuItem onClick={() => applyFormatting("", "")} className="rounded-lg p-2">Default Sans</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => applyFormatting("[[serif]]", "[[/serif]]")} className="rounded-lg p-2 font-['Playfair_Display'] capitalize italic">Playfair Serif</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => applyFormatting("[[mono]]", "[[/mono]]")} className="rounded-lg p-2 font-mono">Monospace</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-              <div className="flex-1 relative">
-                <input 
-                  ref={inputRef}
-                  placeholder={replyingTo ? "Write a reply..." : "Karo Chutiyapaa..."}
-                  value={text}
-                  onChange={(e) => setText(e.target.value)}
-                  className="w-full bg-muted/40 border-none rounded-xl px-4 py-2.5 text-sm font-body font-medium focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all text-foreground placeholder:text-muted-foreground/70 tracking-tight"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSubmit(e);
-                    }
-                  }}
-                />
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center">
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 shrink-0 ml-1">
                   <Popover>
                     <PopoverTrigger asChild>
-                      <button type="button" className="text-muted-foreground hover:text-primary transition-colors p-1"><Smile className="h-4 w-4" /></button>
+                      <button type="button" className={cn("h-9 w-9 flex items-center justify-center transition-colors rounded-xl", disappearingEnabled ? "text-primary bg-primary/10" : "text-muted-foreground hover:bg-muted")}>
+                        <Clock className="h-5 w-5" />
+                      </button>
                     </PopoverTrigger>
-                    <PopoverContent side="top" align="end" className="w-80 p-0 overflow-hidden bg-popover border-none shadow-2xl rounded-2xl">
-                      <Tabs defaultValue="smileys" className="w-full">
-                        <TabsList className="w-full justify-start rounded-none border-b bg-muted/50 p-0 h-10">
-                          {EMOJI_CATEGORIES.map((cat) => (
-                            <TabsTrigger key={cat.id} value={cat.id} className="flex-1 rounded-none data-[state=active]:bg-background">{cat.icon}</TabsTrigger>
-                          ))}
-                        </TabsList>
-                        {EMOJI_CATEGORIES.map((cat) => (
-                          <TabsContent key={cat.id} value={cat.id} className="m-0">
-                            <ScrollArea className="h-64 p-2">
-                              <div className="grid grid-cols-8 gap-1">
-                                {(cat.id === 'recent' ? recentEmojis : cat.emojis).map((emoji, idx) => (
-                                  <button key={idx} type="button" onClick={() => addEmoji(emoji)} className="text-xl hover:bg-muted rounded aspect-square flex items-center justify-center transition-transform active:scale-125">{emoji}</button>
-                                ))}
-                              </div>
-                            </ScrollArea>
-                          </TabsContent>
-                        ))}
-                      </Tabs>
+                    <PopoverContent side="top" align="start" className="w-56 p-3 rounded-2xl border-none shadow-2xl">
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs font-black uppercase tracking-wider">Ghost Mode</Label>
+                          <Button size="sm" variant={disappearingEnabled ? "default" : "outline"} className="h-6 text-[10px] font-black" onClick={() => setDisappearingEnabled(!disappearingEnabled)}>
+                            {disappearingEnabled ? "ACTIVE" : "OFF"}
+                          </Button>
+                        </div>
+                        {disappearingEnabled && <p className="text-[10px] text-muted-foreground leading-snug font-medium italic">Messages vanish after they are viewed by participants.</p>}
+                      </div>
                     </PopoverContent>
                   </Popover>
+                  
+                  <button 
+                    type="button" 
+                    onClick={() => setShowFormatting(!showFormatting)} 
+                    className={cn("h-9 w-9 flex items-center justify-center transition-colors rounded-xl", showFormatting ? "text-primary bg-primary/10" : "text-muted-foreground hover:bg-muted")}
+                  >
+                    <TypeOutline className="h-5 w-5" />
+                  </button>
                 </div>
-              </div>
 
-              <div className="flex items-center gap-1.5">
-                {(text.trim() || imagePreview || filePreview) ? (
-                  <Button type="submit" size="icon" className="rounded-xl h-10 w-10 shrink-0 bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-transform active:scale-90">
-                    <SendHorizontal className="h-4 w-4" />
-                  </Button>
-                ) : (
-                  <>
-                    <input type="file" ref={imageInputRef} className="hidden" accept="image/*" onChange={handleImageSelect} />
-                    <input type="file" ref={fileInputRef} className="hidden" accept=".pdf,.doc,.docx,.txt" onChange={handleFileSelect} />
-                    <Button type="button" variant="ghost" size="icon" onClick={() => imageInputRef.current?.click()} className="rounded-xl h-10 w-10 shrink-0 text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all">
-                      {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-5 w-5" />}
+                <div className="flex-1 relative">
+                  <input 
+                    ref={inputRef}
+                    placeholder={replyingTo ? "Write a reply..." : "Karo Chutiyapaa..."}
+                    value={text}
+                    onChange={(e) => setText(e.target.value)}
+                    className="w-full bg-transparent border-none rounded-xl px-2 py-2.5 text-sm font-body font-medium focus:outline-none transition-all text-foreground placeholder:text-muted-foreground/70 tracking-tight"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSubmit(e);
+                      }
+                    }}
+                  />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button type="button" className="text-muted-foreground hover:text-primary transition-colors p-1"><Smile className="h-4 w-4" /></button>
+                      </PopoverTrigger>
+                      <PopoverContent side="top" align="end" className="w-80 p-0 overflow-hidden bg-popover border-none shadow-2xl rounded-2xl">
+                        <Tabs defaultValue="smileys" className="w-full">
+                          <TabsList className="w-full justify-start rounded-none border-b bg-muted/50 p-0 h-10">
+                            {EMOJI_CATEGORIES.map((cat) => (
+                              <TabsTrigger key={cat.id} value={cat.id} className="flex-1 rounded-none data-[state=active]:bg-background">{cat.icon}</TabsTrigger>
+                            ))}
+                          </TabsList>
+                          {EMOJI_CATEGORIES.map((cat) => (
+                            <TabsContent key={cat.id} value={cat.id} className="m-0">
+                              <ScrollArea className="h-64 p-2">
+                                <div className="grid grid-cols-8 gap-1">
+                                  {(cat.id === 'recent' ? recentEmojis : cat.emojis).map((emoji, idx) => (
+                                    <button key={idx} type="button" onClick={() => addEmoji(emoji)} className="text-xl hover:bg-muted rounded aspect-square flex items-center justify-center transition-transform active:scale-125">{emoji}</button>
+                                  ))}
+                                </div>
+                              </ScrollArea>
+                            </TabsContent>
+                          ))}
+                        </Tabs>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1 pr-1.5">
+                  {(text.trim() || imagePreview || filePreview) ? (
+                    <Button type="submit" size="icon" className="rounded-xl h-10 w-10 shrink-0 bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-transform active:scale-90">
+                      <SendHorizontal className="h-4 w-4" />
                     </Button>
-                    <Button type="button" variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} className="rounded-xl h-10 w-10 shrink-0 text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all">
-                      <Paperclip className="h-5 w-5" />
-                    </Button>
-                    <Button type="button" variant="ghost" size="icon" onClick={startVideoRecording} className="rounded-xl h-10 w-10 shrink-0 text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all"><Video className="h-5 w-5" /></Button>
-                    <Button type="button" size="icon" onClick={startRecording} className="rounded-xl h-10 w-10 shrink-0 bg-muted text-muted-foreground hover:bg-primary hover:text-primary-foreground transition-all shadow-sm active:scale-95"><Mic className="h-5 w-5" /></Button>
-                  </>
-                )}
+                  ) : (
+                    <>
+                      <input type="file" ref={imageInputRef} className="hidden" accept="image/*" onChange={handleImageSelect} />
+                      <input type="file" ref={fileInputRef} className="hidden" accept=".pdf,.doc,.docx,.txt" onChange={handleFileSelect} />
+                      <button type="button" onClick={() => imageInputRef.current?.click()} className="h-10 w-10 flex items-center justify-center rounded-xl text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all">
+                        {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-5 w-5" />}
+                      </button>
+                      <button type="button" onClick={() => fileInputRef.current?.click()} className="h-10 w-10 flex items-center justify-center rounded-xl text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all">
+                        <Paperclip className="h-5 w-5" />
+                      </button>
+                      <button type="button" onClick={startVideoRecording} className="h-10 w-10 flex items-center justify-center rounded-xl text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all"><Video className="h-5 w-5" /></button>
+                      <button type="button" onClick={startRecording} className="h-10 w-10 flex items-center justify-center rounded-xl bg-muted text-muted-foreground hover:bg-primary hover:text-primary-foreground transition-all shadow-sm active:scale-95"><Mic className="h-5 w-5" /></button>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           </form>
