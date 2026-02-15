@@ -27,7 +27,6 @@ export default function DuniyaApp() {
   const userRef = useMemoFirebase(() => (user ? doc(db, "users", user.uid) : null), [db, user?.uid]);
   const { data: userData } = useDoc(userRef);
 
-  // Auto-select first channel logic - optimized to prevent infinite loops
   const channelsQuery = useMemoFirebase(() => {
     if (!db || !activeCommunityId || !user) return null;
     return query(collection(db, "communities", activeCommunityId, "channels"), limit(10));
@@ -35,18 +34,15 @@ export default function DuniyaApp() {
 
   const { data: channels } = useCollection(channelsQuery);
 
+  // Optimized auto-select to prevent recursive loops
   useEffect(() => {
     if (activeCommunityId && channels && channels.length > 0) {
       const firstChannelId = channels[0].id;
-      const currentChannelExistsInNewList = channels.find(c => c.id === activeChannelId);
-      
-      if (!activeChannelId || !currentChannelExistsInNewList) {
-        if (activeChannelId !== firstChannelId) {
-          setActiveChannelId(firstChannelId);
-        }
+      if (!activeChannelId || !channels.some(c => c.id === activeChannelId)) {
+        setActiveChannelId(firstChannelId);
       }
     }
-  }, [activeCommunityId, channels, activeChannelId]);
+  }, [activeCommunityId, channels?.length]);
 
   const privacySettingsRef = useRef({ showOnlineStatus: true });
   useEffect(() => {
@@ -63,7 +59,7 @@ export default function DuniyaApp() {
     const setPresence = (status: "online" | "idle" | "offline") => {
       const finalStatus = privacySettingsRef.current.showOnlineStatus === false ? "offline" : status;
       
-      // CRITICAL: Only update if status actually changed to prevent recursive freeze loops
+      // CRITICAL: Prevent flip-flop loops that freeze the UI
       if (lastSentStatusRef.current !== finalStatus) {
         lastSentStatusRef.current = finalStatus;
         updateDocumentNonBlocking(doc(db, "users", user.uid), {

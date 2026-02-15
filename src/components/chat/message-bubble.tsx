@@ -61,7 +61,6 @@ interface MessageBubbleProps {
   onReply?: () => void;
 }
 
-// Optimized with custom comparison to prevent infinite freeze loops
 export const MessageBubble = memo(function MessageBubble({ 
   message, 
   messagePath,
@@ -357,7 +356,6 @@ export const MessageBubble = memo(function MessageBubble({
     </div>
   );
 }, (prev, next) => {
-  // Enhanced memo comparison to stop infinite rerender loops during "seen" updates
   return prev.message.id === next.message.id && 
          prev.message.content === next.message.content &&
          prev.message.seenBy?.length === next.message.seenBy?.length &&
