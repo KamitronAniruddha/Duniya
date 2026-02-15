@@ -62,8 +62,6 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
 
   const messagesQuery = useMemoFirebase(() => {
     if (!db || !basePath || !user) return null;
-    // CRITICAL: Fetches the latest 100 messages for in-memory privacy filtering.
-    // This avoids misreported "Permission Denied" errors caused by missing composite indexes.
     return query(
       collection(db, basePath, "messages"), 
       orderBy("sentAt", "asc"), 
@@ -75,7 +73,6 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
 
   const messages = useMemo(() => {
     if (!rawMessages || !user) return [];
-    // IN-MEMORY PRIVACY FILTER: Instantaneous and bypasses query engine metadata constraints.
     return rawMessages.filter(msg => {
       if (msg.fullyDeleted || msg.deletedFor?.includes(user.uid)) return false;
       const visibleTo = msg.visibleTo || ["all"];
@@ -105,8 +102,6 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
 
     const finalWhisper = whisperTarget !== undefined ? whisperTarget : whisperingTo;
 
-    // DEFENSIVE METADATA: null-coalesce all fields to avoid Firestore undefined crashes.
-    // Use userData?.photoURL as the primary source for high-fidelity profile pictures.
     const data: any = {
       id: messageRef.id,
       channelId: channelId || null,
@@ -244,8 +239,8 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
   const handleCancelReply = useCallback(() => setReplyingTo(null), []);
   const handleCancelWhisper = useCallback(() => setWhisperingTo(null), []);
 
-  const handleWhisper = useCallback((targetUser: { id: string; username: string }) => {
-    setWhisperingTo(targetUser);
+  const handleWhisper = useCallback((id: string, username: string) => {
+    setWhisperingTo({ id, username });
     setReplyingTo(null);
   }, []);
 
@@ -352,7 +347,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
                     onLongPress={enterSelectionMode} 
                     onSelect={toggleMessageSelection} 
                     onReply={() => setReplyingTo(msg)} 
-                    onWhisper={(id, username) => handleWhisper({ id, username })}
+                    onWhisper={handleWhisper}
                   />
                 ))}
               </div>

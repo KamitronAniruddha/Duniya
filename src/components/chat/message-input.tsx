@@ -34,7 +34,7 @@ interface MessageInputProps {
   onCancelReply?: () => void;
   whisperingTo?: { id: string; username: string } | null;
   onCancelWhisper?: () => void;
-  onTriggerWhisper?: (user: { id: string; username: string }) => void;
+  onTriggerWhisper?: (userId: string, username: string) => void;
 }
 
 interface DisappearingConfig {
