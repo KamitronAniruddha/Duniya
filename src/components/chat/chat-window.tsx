@@ -371,7 +371,14 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
         {showMembers && serverId && <div className="hidden lg:block border-l z-10 bg-background overflow-hidden"><MembersPanel serverId={serverId} onWhisper={handleWhisper} /></div>}
       </div>
       
-      <DeleteOptionsDialog open={isDeleteDialogOpen} onOpenChange={(val) => { setIsDeleteDialogOpen(val); if (!val) handleCancelSelection(); }} onDeleteForMe={() => handleBatchDelete("me")} onDeleteForEveryone={allSelectedFromMe ? () => handleBatchDelete("everyone") : undefined} isSender={allSelectedFromMe} count={selectedIds.size} />
+      <DeleteOptionsDialog 
+        open={isDeleteDialogOpen} 
+        onOpenChange={(val) => { setIsDeleteDialogOpen(val); if (!val) handleCancelSelection(); }} 
+        onDeleteForMe={() => handleBatchDelete("me")} 
+        onDeleteForEveryone={allSelectedFromMe ? () => handleBatchDelete("everyone") : undefined} 
+        isSender={allSelectedFromMe} 
+        count={selectedIds.size} 
+      />
       <ForwardDialog open={isForwardOpen} onOpenChange={(val) => { setIsForwardOpen(val); if (!val) handleCancelSelection(); }} messagesToForward={rawMessages?.filter(m => selectedIds.has(m.id)) || []} currentCommunityName={server?.name} currentChannelName={contextData?.name} />
       {serverId && channelId && <ChannelSettingsDialog open={isChannelSettingsOpen} onOpenChange={setIsChannelSettingsOpen} serverId={serverId} channelId={channelId} />}
       <AlertDialog open={isClearChatDialogOpen} onOpenChange={setIsClearChatDialogOpen}>

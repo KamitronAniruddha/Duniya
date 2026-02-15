@@ -230,8 +230,8 @@ export const MessageBubble = memo(function MessageBubble({
     setIsDragging(true);
     longPressTimer.current = setTimeout(() => {
       if (!selectionMode && !isActuallyDeleted) {
-        // WhatsApp style: Long press to react
-        setIsReactionPickerOpen(true);
+        // Selection Mode Trigger: Activated by long press
+        onLongPress?.(message.id);
         setIsDragging(false);
         
         // Haptic feedback
