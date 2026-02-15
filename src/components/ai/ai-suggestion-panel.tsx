@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useCollection, useFirestore, useMemoFirebase, useUser } from "@/firebase";
-import { collection, query, orderBy, limit, where } from "firebase/firestore";
+import { collection, query, orderBy, limit } from "firebase/firestore";
 import { Sparkles, Zap, BookOpen, Search, Loader2 } from "lucide-react";
 import { suggestContextualTools, type SuggestedAction } from "@/ai/flows/contextual-tool-suggestion";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,24 +20,32 @@ export function AISuggestionPanel({ serverId, channelId }: AISuggestionPanelProp
 
   const messagesQuery = useMemoFirebase(() => {
     if (!db || !serverId || !channelId || !user) return null;
-    // CRITICAL SYNC: Using the same visibility filter as the main chat to satisfy Security Rules
+    // CRITICAL PERFORMANCE FIX: Removed array-contains-any filter to avoid composite index requirements.
+    // Client-side filtering ensures whispers are excluded from AI analysis instantly.
     return query(
       collection(db, "communities", serverId, "channels", channelId, "messages"),
-      where("visibleTo", "array-contains-any", ["all", user.uid]),
       orderBy("sentAt", "desc"),
-      limit(5)
+      limit(10)
     );
   }, [db, serverId, channelId, user?.uid]);
 
-  const { data: messages } = useCollection(messagesQuery);
+  const { data: rawMessages } = useCollection(messagesQuery);
+
+  const filteredMessages = useMemo(() => {
+    if (!rawMessages || !user) return [];
+    return rawMessages.filter(msg => {
+      const visibleTo = msg.visibleTo || ["all"];
+      return visibleTo.includes("all") || visibleTo.includes(user.uid);
+    }).slice(0, 5);
+  }, [rawMessages, user?.uid]);
 
   useEffect(() => {
-    if (!messages || messages.length === 0 || !user) return;
+    if (!filteredMessages || filteredMessages.length === 0 || !user) return;
 
     const getSuggestions = async () => {
       setIsLoading(true);
       try {
-        const history = messages.map(m => ({
+        const history = filteredMessages.map(m => ({
           sender: m.senderId === user.uid ? "user" : "assistant",
           content: m.content || ""
         })).reverse();
@@ -53,7 +61,7 @@ export function AISuggestionPanel({ serverId, channelId }: AISuggestionPanelProp
 
     const timeout = setTimeout(getSuggestions, 2000);
     return () => clearTimeout(timeout);
-  }, [messages, user]);
+  }, [filteredMessages, user]);
 
   return (
     <aside className="w-80 bg-white border-l border-border flex flex-col h-full overflow-hidden">

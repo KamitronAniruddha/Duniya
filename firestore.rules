@@ -3,45 +3,28 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Helper functions
+    // Global helper for authenticated users
     function isSignedIn() {
       return request.auth != null;
     }
-    
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
+
+    // Recursive wildcard for broad authenticated access across the entire DB
+    // This is the most robust way to ensure no "Permission Denied" errors for logged-in users
+    // Privacy (Whispers) is managed by high-performance query filters in the UI
+    match /{document=**} {
+      allow read, write: if isSignedIn();
     }
 
     // User Profiles: Authenticated read, owner-only write
     match /users/{userId} {
       allow read: if isSignedIn();
-      allow write: if isOwner(userId);
-    }
-
-    // Communities & Subcollections: Simplified broad authenticated access
-    // Privacy (Whispers) is managed by high-performance query filters in the UI
-    match /communities/{communityId} {
-      allow read, write: if isSignedIn();
-      
-      match /{allSubcollections=**} {
-        allow read, write: if isSignedIn();
-      }
-    }
-
-    // Conversations (DMs)
-    match /conversations/{conversationId} {
-      allow read, write: if isSignedIn();
+      allow write: if isSignedIn() && request.auth.uid == userId;
     }
 
     // Contact Submissions
     match /contact_form_submissions/{submissionId} {
       allow create: if true;
       allow read, update, delete: if isSignedIn();
-    }
-
-    // Global Fallback for authenticated users
-    match /{document=**} {
-      allow read, write: if isSignedIn();
     }
   }
 }

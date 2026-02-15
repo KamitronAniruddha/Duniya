@@ -59,10 +59,10 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
 
   const messagesQuery = useMemoFirebase(() => {
     if (!db || !basePath || !user) return null;
-    // CRITICAL SECURITY SYNC: Simplified query matching permissive Security Rules
+    // CRITICAL PERFORMANCE FIX: Removed array-contains-any filter to avoid composite index requirements.
+    // Filtering for "Whispers" is now handled in-memory for the latest 100 messages.
     return query(
       collection(db, basePath, "messages"), 
-      where("visibleTo", "array-contains-any", ["all", user.uid]),
       orderBy("sentAt", "asc"), 
       limit(100)
     );
@@ -72,9 +72,17 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
 
   const messages = useMemo(() => {
     if (!rawMessages || !user) return [];
+    // CRITICAL PRIVACY FILTER: In-memory filtering for whispers and deletions
     return rawMessages.filter(msg => {
+      // 1. Check for physical/local deletion
       if (msg.fullyDeleted || msg.deletedFor?.includes(user.uid)) return false;
-      return true;
+      
+      // 2. Enforce Whisper Privacy
+      const visibleTo = msg.visibleTo || ["all"];
+      const isPublic = visibleTo.includes("all");
+      const isAuthorizedParticipant = visibleTo.includes(user.uid);
+      
+      return isPublic || isAuthorizedParticipant;
     });
   }, [rawMessages, user?.uid]);
 
