@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useRef, useEffect, useState, useMemo, useCallback } from "react";
@@ -34,6 +33,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const [replyingTo, setReplyingTo] = useState<any | null>(null);
+  const [whisperingTo, setWhisperingTo] = useState<{ id: string; username: string } | null>(null);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -66,7 +66,14 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
 
   const messages = useMemo(() => {
     if (!rawMessages || !user) return [];
-    return rawMessages.filter(msg => !msg.fullyDeleted && !msg.deletedFor?.includes(user.uid));
+    return rawMessages.filter(msg => {
+      if (msg.fullyDeleted || msg.deletedFor?.includes(user.uid)) return false;
+      // Whisper filtering: Only show if it's not a whisper, or if I am sender/receiver
+      if (msg.whisperTo) {
+        return msg.whisperTo === user.uid || msg.senderId === user.uid;
+      }
+      return true;
+    });
   }, [rawMessages, user?.uid]);
 
   const handleSendMessage = useCallback(async (
@@ -106,13 +113,17 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
       fullyDeleted: false,
       seenBy: [],
       deletedFor: [],
-      viewerExpireAt: {}
+      viewerExpireAt: {},
+      whisperTo: whisperingTo?.id || null,
+      whisperToUsername: whisperingTo?.username || null
     };
     if (disappearing?.enabled) data.senderExpireAt = new Date(sentAt.getTime() + disappearing.duration).toISOString();
     if (replyingTo && replySenderName) data.replyTo = { messageId: replyingTo.id, senderName: replySenderName, text: replyingTo.content || 'Media Message' };
+    
     setDocumentNonBlocking(messageRef, data, { merge: true });
     setReplyingTo(null);
-  }, [db, basePath, user, replyingTo, channelId]);
+    setWhisperingTo(null);
+  }, [db, basePath, user, replyingTo, whisperingTo, channelId]);
 
   const handleBatchDelete = useCallback(async (type: "everyone" | "me") => {
     if (!db || !basePath || !user || selectedIds.size === 0) return;
@@ -179,6 +190,12 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
   }, []);
 
   const handleCancelReply = useCallback(() => setReplyingTo(null), []);
+  const handleCancelWhisper = useCallback(() => setWhisperingTo(null), []);
+
+  const handleWhisper = useCallback((targetUser: { id: string; username: string }) => {
+    setWhisperingTo(targetUser);
+    setReplyingTo(null);
+  }, []);
 
   useEffect(() => {
     if (scrollRef.current && !selectionMode) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -283,16 +300,23 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
                     onLongPress={enterSelectionMode} 
                     onSelect={toggleMessageSelection} 
                     onReply={() => setReplyingTo(msg)} 
+                    onWhisper={(id, username) => handleWhisper({ id, username })}
                   />
                 ))}
               </div>
             )}
           </div>
           <div className="shrink-0 border-t bg-background">
-            <MessageInput onSendMessage={handleSendMessage} replyingTo={replyingTo} onCancelReply={handleCancelReply} />
+            <MessageInput 
+              onSendMessage={handleSendMessage} 
+              replyingTo={replyingTo} 
+              onCancelReply={handleCancelReply} 
+              whisperingTo={whisperingTo}
+              onCancelWhisper={handleCancelWhisper}
+            />
           </div>
         </div>
-        {showMembers && serverId && <div className="hidden lg:block border-l z-10 bg-background overflow-hidden"><MembersPanel serverId={serverId} /></div>}
+        {showMembers && serverId && <div className="hidden lg:block border-l z-10 bg-background overflow-hidden"><MembersPanel serverId={serverId} onWhisper={handleWhisper} /></div>}
       </div>
       
       <DeleteOptionsDialog open={isDeleteDialogOpen} onOpenChange={(val) => { setIsDeleteDialogOpen(val); if (!val) handleCancelSelection(); }} onDeleteForMe={() => handleBatchDelete("me")} onDeleteForEveryone={allSelectedFromMe ? () => handleBatchDelete("everyone") : undefined} isSender={allSelectedFromMe} count={selectedIds.size} />

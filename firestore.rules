@@ -1,11 +1,24 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // BROAD AUTHENTICATED ACCESS
-    // This ensures all features (Messaging, Community discovery, Profile updates)
-    // function without "Insufficient Permissions" errors for any signed-in user.
+    // Helper to check if a message is a whisper
+    function isWhisper(data) {
+      return data.whisperTo != null;
+    }
+
+    // Helper to check if user is sender or recipient of a whisper
+    function canReadWhisper(data) {
+      return data.senderId == request.auth.uid || data.whisperTo == request.auth.uid;
+    }
+
+    match /communities/{communityId}/channels/{channelId}/messages/{messageId} {
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && resource.data.senderId == request.auth.uid;
+      allow read: if request.auth != null && (!isWhisper(resource.data) || canReadWhisper(resource.data));
+    }
+
+    // BROAD AUTHENTICATED ACCESS FOR OTHER DOCS
     match /{document=**} {
       allow read, write: if request.auth != null;
     }

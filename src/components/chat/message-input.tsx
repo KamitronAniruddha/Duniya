@@ -29,6 +29,8 @@ interface MessageInputProps {
   inputRef?: React.RefObject<HTMLInputElement>;
   replyingTo?: any | null;
   onCancelReply?: () => void;
+  whisperingTo?: { id: string; username: string } | null;
+  onCancelWhisper?: () => void;
 }
 
 interface DisappearingConfig {
@@ -52,7 +54,7 @@ const EMOJI_CATEGORIES = [
   { id: "animals", icon: <Ghost className="h-4 w-4" />, label: "Animals", emojis: ["🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯", "🦁", "🐮", "🐷", "🐽", "🐸", "🐵", "🙈", "🙉", "🙊", "🐒", "🐔", "🐧", "🐦", "🐤", "🐣", "🐥", "🦆", "🦅", "🦉", "🦇", "🐺", "🐗", "🐴", "🦄", "🐝", "🐛", "🦋", "🐌", "🐞", "🐜", "🦟", "🦗", "🕷", "🕸", "🐢", "🐍", "🦎", "🐙", "🦑", "🦐", "🦞", "🦀", "🐡", "🐠", "🐟", "🐬", "🐳", "🐋", "🦈", "🐊", "🐅", "🦓", "🦍", "🦧", "🐘", "🦛", "🦏", "🐪", "🐫", "🦒", "🦘", "🐃", "🐂", "🐄", "🐎", "🐖", "🐏", "🐑", "🐐", "🦌", "🐕", "🐩", "🦮", "🐈", "🐓", "🦃", "🦚", "🦜", "🦢", "🦩", "🕊", "🐇", "🦝", "🦨", "🦡", "🦦", "🦥", "🐁", "🐀", "🐿", "🦔"] }
 ];
 
-export function MessageInput({ onSendMessage, inputRef: externalInputRef, replyingTo, onCancelReply }: MessageInputProps) {
+export function MessageInput({ onSendMessage, inputRef: externalInputRef, replyingTo, onCancelReply, whisperingTo, onCancelWhisper }: MessageInputProps) {
   const db = useFirestore();
   const { toast } = useToast();
   const [text, setText] = useState("");
@@ -105,7 +107,6 @@ export function MessageInput({ onSendMessage, inputRef: externalInputRef, replyi
     const newText = `${beforeText}${prefix}${selectedText}${suffix}${afterText}`;
     setText(newText);
     
-    // Maintain focus and set selection
     setTimeout(() => {
       inputRef.current?.focus();
       const newPos = start + prefix.length + selectedText.length + suffix.length;
@@ -271,6 +272,21 @@ export function MessageInput({ onSendMessage, inputRef: externalInputRef, replyi
         </div>
       )}
 
+      {whisperingTo && (
+        <div className="px-4 py-2 bg-indigo-500/10 border-t flex items-center gap-3 animate-in slide-in-from-bottom-2 duration-150">
+          <div className="p-1.5 bg-indigo-500/20 rounded-lg shrink-0">
+            <Ghost className="h-4 w-4 text-indigo-500" />
+          </div>
+          <div className="flex-1 min-w-0 flex flex-col">
+            <span className="text-[10px] font-black text-indigo-500 uppercase tracking-wider">Whispering to @{whisperingTo.username}</span>
+            <p className="text-xs text-muted-foreground truncate italic font-medium">Only they can see this message.</p>
+          </div>
+          <button onClick={onCancelWhisper} className="h-6 w-6 rounded-full hover:bg-indigo-500/10 flex items-center justify-center transition-colors">
+            <X className="h-3 w-3 text-indigo-500" />
+          </button>
+        </div>
+      )}
+
       {imagePreview && (
         <div className="px-4 py-3 bg-muted/20 border-t flex flex-col gap-2 animate-in slide-in-from-bottom-4 duration-200">
           <div className="flex items-center justify-between">
@@ -420,7 +436,7 @@ export function MessageInput({ onSendMessage, inputRef: externalInputRef, replyi
                 <div className="flex-1 relative">
                   <input 
                     ref={inputRef}
-                    placeholder={replyingTo ? "Write a reply..." : "Karo Chutiyapaa..."}
+                    placeholder={replyingTo ? "Write a reply..." : (whisperingTo ? `Whisper to @${whisperingTo.username}...` : "Karo Chutiyapaa...")}
                     value={text}
                     onChange={(e) => setText(e.target.value)}
                     className="w-full bg-transparent border-none rounded-xl px-2 py-2.5 text-sm font-body font-medium focus:outline-none transition-all text-foreground placeholder:text-muted-foreground/70 tracking-tight"
@@ -462,7 +478,7 @@ export function MessageInput({ onSendMessage, inputRef: externalInputRef, replyi
 
                 <div className="flex items-center gap-1 pr-1.5">
                   {(text.trim() || imagePreview || filePreview) ? (
-                    <Button type="submit" size="icon" className="rounded-xl h-10 w-10 shrink-0 bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-transform active:scale-90">
+                    <Button type="submit" size="icon" className={cn("rounded-xl h-10 w-10 shrink-0 shadow-lg transition-transform active:scale-90", whisperingTo ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-500/20" : "bg-primary text-primary-foreground hover:bg-primary/90")}>
                       <SendHorizontal className="h-4 w-4" />
                     </Button>
                   ) : (

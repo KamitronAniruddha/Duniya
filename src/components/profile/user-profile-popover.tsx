@@ -1,23 +1,24 @@
-
 "use client";
 
 import { useState } from "react";
-import { useDoc, useFirestore, useMemoFirebase } from "@/firebase";
+import { useDoc, useFirestore, useMemoFirebase, useUser } from "@/firebase";
 import { doc } from "firebase/firestore";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { CalendarDays, User as UserIcon, Maximize2, EyeOff } from "lucide-react";
+import { CalendarDays, User as UserIcon, Maximize2, EyeOff, Ghost } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogDescription } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 interface UserProfilePopoverProps {
   userId: string;
   children: React.ReactNode;
+  onWhisper?: (userId: string, username: string) => void;
 }
 
-export function UserProfilePopover({ userId, children }: UserProfilePopoverProps) {
+export function UserProfilePopover({ userId, children, onWhisper }: UserProfilePopoverProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -27,15 +28,16 @@ export function UserProfilePopover({ userId, children }: UserProfilePopoverProps
       </PopoverTrigger>
       {isOpen && (
         <PopoverContent className="w-80 p-0 overflow-hidden border-none shadow-2xl rounded-[2rem]" side="right" align="start" sideOffset={10}>
-          <UserProfileContent userId={userId} />
+          <UserProfileContent userId={userId} onWhisper={(id, name) => { onWhisper?.(id, name); setIsOpen(false); }} />
         </PopoverContent>
       )}
     </Popover>
   );
 }
 
-function UserProfileContent({ userId }: { userId: string }) {
+function UserProfileContent({ userId, onWhisper }: { userId: string; onWhisper?: (userId: string, username: string) => void }) {
   const db = useFirestore();
+  const { user: currentUser } = useUser();
   const [isZoomOpen, setIsZoomOpen] = useState(false);
   const userRef = useMemoFirebase(() => doc(db, "users", userId), [db, userId]);
   const { data: userData } = useDoc(userRef);
@@ -58,10 +60,10 @@ function UserProfileContent({ userId }: { userId: string }) {
         </div>
       </div>
       <div className="px-5 pb-6">
-        <div className="relative -mt-10 mb-4">
+        <div className="relative -mt-10 mb-4 flex items-end justify-between">
           <button 
             onClick={() => setIsZoomOpen(true)}
-            className="group relative h-24 w-24 rounded-[2rem] border-4 border-background shadow-xl overflow-hidden transition-transform hover:scale-105 active:scale-95 bg-card"
+            className="group relative h-24 w-24 rounded-[2rem] border-4 border-background shadow-xl overflow-hidden transition-transform hover:scale-105 active:scale-95 bg-card shrink-0"
           >
             <Avatar className="h-full w-full rounded-none aspect-square">
               <AvatarImage src={userData?.photoURL || undefined} className="object-cover aspect-square" />
@@ -73,6 +75,17 @@ function UserProfileContent({ userId }: { userId: string }) {
               <Maximize2 className="h-6 w-6 text-white" />
             </div>
           </button>
+          
+          {onWhisper && userData && userData.id !== currentUser?.uid && (
+            <Button 
+              size="sm" 
+              className="rounded-xl h-9 px-4 gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase text-[10px] tracking-widest shadow-lg shadow-indigo-500/20"
+              onClick={() => onWhisper(userData.id, userData.username)}
+            >
+              <Ghost className="h-3.5 w-3.5" /> Whisper
+            </Button>
+          )}
+
           {isOnline && (
             <div className="absolute bottom-1 left-[76px] h-6 w-6 rounded-full border-4 border-background bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.6)] animate-pulse" />
           )}

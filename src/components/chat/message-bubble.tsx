@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useFirestore, useUser, useDoc, useMemoFirebase } from "@/firebase";
 import { doc, arrayUnion, deleteField } from "firebase/firestore";
 import { UserProfilePopover } from "@/components/profile/user-profile-popover";
-import { Reply, CornerDownRight, Play, Pause, MoreHorizontal, Trash2, Ban, Copy, Timer, Check, CheckCheck, Forward, Landmark, Mic, Maximize2, Heart, Download, FileText, File, Eye } from "lucide-react";
+import { Reply, CornerDownRight, Play, Pause, MoreHorizontal, Trash2, Ban, Copy, Timer, Check, CheckCheck, Forward, Landmark, Mic, Maximize2, Heart, Download, FileText, File, Eye, Ghost } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
@@ -48,6 +48,8 @@ interface MessageBubbleProps {
       senderName: string;
       text: string;
     };
+    whisperTo?: string | null;
+    whisperToUsername?: string | null;
     disappearingEnabled?: boolean;
     disappearDuration?: number;
     senderExpireAt?: string;
@@ -65,6 +67,7 @@ interface MessageBubbleProps {
   onSelect?: (id: string) => void;
   onLongPress?: (id: string) => void;
   onReply?: () => void;
+  onWhisper?: (userId: string, username: string) => void;
 }
 
 export const MessageBubble = memo(function MessageBubble({ 
@@ -75,7 +78,8 @@ export const MessageBubble = memo(function MessageBubble({
   selectionMode,
   onSelect,
   onLongPress,
-  onReply
+  onReply,
+  onWhisper
 }: MessageBubbleProps) {
   const db = useFirestore();
   const { user } = useUser();
@@ -157,22 +161,11 @@ export const MessageBubble = memo(function MessageBubble({
 
   const renderContent = (text: string) => {
     if (!text) return null;
-
-    // First handle URL detection
     const urlRegex = /(https?:\/\/[^\s]+)/g;
-    
-    // Pattern for formatting
-    // **bold**
-    // __italic__
-    // [[serif]]text[[/serif]]
-    // [[mono]]text[[/mono]]
-    
     const parts = text.split(/(\*\*.*?\*\*|__.*?__|\[\[serif\]\].*?\[\[\/serif\]\]|\[\[mono\]\].*?\[\[\/mono\]\]|https?:\/\/[^\s]+)/g);
 
     return parts.map((part, i) => {
       if (!part) return null;
-
-      // URL detection
       if (part.match(urlRegex)) {
         return (
           <a 
@@ -190,27 +183,10 @@ export const MessageBubble = memo(function MessageBubble({
           </a>
         );
       }
-
-      // Bold detection
-      if (part.startsWith('**') && part.endsWith('**')) {
-        return <strong key={i} className="font-black">{part.slice(2, -2)}</strong>;
-      }
-
-      // Italic detection
-      if (part.startsWith('__') && part.endsWith('__')) {
-        return <em key={i} className="italic font-semibold">{part.slice(2, -2)}</em>;
-      }
-
-      // Serif Font detection
-      if (part.startsWith('[[serif]]') && part.endsWith('[[/serif]]')) {
-        return <span key={i} className="font-['Playfair_Display'] italic text-[1.1em] leading-none">{part.slice(9, -10)}</span>;
-      }
-
-      // Mono Font detection
-      if (part.startsWith('[[mono]]') && part.endsWith('[[/mono]]')) {
-        return <span key={i} className="font-mono bg-black/10 px-1 rounded-sm">{part.slice(8, -9)}</span>;
-      }
-
+      if (part.startsWith('**') && part.endsWith('**')) return <strong key={i} className="font-black">{part.slice(2, -2)}</strong>;
+      if (part.startsWith('__') && part.endsWith('__')) return <em key={i} className="italic font-semibold">{part.slice(2, -2)}</em>;
+      if (part.startsWith('[[serif]]') && part.endsWith('[[/serif]]')) return <span key={i} className="font-['Playfair_Display'] italic text-[1.1em] leading-none">{part.slice(9, -10)}</span>;
+      if (part.startsWith('[[mono]]') && part.endsWith('[[/mono]]')) return <span key={i} className="font-mono bg-black/10 px-1 rounded-sm">{part.slice(8, -9)}</span>;
       return part;
     });
   };
@@ -315,7 +291,7 @@ export const MessageBubble = memo(function MessageBubble({
       </AnimatePresence>
 
       {!isMe && !selectionMode && (
-        <UserProfilePopover userId={message.senderId}>
+        <UserProfilePopover userId={message.senderId} onWhisper={onWhisper}>
           <button className="h-8 w-8 mb-0.5 mr-2 shrink-0 transition-transform active:scale-95">
             <Avatar className="h-full w-full border border-border shadow-sm aspect-square">
               <AvatarImage src={message.senderPhotoURL} className="aspect-square object-cover" />
@@ -334,7 +310,7 @@ export const MessageBubble = memo(function MessageBubble({
         ) : (
           <>
             {!isMe && !selectionMode && (
-              <UserProfilePopover userId={message.senderId}>
+              <UserProfilePopover userId={message.senderId} onWhisper={onWhisper}>
                 <button className="text-[9px] font-black text-muted-foreground/60 ml-1 mb-0.5 hover:text-primary uppercase tracking-widest transition-colors">{message.senderName || "..."}</button>
               </UserProfilePopover>
             )}
@@ -342,9 +318,16 @@ export const MessageBubble = memo(function MessageBubble({
             <div className={cn(
               "px-3 py-2 rounded-[1.25rem] shadow-sm transition-all duration-150 relative group/bubble",
               isMe ? "bg-primary text-primary-foreground rounded-br-none shadow-primary/10" : "bg-card text-foreground rounded-bl-none border border-border shadow-black/5",
+              message.whisperTo && (isMe ? "bg-indigo-600 shadow-indigo-500/20" : "bg-indigo-50 dark:bg-indigo-950/30 border-indigo-200 dark:border-indigo-800"),
               selectionMode && !isActuallyDeleted && "cursor-pointer active:scale-[0.98]",
               (message.imageUrl || message.type === 'file') && "p-1 pb-2"
             )}>
+              {message.whisperTo && (
+                <div className={cn("flex items-center gap-1.5 mb-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest w-fit border", isMe ? "bg-indigo-500/20 border-indigo-400 text-white" : "bg-indigo-100 dark:bg-indigo-900 border-indigo-300 text-indigo-600 dark:text-indigo-300")}>
+                  <Ghost className="h-2.5 w-2.5" /> Whisper {isMe ? `to @${message.whisperToUsername}` : "to You"}
+                </div>
+              )}
+
               {message.isForwarded && (
                 <div className={cn("flex flex-col mb-1.5 opacity-80 px-2 pt-1", isMe ? "items-end" : "items-start")}>
                   <button onClick={(e) => { e.stopPropagation(); setIsTraceOpen(true); }} className={cn("flex items-center gap-1 italic text-[8px] font-black uppercase tracking-widest transition-all", isMe ? "text-primary-foreground/90" : "text-muted-foreground")}>
@@ -457,6 +440,7 @@ export const MessageBubble = memo(function MessageBubble({
             </DropdownMenuTrigger>
             <DropdownMenuContent align={isMe ? "end" : "start"} className="rounded-xl font-black uppercase text-[9px] tracking-widest p-1 border-none shadow-xl bg-popover/95 backdrop-blur-md">
               <DropdownMenuItem onClick={() => onReply?.()} className="gap-2 p-2 rounded-lg"><Reply className="h-3 w-3 text-primary" /> Reply</DropdownMenuItem>
+              {!isMe && <DropdownMenuItem onClick={() => onWhisper?.(message.senderId, message.senderName || "User")} className="gap-2 p-2 rounded-lg"><Ghost className="h-3 w-3 text-indigo-500" /> Whisper</DropdownMenuItem>}
               {message.fileType?.includes('pdf') && <DropdownMenuItem onClick={() => setIsPDFViewOpen(true)} className="gap-2 p-2 rounded-lg"><Eye className="h-3 w-3 text-primary" /> View PDF</DropdownMenuItem>}
               {message.imageUrl && <DropdownMenuItem onClick={() => handleDownload(message.imageUrl!, message.fileName || "image.jpg")} className="gap-2 p-2 rounded-lg"><Download className="h-3 w-3 text-primary" /> Download</DropdownMenuItem>}
               {message.fileUrl && <DropdownMenuItem onClick={() => handleDownload(message.fileUrl!, message.fileName || "file")} className="gap-2 p-2 rounded-lg"><Download className="h-3 w-3 text-primary" /> Download</DropdownMenuItem>}
