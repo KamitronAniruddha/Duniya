@@ -2,42 +2,63 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Helper to check if a message is a whisper
-    function isWhisper(data) {
-      return data.whisperTo != null || (data.visibleTo != null && !data.visibleTo.hasAny(['all']));
+    
+    // User Profiles: Authenticated read, owner-only write
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Helper to check if user is sender or recipient of a whisper
-    function canReadWhisper(data) {
-      return data.senderId == request.auth.uid || 
-             data.whisperTo == request.auth.uid || 
-             (data.visibleTo != null && data.visibleTo.hasAny([request.auth.uid]));
-    }
-
-    match /communities/{communityId}/channels/{channelId}/messages/{messageId} {
-      allow create: if request.auth != null;
-      allow update, delete: if request.auth != null && resource.data.senderId == request.auth.uid;
-      // Allow reading if it's public (visibleTo includes 'all' or no whisper fields)
-      // OR if the user is part of the visibility array
-      allow read: if request.auth != null && (
-        (!isWhisper(resource.data)) || 
-        canReadWhisper(resource.data)
-      );
-    }
-
-    // BROAD AUTHENTICATED ACCESS FOR OTHER DOCS
-    match /{document=**} {
-      allow read, write: if request.auth != null;
-    }
-
-    // Explicit public access for Community Discovery
+    // Communities: Public read for discovery, authenticated creation
     match /communities/{communityId} {
       allow read: if true;
+      allow write: if request.auth != null;
+      
+      // Channels: Authenticated access
+      match /channels/{channelId} {
+        allow read, write: if request.auth != null;
+        
+        // Messages: Advanced visibility and seen status rules
+        match /messages/{messageId} {
+          allow create: if request.auth != null;
+          
+          // Read rule MUST match the visibleTo query logic: 
+          // where("visibleTo", "array-contains-any", ["all", user.uid])
+          allow read: if request.auth != null && 
+            (resource.data.visibleTo.hasAny(['all', request.auth.uid]));
+
+          // Allow updates:
+          // 1. Full updates by the sender (editing, deleting for everyone)
+          // 2. Seen status and local delete updates by participants
+          allow update: if request.auth != null && (
+            resource.data.senderId == request.auth.uid || 
+            (request.resource.data.diff(resource.data).affectedKeys().hasAny(['seenBy', 'viewerExpireAt', 'deletedFor']))
+          );
+          
+          allow delete: if request.auth != null && resource.data.senderId == request.auth.uid;
+        }
+      }
+      
+      // Subcollections like members
+      match /{allSubcollections=**} {
+        allow read, write: if request.auth != null;
+      }
     }
 
-    // Explicit public access for Support Submissions
+    // Conversations (DMs)
+    match /conversations/{conversationId} {
+      allow read, write: if request.auth != null && request.auth.uid in resource.data.participantIds;
+    }
+
+    // Contact Submissions
     match /contact_form_submissions/{submissionId} {
       allow create: if true;
+      allow read, update, delete: if request.auth != null;
+    }
+
+    // Global Fallback for authenticated users
+    match /{document=**} {
+      allow read, write: if request.auth != null;
     }
   }
 }

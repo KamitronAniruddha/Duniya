@@ -86,7 +86,7 @@ export default function DuniyaApp() {
       window.removeEventListener('visibilitychange', handleVisibility);
       window.removeEventListener('beforeunload', handleUnload);
     };
-  }, [user?.uid, db]);
+  }, [user?.uid, db, auth.currentUser]); // Added stable dependencies
 
   const handleSelectServer = useCallback((id: string | "duniya") => {
     if (id === "duniya") {
