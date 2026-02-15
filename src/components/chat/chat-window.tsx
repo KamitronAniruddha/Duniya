@@ -99,8 +99,6 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
 
     const finalWhisper = whisperTarget !== undefined ? whisperTarget : whisperingTo;
 
-    // CRITICAL FIX: Explicitly ensure NO "undefined" values are passed to Firestore.
-    // Every field uses null-coalescing to avoid Runtime FirebaseError.
     const data: any = {
       id: messageRef.id,
       channelId: channelId || null,
@@ -144,6 +142,45 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
     setWhisperingTo(null);
   }, [db, basePath, user, replyingTo, whisperingTo, channelId]);
 
+  const handleClearChat = useCallback(async () => {
+    if (!db || !basePath || !user || !messages.length) return;
+    const batch = writeBatch(db);
+    messages.forEach(msg => {
+      const msgRef = doc(db, basePath, "messages", msg.id);
+      batch.update(msgRef, { deletedFor: arrayUnion(user.uid) });
+    });
+    await batch.commit();
+    toast({ title: "Chat Cleared" });
+    setIsClearChatDialogOpen(false);
+  }, [db, basePath, user, messages, toast]);
+
+  const handleCommand = useCallback(async (cmd: string, args: string[]) => {
+    if (cmd === "clr") {
+      handleClearChat();
+      return true;
+    }
+    if (cmd === "del") {
+      const count = parseInt(args[0]);
+      if (isNaN(count) || count <= 0) return true;
+      
+      const lastCountMessages = messages.filter(m => m.senderId === user?.uid).slice(-count);
+      if (lastCountMessages.length === 0) {
+        toast({ title: "No messages to delete", description: "Only your own messages can be deleted with this command." });
+        return true;
+      }
+
+      const batch = writeBatch(db);
+      lastCountMessages.forEach(msg => {
+        const msgRef = doc(db, basePath!, "messages", msg.id);
+        batch.update(msgRef, { deletedFor: arrayUnion(user!.uid) });
+      });
+      await batch.commit();
+      toast({ title: `Wiped last ${lastCountMessages.length} message(s)` });
+      return true;
+    }
+    return false;
+  }, [db, basePath, user, messages, handleClearChat, toast]);
+
   const handleBatchDelete = useCallback(async (type: "everyone" | "me") => {
     if (!db || !basePath || !user || selectedIds.size === 0) return;
     const batch = writeBatch(db);
@@ -166,24 +203,12 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
         batch.update(msgRef, { deletedFor: arrayUnion(user.uid) });
       }
     });
-    batch.commit();
+    await batch.commit();
     toast({ title: `Removed ${selectedIds.size} message(s)` });
     setSelectionMode(false);
     setSelectedIds(new Set());
     setIsDeleteDialogOpen(false);
   }, [db, basePath, user, selectedIds, rawMessages, toast]);
-
-  const handleClearChat = useCallback(async () => {
-    if (!db || !basePath || !user || !messages.length) return;
-    const batch = writeBatch(db);
-    messages.forEach(msg => {
-      const msgRef = doc(db, basePath, "messages", msg.id);
-      batch.update(msgRef, { deletedFor: arrayUnion(user.uid) });
-    });
-    batch.commit();
-    toast({ title: "Chat Cleared" });
-    setIsClearChatDialogOpen(false);
-  }, [db, basePath, user, messages, toast]);
 
   const handleCancelSelection = useCallback(() => {
     setSelectionMode(false);
@@ -328,6 +353,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
           <div className="shrink-0 border-t bg-background">
             <MessageInput 
               onSendMessage={handleSendMessage} 
+              onExecuteCommand={handleCommand}
               replyingTo={replyingTo} 
               onCancelReply={handleCancelReply} 
               whisperingTo={whisperingTo}

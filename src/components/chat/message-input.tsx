@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, SendHorizontal, Smile, History, Ghost, X, CornerDownRight, Mic, Square, Trash2, Video, Timer, Clock, Image as ImageIcon, Loader2, Paperclip, FileText, Bold, Italic, Type, TypeOutline } from "lucide-react";
+import { Plus, SendHorizontal, Smile, History, Ghost, X, CornerDownRight, Mic, Square, Trash2, Video, Timer, Clock, Image as ImageIcon, Loader2, Paperclip, FileText, Bold, Italic, Type, TypeOutline, Eraser, Command } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { motion, AnimatePresence } from "framer-motion";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Card } from "@/components/ui/card";
 
 interface MessageInputProps {
   onSendMessage: (
@@ -27,6 +28,7 @@ interface MessageInputProps {
     file?: { url: string; name: string; type: string },
     whisperTarget?: { id: string; username: string } | null
   ) => void;
+  onExecuteCommand?: (cmd: string, args: string[]) => Promise<boolean>;
   inputRef?: React.RefObject<HTMLInputElement>;
   replyingTo?: any | null;
   onCancelReply?: () => void;
@@ -56,7 +58,13 @@ const EMOJI_CATEGORIES = [
   { id: "animals", icon: <Ghost className="h-4 w-4" />, label: "Animals", emojis: ["🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯", "🦁", "🐮", "🐷", "🐽", "🐸", "🐵", "🙈", "🙉", "🙊", "🐒", "🐔", "🐧", "🐦", "🐤", "🐣", "🐥", "🦆", "🦅", "🦉", "🦇", "🐺", "🐗", "🐴", "🦄", "🐝", "🐛", "🦋", "🐌", "🐞", "🐜", "🦟", "🦗", "🕷", "🕸", "🐙", "🦑", "🦐", "🦞", "🦀", "🐡", "🐠", "🐟", "🐬", "🐳", "🐋", "🦈", "🐊", "🐅", "🦓", "🦍", "🦧", "🐘", "🦛", "🦏", "🐪", "🐫", "🦒", "🦘", "🐃", "🐂", "🐄", "🐎", "🐖", "🐏", "🐑", "🐐", "🦌", "🐕", "🐩", "🦮", "🐈", "🐓", "🦃", "🦚", "🦜", "🦢", "🦩", "🕊", "🐇", "🦝", "🦨", "🦡", "🦦", "🦥", "🐁", "🐀", "🐿", "🦔"] }
 ];
 
-export function MessageInput({ onSendMessage, inputRef: externalInputRef, replyingTo, onCancelReply, whisperingTo, onCancelWhisper, onTriggerWhisper }: MessageInputProps) {
+const CHEAT_CODES = [
+  { icon: <Eraser className="h-4 w-4 text-orange-500" />, label: "clr", description: "Clear current chat history locally", usage: "@clr" },
+  { icon: <Trash2 className="h-4 w-4 text-red-500" />, label: "del", description: "Delete last X messages from you", usage: "@del 5" },
+  { icon: <Ghost className="h-4 w-4 text-indigo-500" />, label: "whisper", description: "Private message someone", usage: "@whisper @user text" }
+];
+
+export function MessageInput({ onSendMessage, onExecuteCommand, inputRef: externalInputRef, replyingTo, onCancelReply, whisperingTo, onCancelWhisper, onTriggerWhisper }: MessageInputProps) {
   const db = useFirestore();
   const { toast } = useToast();
   const [text, setText] = useState("");
@@ -74,6 +82,9 @@ export function MessageInput({ onSendMessage, inputRef: externalInputRef, replyi
   const [isProcessing, setIsProcessing] = useState(false);
   const [showFormatting, setShowFormatting] = useState(false);
   
+  const [commandSearch, setCommandSearch] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
   const internalInputRef = useRef<HTMLInputElement>(null);
   const inputRef = externalInputRef || internalInputRef;
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -98,6 +109,15 @@ export function MessageInput({ onSendMessage, inputRef: externalInputRef, replyi
     }
   }, []);
 
+  useEffect(() => {
+    if (text.startsWith("@") && !text.includes(" ")) {
+      setShowSuggestions(true);
+      setCommandSearch(text.slice(1).toLowerCase());
+    } else {
+      setShowSuggestions(false);
+    }
+  }, [text]);
+
   const applyFormatting = (prefix: string, suffix: string) => {
     if (!inputRef.current) return;
     const start = inputRef.current.selectionStart || 0;
@@ -116,9 +136,28 @@ export function MessageInput({ onSendMessage, inputRef: externalInputRef, replyi
     }, 0);
   };
 
+  const handleApplyCommand = (usage: string) => {
+    setText(usage);
+    setShowSuggestions(false);
+    inputRef.current?.focus();
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!text.trim() && !imagePreview && !filePreview) return;
+
+    // Handle Cheat Codes
+    if (text.trim() === "@clr") {
+      await onExecuteCommand?.("clr", []);
+      setText("");
+      return;
+    }
+    if (text.startsWith("@del ")) {
+      const parts = text.split(" ");
+      await onExecuteCommand?.("del", [parts[1]]);
+      setText("");
+      return;
+    }
 
     let finalContent = text;
     let finalWhisperTo = whisperingTo;
@@ -136,7 +175,6 @@ export function MessageInput({ onSendMessage, inputRef: externalInputRef, replyi
         const snap = await getDocs(q);
         if (!snap.empty) {
           const targetData = snap.docs[0].data();
-          // CRITICAL FIX: Ensure username is never undefined to prevent Firebase crashes.
           finalWhisperTo = { 
             id: snap.docs[0].id, 
             username: targetData.username || targetUsername 
@@ -292,8 +330,45 @@ export function MessageInput({ onSendMessage, inputRef: externalInputRef, replyi
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const filteredCommands = CHEAT_CODES.filter(c => c.label.includes(commandSearch));
+
   return (
-    <div className="bg-background shrink-0 w-full flex flex-col font-body">
+    <div className="bg-background shrink-0 w-full flex flex-col font-body relative">
+      <AnimatePresence>
+        {showSuggestions && filteredCommands.length > 0 && (
+          <motion.div 
+            initial={{ opacity: 0, y: 10, scale: 0.95 }} 
+            animate={{ opacity: 1, y: 0, scale: 1 }} 
+            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+            className="absolute bottom-full left-4 mb-2 z-50 w-72"
+          >
+            <Card className="rounded-[1.5rem] border-none shadow-[0_20px_50px_rgba(0,0,0,0.2)] bg-popover/95 backdrop-blur-xl overflow-hidden p-1">
+              <div className="p-3 bg-primary/5 border-b flex items-center gap-2 mb-1">
+                <Command className="h-3.5 w-3.5 text-primary" />
+                <span className="text-[10px] font-black uppercase tracking-widest text-primary">Verse Commands</span>
+              </div>
+              <div className="space-y-0.5">
+                {filteredCommands.map((c) => (
+                  <button 
+                    key={c.label} 
+                    onClick={() => handleApplyCommand(c.usage)}
+                    className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-muted transition-all text-left group"
+                  >
+                    <div className="p-2 bg-background rounded-lg shadow-sm group-hover:scale-110 transition-transform">
+                      {c.icon}
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-xs font-black uppercase tracking-tight text-foreground">@{c.label}</span>
+                      <span className="text-[10px] text-muted-foreground truncate font-medium italic">{c.description}</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {replyingTo && (
         <div className="px-4 py-2 bg-muted/30 border-t flex items-center gap-3 animate-in slide-in-from-bottom-2 duration-150">
           <div className="p-1.5 bg-primary/10 rounded-lg shrink-0">
