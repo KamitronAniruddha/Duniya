@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -10,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, User, Lock, Camera, ShieldAlert, Eye, EyeOff, Users, Palette, Check, Upload, Link } from "lucide-react";
+import { Loader2, User, Lock, Camera, ShieldAlert, Eye, EyeOff, Users, Palette, Check, Upload, Link, Monitor, Tablet, Smartphone, Sparkles } from "lucide-react";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -36,6 +37,12 @@ const THEMES = [
   { id: "amber", name: "Amber Sunset", color: "bg-amber-950", border: "border-amber-900" },
 ];
 
+const INTERFACE_MODES = [
+  { id: "laptop", name: "Laptop", icon: <Monitor className="h-4 w-4" />, desc: "Triple column power user layout." },
+  { id: "tablet", name: "Tablet", icon: <Tablet className="h-4 w-4" />, desc: "Streamlined dual-pane dashboard." },
+  { id: "mobile", name: "Mobile", icon: <Smartphone className="h-4 w-4" />, desc: "Thumb-friendly social immersive view." },
+];
+
 export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
   const { user } = useUser();
   const db = useFirestore();
@@ -54,6 +61,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
   
   const [allowGroupInvites, setAllowGroupInvites] = useState(true);
   const [showOnlineStatus, setShowOnlineStatus] = useState(true);
+  const [interfaceMode, setInterfaceMode] = useState("laptop");
 
   useEffect(() => {
     if (userData) {
@@ -62,6 +70,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
       setBio(userData.bio || "");
       setAllowGroupInvites(userData.allowGroupInvites !== false);
       setShowOnlineStatus(userData.showOnlineStatus !== false);
+      setInterfaceMode(userData.interfaceMode || "laptop");
     }
   }, [userData]);
 
@@ -93,8 +102,6 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
     setIsLoading(true);
 
     try {
-      // CRITICAL FIX: Base64 strings for uploaded photos exceed Firebase Auth's 2048-char limit.
-      // We store the photo URL exclusively in Firestore to bypass this crash.
       await updateProfile(user, {
         displayName: username,
       });
@@ -104,6 +111,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
         username: username.toLowerCase() || null,
         photoURL: photoURL || null,
         bio: bio || null,
+        interfaceMode: interfaceMode,
         updatedAt: new Date().toISOString()
       });
 
@@ -170,17 +178,17 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] rounded-[2rem] overflow-hidden p-0 border-none shadow-2xl">
+      <DialogContent className="sm:max-w-[425px] rounded-[2rem] overflow-hidden p-0 border-none shadow-2xl bg-background">
         <DialogHeader className="p-6 bg-gradient-to-b from-primary/10 to-transparent">
-          <DialogTitle className="text-2xl font-black tracking-tight">Settings Suite</DialogTitle>
+          <DialogTitle className="text-2xl font-black tracking-tight uppercase">Settings Suite</DialogTitle>
         </DialogHeader>
         
         <Tabs defaultValue="profile" className="w-full">
           <TabsList className="grid w-full grid-cols-4 bg-muted/50 rounded-none h-12">
-            <TabsTrigger value="profile" className="data-[state=active]:bg-background data-[state=active]:shadow-none font-bold text-[10px] uppercase tracking-widest">Profile</TabsTrigger>
-            <TabsTrigger value="themes" className="data-[state=active]:bg-background data-[state=active]:shadow-none font-bold text-[10px] uppercase tracking-widest">Themes</TabsTrigger>
+            <TabsTrigger value="profile" className="data-[state=active]:bg-background data-[state=active]:shadow-none font-bold text-[10px] uppercase tracking-widest">User</TabsTrigger>
+            <TabsTrigger value="interface" className="data-[state=active]:bg-background data-[state=active]:shadow-none font-bold text-[10px] uppercase tracking-widest">UI</TabsTrigger>
             <TabsTrigger value="privacy" className="data-[state=active]:bg-background data-[state=active]:shadow-none font-bold text-[10px] uppercase tracking-widest">Privacy</TabsTrigger>
-            <TabsTrigger value="security" className="data-[state=active]:bg-background data-[state=active]:shadow-none font-bold text-[10px] uppercase tracking-widest">Security</TabsTrigger>
+            <TabsTrigger value="security" className="data-[state=active]:bg-background data-[state=active]:shadow-none font-bold text-[10px] uppercase tracking-widest">Safety</TabsTrigger>
           </TabsList>
           
           <TabsContent value="profile" className="p-6 focus-visible:ring-0 custom-scrollbar max-h-[450px] overflow-y-auto">
@@ -208,97 +216,81 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="username" className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Verse Handle</Label>
+                <Label htmlFor="username" className="text-[10px] font-black uppercase tracking-wider text-muted-foreground ml-1">Verse Handle</Label>
                 <div className="relative">
                   <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input id="username" className="pl-9 bg-muted/30 border-none rounded-xl font-bold" value={username} onChange={(e) => setUsername(e.target.value)} />
+                  <Input id="username" className="pl-9 bg-muted/30 border-none rounded-xl font-bold h-11" value={username} onChange={(e) => setUsername(e.target.value)} />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Profile Picture (URL or Upload)</Label>
-                <div className="flex flex-col gap-3">
-                  <div className="relative">
-                    <Link className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                      className="pl-9 bg-muted/30 border-none rounded-xl" 
-                      placeholder="Paste Image URL here..." 
-                      value={photoURL.startsWith('data:') ? 'Image uploaded from device' : photoURL} 
-                      onChange={(e) => setPhotoURL(e.target.value)} 
-                    />
-                  </div>
-                  
-                  <div className="flex items-center gap-3">
-                    <input 
-                      type="file" 
-                      ref={fileInputRef} 
-                      className="hidden" 
-                      accept="image/*" 
-                      onChange={handleFileChange} 
-                    />
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      className="flex-1 rounded-xl h-11 border-dashed hover:bg-primary/10 hover:text-primary transition-all gap-2"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={isUploading}
-                    >
-                      {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                      {photoURL.startsWith('data:') ? "Change Uploaded Image" : "Upload from Device"}
-                    </Button>
-                    {photoURL.startsWith('data:') && (
-                      <Button 
-                        type="button" 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-11 w-11 rounded-xl text-destructive hover:bg-destructive/10"
-                        onClick={() => setPhotoURL("")}
-                      >
-                        <ShieldAlert className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                </div>
-                <p className="text-[9px] text-muted-foreground italic px-1">Tip: Square images look best in the Verse (Max 1MB).</p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="bio" className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Bio</Label>
-                <Textarea id="bio" className="bg-muted/30 border-none rounded-xl resize-none font-medium" placeholder="Tell us about yourself" value={bio} onChange={(e) => setBio(e.target.value)} />
+                <Label htmlFor="bio" className="text-[10px] font-black uppercase tracking-wider text-muted-foreground ml-1">Bio</Label>
+                <Textarea id="bio" className="bg-muted/30 border-none rounded-xl resize-none font-medium min-h-[80px]" placeholder="Tell us about yourself" value={bio} onChange={(e) => setBio(e.target.value)} />
               </div>
               
-              <Button type="submit" className="w-full h-12 rounded-xl font-black shadow-lg shadow-primary/20" disabled={isLoading || isUploading}>
-                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Changes"}
+              <Button type="submit" className="w-full h-12 rounded-xl font-black shadow-lg shadow-primary/20 uppercase tracking-widest" disabled={isLoading || isUploading}>
+                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Profile"}
               </Button>
             </form>
           </TabsContent>
 
-          <TabsContent value="themes" className="p-6 focus-visible:ring-0 custom-scrollbar max-h-[450px] overflow-y-auto">
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Palette className="h-4 w-4 text-primary" />
-                <h4 className="text-xs font-black uppercase tracking-widest">Select Verse Vibe</h4>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                {THEMES.map((t) => (
-                  <button
-                    key={t.id}
-                    onClick={() => setTheme(t.id)}
-                    className={cn(
-                      "flex flex-col items-center gap-2 p-3 rounded-2xl border-2 transition-all group relative",
-                      theme === t.id ? "border-primary bg-primary/5" : "border-transparent bg-muted/30 hover:bg-muted/50"
-                    )}
-                  >
-                    <div className={cn("h-12 w-full rounded-xl border shadow-sm", t.color, t.border)} />
-                    <span className={cn("text-[10px] font-bold uppercase tracking-tight", theme === t.id ? "text-primary" : "text-muted-foreground")}>{t.name}</span>
-                    {theme === t.id && (
-                      <div className="absolute top-1 right-1 bg-primary text-white rounded-full p-0.5">
-                        <Check className="h-3 w-3" />
+          <TabsContent value="interface" className="p-6 focus-visible:ring-0 custom-scrollbar max-h-[450px] overflow-y-auto">
+            <div className="space-y-6">
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <h4 className="text-xs font-black uppercase tracking-widest">Interface Mode</h4>
+                </div>
+                <div className="grid grid-cols-1 gap-2">
+                  {INTERFACE_MODES.map((mode) => (
+                    <button
+                      key={mode.id}
+                      onClick={() => setInterfaceMode(mode.id)}
+                      className={cn(
+                        "flex items-center gap-4 p-3 rounded-2xl border-2 transition-all text-left",
+                        interfaceMode === mode.id ? "border-primary bg-primary/5 shadow-sm" : "border-transparent bg-muted/30 hover:bg-muted/50"
+                      )}
+                    >
+                      <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center shadow-sm", interfaceMode === mode.id ? "bg-primary text-white" : "bg-background text-muted-foreground")}>
+                        {mode.icon}
                       </div>
-                    )}
-                  </button>
-                ))}
+                      <div className="flex flex-col">
+                        <span className={cn("text-xs font-black uppercase tracking-tight", interfaceMode === mode.id ? "text-primary" : "text-foreground")}>{mode.name}</span>
+                        <span className="text-[10px] text-muted-foreground font-medium italic">{mode.desc}</span>
+                      </div>
+                      {interfaceMode === mode.id && <Check className="h-4 w-4 ml-auto text-primary" />}
+                    </button>
+                  ))}
+                </div>
               </div>
+
+              <Separator className="opacity-50" />
+
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <Palette className="h-4 w-4 text-primary" />
+                  <h4 className="text-xs font-black uppercase tracking-widest">Verse Vibe</h4>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {THEMES.map((t) => (
+                    <button
+                      key={t.id}
+                      onClick={() => setTheme(t.id)}
+                      className={cn(
+                        "flex flex-col items-center gap-2 p-2 rounded-xl border-2 transition-all relative",
+                        theme === t.id ? "border-primary bg-primary/5" : "border-transparent bg-muted/30 hover:bg-muted/50"
+                      )}
+                    >
+                      <div className={cn("h-10 w-full rounded-lg border shadow-sm", t.color, t.border)} />
+                      <span className={cn("text-[9px] font-bold uppercase tracking-tight truncate w-full text-center", theme === t.id ? "text-primary" : "text-muted-foreground")}>{t.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <Button onClick={handleUpdateProfile} className="w-full h-12 rounded-xl font-black shadow-lg shadow-primary/20 uppercase tracking-widest" disabled={isLoading}>
+                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Apply Settings"}
+              </Button>
             </div>
           </TabsContent>
 
@@ -331,16 +323,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
               </div>
             </div>
 
-            <Separator className="opacity-50" />
-
-            <div className="bg-primary/5 p-4 rounded-2xl flex items-start gap-3 border border-primary/10">
-              <ShieldAlert className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-              <p className="text-[10px] text-muted-foreground leading-relaxed italic">
-                Note: Changing your online status visibility will apply immediately. If hidden, you will appear offline to all users in the Verse.
-              </p>
-            </div>
-
-            <Button onClick={handleUpdatePrivacy} className="w-full h-12 rounded-xl font-black shadow-lg shadow-primary/20" disabled={isLoading}>
+            <Button onClick={handleUpdatePrivacy} className="w-full h-12 rounded-xl font-black shadow-lg shadow-primary/20 uppercase tracking-widest" disabled={isLoading}>
               {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Update Privacy"}
             </Button>
           </TabsContent>
@@ -348,21 +331,21 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
           <TabsContent value="security" className="p-6 focus-visible:ring-0">
             <form onSubmit={handleChangePassword} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="old" className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Current Password</Label>
+                <Label htmlFor="old" className="text-[10px] font-black uppercase tracking-wider text-muted-foreground ml-1">Current Password</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input id="old" type="password" required className="pl-9 bg-muted/30 border-none rounded-xl" value={oldPassword} onChange={(e) => setOldPassword(e.target.value)} />
+                  <Input id="old" type="password" required className="pl-9 bg-muted/30 border-none rounded-xl h-11" value={oldPassword} onChange={(e) => setOldPassword(e.target.value)} />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="new" className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">New Password</Label>
-                <Input id="new" type="password" required className="bg-muted/30 border-none rounded-xl" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+                <Label htmlFor="new" className="text-[10px] font-black uppercase tracking-wider text-muted-foreground ml-1">New Password</Label>
+                <Input id="new" type="password" required className="bg-muted/30 border-none rounded-xl h-11" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="confirm" className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Confirm New Password</Label>
-                <Input id="confirm" type="password" required className="bg-muted/30 border-none rounded-xl" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+                <Label htmlFor="confirm" className="text-[10px] font-black uppercase tracking-wider text-muted-foreground ml-1">Confirm New Password</Label>
+                <Input id="confirm" type="password" required className="bg-muted/30 border-none rounded-xl h-11" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
               </div>
-              <Button type="submit" variant="destructive" className="w-full h-12 rounded-xl font-black shadow-lg shadow-destructive/20 mt-4" disabled={isLoading}>
+              <Button type="submit" variant="destructive" className="w-full h-12 rounded-xl font-black shadow-lg shadow-destructive/20 mt-4 uppercase tracking-widest" disabled={isLoading}>
                 {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Update Password"}
               </Button>
             </form>

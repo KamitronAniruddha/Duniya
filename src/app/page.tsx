@@ -9,11 +9,13 @@ import { AuthScreen } from "@/components/auth/auth-screen";
 import { DuniyaPanel } from "@/components/duniya/duniya-panel";
 import { useUser, useFirestore, useMemoFirebase, useAuth, useDoc, useCollection } from "@/firebase";
 import { doc, collection, query, limit } from "firebase/firestore";
-import { Loader2, Menu, Heart } from "lucide-react";
+import { Loader2, Menu, Heart, Monitor, Tablet, Smartphone, Globe, MessageSquare, User, Compass } from "lucide-react";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { InvitationManager } from "@/components/invitations/invitation-manager";
+import { cn } from "@/lib/utils";
+import { ProfileDialog } from "@/components/profile/profile-dialog";
 
 export default function DuniyaApp() {
   const { user, isUserLoading } = useUser();
@@ -25,9 +27,15 @@ export default function DuniyaApp() {
   const [view, setView] = useState<"chat" | "duniya">("chat");
   const [showMembers, setShowMembers] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+
+  // Active Tab for Mobile/Tablet Modes
+  const [activeTab, setActiveTab] = useState<"chat" | "explore" | "profile">("chat");
 
   const userRef = useMemoFirebase(() => (user ? doc(db, "users", user.uid) : null), [db, user?.uid]);
   const { data: userData } = useDoc(userRef);
+
+  const mode = userData?.interfaceMode || "laptop";
 
   const channelsQuery = useMemoFirebase(() => {
     if (!db || !activeCommunityId || !user) return null;
@@ -47,7 +55,6 @@ export default function DuniyaApp() {
 
   const lastSentStatusRef = useRef<string | null>(null);
 
-  // Core Presence Logic: Heartbeat and Viewport Synchronization
   useEffect(() => {
     if (!user?.uid || !db || !auth.currentUser) return;
 
@@ -55,7 +62,6 @@ export default function DuniyaApp() {
       const showStatus = userData?.showOnlineStatus !== false;
       const finalStatus = showStatus ? status : "offline";
       
-      // OPTIMIZATION: Only update Firestore if the status actually changed or during a random heartbeat
       if (lastSentStatusRef.current !== finalStatus || (finalStatus !== "offline" && Math.random() > 0.8)) {
         lastSentStatusRef.current = finalStatus;
         updateDocumentNonBlocking(doc(db, "users", user.uid), {
@@ -122,11 +128,11 @@ export default function DuniyaApp() {
     return <AuthScreen />;
   }
 
-  return (
-    <div className="flex h-[100dvh] w-full bg-background overflow-hidden">
-      <InvitationManager />
-      
-      <div className="hidden md:flex shrink-0 h-full overflow-hidden border-r border-border">
+  // --- INTERFACE MODES ---
+
+  const renderLaptopLayout = () => (
+    <div className="flex h-full w-full overflow-hidden">
+      <div className="flex shrink-0 h-full overflow-hidden border-r border-border">
         <ServerSidebar 
           activeServerId={view === "chat" ? activeCommunityId : view} 
           isDuniyaActive={view === "duniya"}
@@ -140,45 +146,7 @@ export default function DuniyaApp() {
           />
         )}
       </div>
-
       <main className="flex-1 flex flex-col min-w-0 h-full relative overflow-hidden">
-        <div className="md:hidden p-2 border-b flex items-center gap-2 bg-background shrink-0">
-          <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <Menu className="h-5 w-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="p-0 flex w-[300px] border-none">
-              <SheetHeader className="sr-only">
-                <SheetTitle>Navigation Menu</SheetTitle>
-                <SheetDescription>Select communities and channels.</SheetDescription>
-              </SheetHeader>
-              <div className="flex h-full w-full overflow-hidden bg-background">
-                <ServerSidebar 
-                  activeServerId={view === "chat" ? activeCommunityId : view} 
-                  isDuniyaActive={view === "duniya"}
-                  onSelectServer={(id) => {
-                    handleSelectServer(id);
-                    setIsMobileMenuOpen(false);
-                  }} 
-                />
-                {view === "chat" && (
-                  <ChannelSidebar 
-                    serverId={activeCommunityId} 
-                    activeChannelId={activeChannelId}
-                    onSelectChannel={(id) => {
-                      setActiveChannelId(id);
-                      setIsMobileMenuOpen(false);
-                    }}
-                  />
-                )}
-              </div>
-            </SheetContent>
-          </Sheet>
-          <span className="font-black text-sm tracking-tight text-primary uppercase">Duniya</span>
-        </div>
-        
         <div className="flex-1 min-h-0 flex relative overflow-hidden">
           {view === "duniya" ? (
             <DuniyaPanel onJoinSuccess={(id) => {
@@ -194,14 +162,172 @@ export default function DuniyaApp() {
             />
           )}
         </div>
-        
-        <div className="hidden md:flex justify-center py-1 bg-background border-t">
-          <div className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.3em] text-muted-foreground/40">
-            <span>Made by Aniruddha with love</span>
-            <Heart className="h-2 w-2 text-red-500 fill-red-500 animate-pulse" />
-          </div>
-        </div>
       </main>
+    </div>
+  );
+
+  const renderTabletLayout = () => (
+    <div className="flex h-full w-full overflow-hidden bg-muted/10">
+      {/* Side Rail Navigation */}
+      <aside className="w-20 bg-background border-r flex flex-col items-center py-6 gap-8 z-30 shadow-sm">
+        <div className="p-3 bg-primary/10 rounded-2xl">
+          <Tablet className="h-6 w-6 text-primary" />
+        </div>
+        <nav className="flex flex-col gap-4">
+          <Button 
+            variant={activeTab === "chat" ? "default" : "ghost"} 
+            size="icon" 
+            className="h-12 w-12 rounded-2xl"
+            onClick={() => setActiveTab("chat")}
+          >
+            <MessageSquare className="h-6 w-6" />
+          </Button>
+          <Button 
+            variant={activeTab === "explore" ? "default" : "ghost"} 
+            size="icon" 
+            className="h-12 w-12 rounded-2xl"
+            onClick={() => setActiveTab("explore")}
+          >
+            <Compass className="h-6 w-6" />
+          </Button>
+          <Button 
+            variant={activeTab === "profile" ? "default" : "ghost"} 
+            size="icon" 
+            className="h-12 w-12 rounded-2xl"
+            onClick={() => setIsProfileOpen(true)}
+          >
+            <User className="h-6 w-6" />
+          </Button>
+        </nav>
+        <div className="mt-auto pb-4">
+          <Heart className="h-5 w-5 text-red-500 fill-red-500 animate-pulse" />
+        </div>
+      </aside>
+
+      <main className="flex-1 flex flex-col min-w-0 h-full relative overflow-hidden">
+        {activeTab === "chat" ? (
+          <div className="flex h-full w-full">
+            <div className="w-72 border-r bg-background/50 backdrop-blur-md hidden lg:block">
+              <ServerSidebar 
+                activeServerId={activeCommunityId} 
+                onSelectServer={handleSelectServer} 
+              />
+              <ChannelSidebar 
+                serverId={activeCommunityId} 
+                activeChannelId={activeChannelId}
+                onSelectChannel={setActiveChannelId}
+              />
+            </div>
+            <div className="flex-1">
+              <ChatWindow 
+                channelId={activeChannelId}
+                serverId={activeCommunityId}
+                showMembers={false}
+              />
+            </div>
+          </div>
+        ) : (
+          <DuniyaPanel onJoinSuccess={(id) => {
+            setActiveTab("chat");
+            handleSelectServer(id);
+          }} />
+        )}
+      </main>
+    </div>
+  );
+
+  const renderMobileLayout = () => (
+    <div className="flex h-full w-full flex-col overflow-hidden bg-background">
+      <main className="flex-1 relative overflow-hidden">
+        {activeTab === "chat" ? (
+          <div className="flex h-full w-full">
+            {!activeCommunityId ? (
+              <div className="flex-1 flex flex-col p-4">
+                <header className="py-6 flex items-center justify-between">
+                  <h1 className="text-3xl font-black uppercase tracking-tighter text-primary">Chat</h1>
+                  <Button variant="ghost" size="icon" className="rounded-full" onClick={() => setIsProfileOpen(true)}>
+                    <User className="h-6 w-6" />
+                  </Button>
+                </header>
+                <div className="flex-1 overflow-y-auto">
+                  <ServerSidebar 
+                    activeServerId={null} 
+                    onSelectServer={handleSelectServer} 
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="flex-1 flex flex-col h-full relative">
+                <ChatWindow 
+                  channelId={activeChannelId}
+                  serverId={activeCommunityId}
+                  showMembers={false}
+                />
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="absolute top-2 left-2 z-50 bg-background/80 backdrop-blur-md rounded-full shadow-md"
+                  onClick={() => setActiveCommunityId(null)}
+                >
+                  Back
+                </Button>
+              </div>
+            )}
+          </div>
+        ) : activeTab === "explore" ? (
+          <DuniyaPanel onJoinSuccess={(id) => {
+            setActiveTab("chat");
+            handleSelectServer(id);
+          }} />
+        ) : (
+          <div className="h-full w-full flex items-center justify-center p-8 text-center opacity-50">
+            <div className="flex flex-col items-center gap-4">
+              <User className="h-16 w-16" />
+              <h2 className="text-xl font-bold">Profile View</h2>
+              <Button onClick={() => setIsProfileOpen(true)}>Open Settings</Button>
+            </div>
+          </div>
+        )}
+      </main>
+
+      {/* Bottom Tab Navigation */}
+      <nav className="h-16 border-t bg-background flex items-center justify-around shrink-0 z-50">
+        <button 
+          className={cn("flex flex-col items-center gap-1 p-2 transition-all", activeTab === "chat" ? "text-primary" : "text-muted-foreground")}
+          onClick={() => setActiveTab("chat")}
+        >
+          <MessageSquare className="h-5 w-5" />
+          <span className="text-[10px] font-black uppercase tracking-widest">Messages</span>
+        </button>
+        <button 
+          className={cn("flex flex-col items-center gap-1 p-2 transition-all", activeTab === "explore" ? "text-primary" : "text-muted-foreground")}
+          onClick={() => setActiveTab("explore")}
+        >
+          <Globe className="h-5 w-5" />
+          <span className="text-[10px] font-black uppercase tracking-widest">Duniya</span>
+        </button>
+        <button 
+          className={cn("flex flex-col items-center gap-1 p-2 transition-all", activeTab === "profile" ? "text-primary" : "text-muted-foreground")}
+          onClick={() => setIsProfileOpen(true)}
+        >
+          <User className="h-5 w-5" />
+          <span className="text-[10px] font-black uppercase tracking-widest">Profile</span>
+        </button>
+      </nav>
+    </div>
+  );
+
+  return (
+    <div className="flex h-[100dvh] w-full bg-background overflow-hidden font-body">
+      <InvitationManager />
+      <ProfileDialog open={isProfileOpen} onOpenChange={setIsProfileOpen} />
+      
+      {mode === "mobile" ? renderMobileLayout() : mode === "tablet" ? renderTabletLayout() : renderLaptopLayout()}
+      
+      <div className="hidden md:flex fixed bottom-1 right-4 items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.3em] text-muted-foreground/40 pointer-events-none z-50">
+        <span>Made by Aniruddha with love</span>
+        <Heart className="h-2 w-2 text-red-500 fill-red-500 animate-pulse" />
+      </div>
     </div>
   );
 }

@@ -21,6 +21,7 @@
         "serverIds": { "type": "array", "items": { "type": "string" } },
         "allowGroupInvites": { "type": "boolean" },
         "showOnlineStatus": { "type": "boolean" },
+        "interfaceMode": { "type": "string", "enum": ["laptop", "tablet", "mobile"] },
         "mutedInviteCommunities": { 
           "type": "object",
           "description": "Map of communityId to ISO expiry date for muted invitations."
