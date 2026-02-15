@@ -2,17 +2,10 @@
 "use client";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { History, Landmark, ArrowDown, User, Clock, CheckCircle2 } from "lucide-react";
+import { History, Landmark, ArrowDown, User, Clock, CheckCircle2, Hash } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
-
-interface ForwardHop {
-  communityName: string;
-  viaCommunity?: string;
-  senderName: string;
-  timestamp: string;
-  isInitial?: boolean;
-}
+import { type ForwardHop } from "./message-bubble";
 
 interface MessageTraceDialogProps {
   open: boolean;
@@ -69,19 +62,25 @@ export function MessageTraceDialog({ open, onOpenChange, chain }: MessageTraceDi
                         </div>
                       </div>
 
-                      <h4 className="text-sm font-black text-foreground flex items-center gap-2">
-                        <Landmark className="h-3.5 w-3.5 opacity-50" />
-                        {hop.communityName}
-                      </h4>
+                      <div className="flex flex-col gap-0.5">
+                        <h4 className="text-sm font-black text-foreground flex items-center gap-2">
+                          <Landmark className="h-3.5 w-3.5 opacity-50" />
+                          {hop.communityName}
+                        </h4>
+                        <div className="flex items-center gap-1.5 text-[10px] font-black text-muted-foreground/60">
+                          <Hash className="h-2.5 w-2.5" />
+                          <span>#{hop.channelName}</span>
+                        </div>
+                      </div>
 
-                      <div className="flex items-center gap-2 text-[11px] font-medium text-muted-foreground">
+                      <div className="flex items-center gap-2 text-[11px] font-medium text-muted-foreground mt-1">
                         <User className="h-3 w-3" />
                         <span>Sent by <span className="text-foreground font-bold">{hop.senderName}</span></span>
                       </div>
 
                       {hop.viaCommunity && (
                         <div className="mt-1 pt-1 border-t border-muted-foreground/10 text-[9px] italic text-muted-foreground">
-                          Relayed from {hop.viaCommunity}
+                          Relayed via {hop.viaCommunity} {' > '} #{hop.viaChannel}
                         </div>
                       )}
                     </div>

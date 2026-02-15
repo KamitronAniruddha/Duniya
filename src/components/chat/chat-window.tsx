@@ -49,6 +49,9 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
   const contextRef = useMemoFirebase(() => (basePath ? doc(db, basePath) : null), [db, basePath]);
   const { data: contextData } = useDoc(contextRef);
 
+  const serverRef = useMemoFirebase(() => (serverId ? doc(db, "communities", serverId) : null), [db, serverId]);
+  const { data: serverData } = useDoc(serverRef);
+
   const messagesQuery = useMemoFirebase(() => {
     if (!db || !basePath || !user) return null;
     return query(
@@ -75,6 +78,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
       id: messageRef.id,
       channelId: channelId,
       senderId: user.uid,
+      senderName: user.displayName || "User",
       content: text,
       type: videoUrl ? "media" : (audioUrl ? "media" : "text"),
       sentAt: sentAt.toISOString(),
@@ -353,7 +357,8 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
           }
         }} 
         messagesToForward={selectedMessages}
-        currentCommunityName={contextData?.name}
+        currentCommunityName={serverData?.name}
+        currentChannelName={contextData?.name}
       />
 
       <AlertDialog open={isClearChatDialogOpen} onOpenChange={setIsClearChatDialogOpen}>

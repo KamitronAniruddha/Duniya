@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { memo, useState, useRef, useEffect, useMemo } from "react";
@@ -17,9 +16,11 @@ import { ForwardDialog } from "./forward-dialog";
 import { DeleteOptionsDialog } from "./delete-options-dialog";
 import { motion, AnimatePresence } from "framer-motion";
 
-interface ForwardHop {
+export interface ForwardHop {
   communityName: string;
+  channelName: string;
   viaCommunity?: string;
+  viaChannel?: string;
   senderName: string;
   timestamp: string;
   isInitial?: boolean;
@@ -29,6 +30,7 @@ interface MessageBubbleProps {
   message: {
     id: string;
     senderId: string;
+    senderName?: string;
     content: string;
     type?: string;
     audioUrl?: string;
@@ -48,6 +50,7 @@ interface MessageBubbleProps {
     fullyDeleted?: boolean;
     isForwarded?: boolean;
     forwardingChain?: ForwardHop[];
+    deletedFor?: string[];
   };
   messagePath: string;
   isMe: boolean;
@@ -299,7 +302,7 @@ export const MessageBubble = memo(function MessageBubble({
                   {latestHop && (
                     <div className={cn("flex items-center gap-1 text-[8px] font-black tracking-tight mt-0.5 opacity-60", isMe ? "text-white" : "text-primary")}>
                       <Landmark className="h-2.5 w-2.5" />
-                      <span>VIA {latestHop.communityName.toUpperCase()}</span>
+                      <span>{latestHop.communityName.toUpperCase()} {' > '} #{latestHop.channelName.toUpperCase()}</span>
                     </div>
                   )}
                 </div>

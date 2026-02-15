@@ -8,29 +8,32 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Hash, Search, Forward, Loader2, CheckCircle2, X, Info } from "lucide-react";
+import { Hash, Search, Forward, Loader2, CheckCircle2, X, Info, Landmark } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { type ForwardHop } from "./message-bubble";
 
 interface ForwardDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   messagesToForward: any[];
   currentCommunityName?: string;
+  currentChannelName?: string;
 }
 
 interface SelectedTarget {
   type: "channel";
   communityId: string;
+  communityName: string;
   channelId: string;
-  name: string;
+  channelName: string;
 }
 
-export function ForwardDialog({ open, onOpenChange, messagesToForward, currentCommunityName }: ForwardDialogProps) {
+export function ForwardDialog({ open, onOpenChange, messagesToForward, currentCommunityName, currentChannelName }: ForwardDialogProps) {
   const db = useFirestore();
   const { user } = useUser();
   const { toast } = useToast();
@@ -67,21 +70,24 @@ export function ForwardDialog({ open, onOpenChange, messagesToForward, currentCo
         for (const msg of messagesToForward) {
           const newMsgRef = doc(collection(db, basePath, "messages"));
           const currentSenderName = user.displayName || "User";
-          const existingChain = msg.forwardingChain || [];
-          const newChain = [...existingChain];
+          const existingChain: ForwardHop[] = msg.forwardingChain || [];
+          const newChain: ForwardHop[] = [...existingChain];
 
           if (includeRoot) {
              if (newChain.length === 0) {
                newChain.push({
-                 communityName: currentCommunityName || "Original Source",
+                 communityName: currentCommunityName || "Duniya Verse",
+                 channelName: currentChannelName || "General",
                  senderName: msg.senderName || "Original Sender",
                  timestamp: msg.sentAt || new Date().toISOString(),
                  isInitial: true
                });
              }
              newChain.push({
-               communityName: target.name,
+               communityName: target.communityName,
+               channelName: target.channelName,
                viaCommunity: currentCommunityName,
+               viaChannel: currentChannelName,
                senderName: currentSenderName,
                timestamp: new Date().toISOString()
              });
@@ -91,6 +97,7 @@ export function ForwardDialog({ open, onOpenChange, messagesToForward, currentCo
             id: newMsgRef.id,
             channelId: target.channelId,
             senderId: user.uid,
+            senderName: currentSenderName,
             content: msg.content || "",
             type: msg.type || "text",
             sentAt: new Date().toISOString(),
@@ -160,7 +167,7 @@ export function ForwardDialog({ open, onOpenChange, messagesToForward, currentCo
                 {selectedTargets.map(t => (
                   <Badge key={t.channelId} variant="secondary" className="flex items-center gap-1 py-1 px-2 rounded-lg bg-primary/10 text-primary border-primary/20">
                     <Hash className="h-3 w-3" />
-                    <span className="text-[10px] font-bold">{t.name}</span>
+                    <span className="text-[10px] font-bold">{t.channelName}</span>
                     <button onClick={() => toggleTargetSelection(t)} className="hover:bg-primary/20 rounded-full p-0.5">
                       <X className="h-2.5 w-2.5" />
                     </button>
@@ -226,7 +233,13 @@ function CommunitySection({ community, onSelect, selectedIds }: { community: any
           return (
             <button
               key={chan.id}
-              onClick={() => onSelect({ type: "channel", communityId: community.id, channelId: chan.id, name: chan.name })}
+              onClick={() => onSelect({ 
+                type: "channel", 
+                communityId: community.id, 
+                communityName: community.name, 
+                channelId: chan.id, 
+                channelName: chan.name 
+              })}
               className={cn(
                 "w-full flex items-center justify-between p-2.5 rounded-xl transition-all border text-left",
                 isSelected ? "bg-primary/10 border-primary shadow-sm" : "bg-background border-transparent hover:border-muted hover:bg-muted/30"
