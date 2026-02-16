@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -191,231 +190,238 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
           
           <ScrollArea className="flex-1">
             <AnimatePresence mode="wait">
-              <TabsContent value="profile" className="p-10 m-0 space-y-10">
-                <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-10">
-                  {/* Avatar Section */}
-                  <motion.div variants={itemVariants} className="flex flex-col items-center gap-6">
-                    <div className="relative group/avatar">
-                      <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full scale-125 opacity-0 group-hover/avatar:opacity-100 transition-opacity" />
-                      <Avatar className="h-32 w-32 ring-8 ring-background shadow-2xl transition-all group-hover/avatar:scale-105 relative z-10">
-                        <AvatarImage src={photoURL || undefined} className="object-cover" />
-                        <AvatarFallback className="text-5xl bg-primary text-white font-[900]">{username?.[0]?.toUpperCase()}</AvatarFallback>
-                      </Avatar>
-                      <button 
-                        type="button" 
-                        onClick={() => fileInputRef.current?.click()} 
-                        className="absolute -bottom-2 -right-2 p-3 bg-primary rounded-2xl shadow-xl border-4 border-background text-white z-20 hover:scale-110 active:scale-95 transition-all"
-                      >
-                        <Camera className="h-6 w-6" />
-                      </button>
-                      <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          const reader = new FileReader();
-                          reader.onloadend = () => setPhotoURL(reader.result as string);
-                          reader.readAsDataURL(file);
-                        }
-                      }} />
-                    </div>
-                    <div className="text-center space-y-1">
-                      <h4 className="font-black text-2xl tracking-tight">@{userData?.username || username}</h4>
-                      <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.3em]">{user?.email}</p>
-                    </div>
-                  </motion.div>
+              {activeTab === "profile" && (
+                <TabsContent key="tab-profile" value="profile" className="p-10 m-0 space-y-10">
+                  <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-10">
+                    <motion.div variants={itemVariants} className="flex flex-col items-center gap-6">
+                      <div className="relative group/avatar">
+                        <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full scale-125 opacity-0 group-hover/avatar:opacity-100 transition-opacity" />
+                        <Avatar className="h-32 w-32 ring-8 ring-background shadow-2xl transition-all group-hover/avatar:scale-105 relative z-10">
+                          <AvatarImage src={photoURL || undefined} className="object-cover" />
+                          <AvatarFallback className="text-5xl bg-primary text-white font-[900]">{username?.[0]?.toUpperCase()}</AvatarFallback>
+                        </Avatar>
+                        <button 
+                          type="button" 
+                          onClick={() => fileInputRef.current?.click()} 
+                          className="absolute -bottom-2 -right-2 p-3 bg-primary rounded-2xl shadow-xl border-4 border-background text-white z-20 hover:scale-110 active:scale-95 transition-all"
+                        >
+                          <Camera className="h-6 w-6" />
+                        </button>
+                        <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onloadend = () => setPhotoURL(reader.result as string);
+                            reader.readAsDataURL(file);
+                          }
+                        }} />
+                      </div>
+                      <div className="text-center space-y-1">
+                        <h4 className="font-black text-2xl tracking-tight">@{userData?.username || username}</h4>
+                        <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.3em]">{user?.email}</p>
+                      </div>
+                    </motion.div>
 
-                  <motion.div variants={itemVariants} className="space-y-6">
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">Display Identity</Label>
-                      <Input 
-                        className="bg-muted/30 border-none rounded-[1.25rem] h-14 font-bold text-base px-6 focus:ring-2 focus:ring-primary/20 transition-all" 
-                        value={username} 
-                        onChange={(e) => setUsername(e.target.value)} 
-                        placeholder="e.g. John Doe"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">Identity URL (Optional)</Label>
-                      <div className="relative">
-                        <Link className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <motion.div variants={itemVariants} className="space-y-6">
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">Display Identity</Label>
                         <Input 
-                          className="bg-muted/30 border-none rounded-[1.25rem] h-14 font-medium text-sm pl-12 pr-6 focus:ring-2 focus:ring-primary/20 transition-all" 
-                          value={photoURL} 
-                          onChange={(e) => setPhotoURL(e.target.value)} 
-                          placeholder="https://images.com/my-photo.jpg"
+                          className="bg-muted/30 border-none rounded-[1.25rem] h-14 font-bold text-base px-6 focus:ring-2 focus:ring-primary/20 transition-all" 
+                          value={username} 
+                          onChange={(e) => setUsername(e.target.value)} 
+                          placeholder="e.g. John Doe"
                         />
                       </div>
-                      <p className="text-[9px] text-muted-foreground italic px-2">Set avatar via direct link or local upload.</p>
-                    </div>
 
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">Social Bio Snapshot</Label>
-                      <Textarea 
-                        className="bg-muted/30 border-none rounded-[1.5rem] font-medium min-h-[120px] px-6 py-4 focus:ring-2 focus:ring-primary/20 transition-all resize-none" 
-                        value={bio} 
-                        onChange={(e) => setBio(e.target.value)} 
-                        placeholder="Tell the Verse about yourself..."
-                      />
-                    </div>
-                  </motion.div>
-                </motion.div>
-              </TabsContent>
-
-              <TabsContent value="interface" className="p-10 m-0 space-y-10">
-                <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-10">
-                  <motion.div variants={itemVariants} className="flex items-center gap-3">
-                    <Sparkles className="h-5 w-5 text-primary" />
-                    <h4 className="text-sm font-black uppercase tracking-widest">Interface Topology</h4>
-                  </motion.div>
-
-                  <div className="space-y-4">
-                    {INTERFACE_MODES.map((m) => (
-                      <motion.button 
-                        key={m.id}
-                        variants={itemVariants}
-                        onClick={() => setInterfaceMode(m.id)} 
-                        className={cn(
-                          "w-full flex items-center gap-5 p-6 rounded-[2rem] border-2 transition-all text-left group",
-                          interfaceMode === m.id ? "border-primary bg-primary/5 shadow-xl shadow-primary/5" : "border-transparent bg-muted/20 hover:bg-muted/40"
-                        )}
-                      >
-                        <div className={cn(
-                          "h-12 w-12 rounded-2xl flex items-center justify-center transition-all shadow-sm",
-                          interfaceMode === m.id ? "bg-primary text-white" : "bg-background text-muted-foreground"
-                        )}>
-                          {m.icon}
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">Identity URL (Optional)</Label>
+                        <div className="relative">
+                          <Link className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input 
+                            className="bg-muted/30 border-none rounded-[1.25rem] h-14 font-medium text-sm pl-12 pr-6 focus:ring-2 focus:ring-primary/20 transition-all" 
+                            value={photoURL} 
+                            onChange={(e) => setPhotoURL(e.target.value)} 
+                            placeholder="https://images.com/my-photo.jpg"
+                          />
                         </div>
-                        <div className="flex-1">
-                          <span className="text-sm font-black uppercase tracking-tight block">{m.label}</span>
-                          <span className="text-[10px] text-muted-foreground font-medium italic">{m.desc}</span>
-                        </div>
-                        {interfaceMode === m.id && <Check className="h-5 w-5 text-primary animate-in zoom-in" />}
-                      </motion.button>
-                    ))}
-                  </div>
-                </motion.div>
-              </TabsContent>
-
-              <TabsContent value="privacy" className="p-10 m-0 space-y-10">
-                <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-8">
-                  <motion.div variants={itemVariants} className="p-6 bg-muted/20 rounded-[2.5rem] border border-border/50 space-y-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex flex-col gap-1">
-                        <Label className="text-sm font-black uppercase tracking-tight flex items-center gap-2">
-                          <Lock className="h-3.5 w-3.5 text-rose-500" /> Identity Encryption
-                        </Label>
-                        <p className="text-[10px] text-muted-foreground italic">Activate @phide protocol to vanish from the Verse.</p>
+                        <p className="text-[9px] text-muted-foreground italic px-2">Set avatar via direct link or local upload.</p>
                       </div>
-                      <Switch checked={isProfileHidden} onCheckedChange={setIsProfileHidden} />
-                    </div>
-                    
-                    <Separator className="opacity-30" />
 
-                    <div className="flex items-center justify-between">
-                      <div className="flex flex-col gap-1">
-                        <Label className="text-sm font-black uppercase tracking-tight flex items-center gap-2">
-                          <EyeOff className="h-3.5 w-3.5 text-amber-500" /> Blur Protocol
-                        </Label>
-                        <p className="text-[10px] text-muted-foreground italic">Force transient keys via @porn protocol.</p>
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">Social Bio Snapshot</Label>
+                        <Textarea 
+                          className="bg-muted/30 border-none rounded-[1.5rem] font-medium min-h-[120px] px-6 py-4 focus:ring-2 focus:ring-primary/20 transition-all resize-none" 
+                          value={bio} 
+                          onChange={(e) => setBio(e.target.value)} 
+                          placeholder="Tell the Verse about yourself..."
+                        />
                       </div>
-                      <Switch checked={isProfileBlurred} onCheckedChange={setIsProfileBlurred} />
-                    </div>
-
-                    <Separator className="opacity-30" />
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex flex-col gap-1">
-                        <Label className="text-sm font-black uppercase tracking-tight flex items-center gap-2">
-                          <ImagePlus className="h-3.5 w-3.5 text-emerald-500" /> Collaborative Look
-                        </Label>
-                        <p className="text-[10px] text-muted-foreground italic">Allow others to suggest identity updates.</p>
-                      </div>
-                      <Switch checked={allowExternalAvatarEdit} onCheckedChange={setAllowExternalAvatarEdit} />
-                    </div>
-
-                    <Separator className="opacity-30" />
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex flex-col gap-1">
-                        <Label className="text-sm font-black uppercase tracking-tight flex items-center gap-2">
-                          <Activity className="h-3.5 w-3.5 text-primary" /> Live Presence
-                        </Label>
-                        <p className="text-[10px] text-muted-foreground italic">Broadcast your real-time 'On Screen' status.</p>
-                      </div>
-                      <Switch checked={showOnlineStatus} onCheckedChange={setShowOnlineStatus} />
-                    </div>
+                    </motion.div>
                   </motion.div>
+                </TabsContent>
+              )}
 
-                  <motion.div variants={itemVariants} className="p-8 bg-primary/5 rounded-[2.5rem] border border-primary/10 space-y-6 relative overflow-hidden">
-                    <div className="absolute -top-4 -right-4 p-8 opacity-[0.03]"><Globe className="h-20 w-20 text-primary" /></div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex flex-col gap-1 relative z-10">
-                        <Label className="text-sm font-black uppercase text-primary tracking-tight">Identity Broadcast</Label>
-                        <p className="text-[10px] text-muted-foreground italic">Unmask identity for ALL users temporarily.</p>
-                      </div>
-                      <Switch checked={isGlobalAccessActive} onCheckedChange={setIsGlobalAccessActive} />
-                    </div>
-                    {isGlobalAccessActive && (
-                      <div className="space-y-3 pt-2 animate-in fade-in slide-in-from-top-2 relative z-10">
-                        <Label className="text-[9px] font-black uppercase text-primary tracking-widest ml-1">Broadcast Duration</Label>
-                        <Select value={globalDuration} onValueChange={setGlobalDuration}>
-                          <SelectTrigger className="bg-background/80 backdrop-blur-md border-none rounded-2xl h-12 text-xs font-bold shadow-sm">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent className="rounded-2xl border-none shadow-2xl">
-                            {DURATIONS.map(d => <SelectItem key={d.value} value={d.value.toString()} className="text-xs font-bold">Open for {d.label}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    )}
-                  </motion.div>
-                </motion.div>
-              </TabsContent>
+              {activeTab === "interface" && (
+                <TabsContent key="tab-interface" value="interface" className="p-10 m-0 space-y-10">
+                  <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-10">
+                    <motion.div variants={itemVariants} className="flex items-center gap-3">
+                      <Sparkles className="h-5 w-5 text-primary" />
+                      <h4 className="text-sm font-black uppercase tracking-widest">Interface Topology</h4>
+                    </motion.div>
 
-              <TabsContent value="keys" className="p-10 m-0 space-y-10">
-                <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-8">
-                  <motion.div variants={itemVariants} className="p-6 bg-primary/5 rounded-[2rem] border border-primary/10 flex items-center gap-4 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-4 opacity-10"><Zap className="h-12 w-12 text-primary" /></div>
-                    <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0"><Key className="h-6 w-6" /></div>
-                    <div className="flex flex-col">
-                      <span className="text-xs font-black uppercase tracking-widest text-primary leading-none">Security Suite</span>
-                      <p className="text-[10px] text-muted-foreground italic mt-1">Manage transient identity review keys.</p>
-                    </div>
-                  </motion.div>
-
-                  {userData?.pendingProfileRequests?.length > 0 ? (
                     <div className="space-y-4">
-                      {userData.pendingProfileRequests.map((req: any) => (
-                        <motion.div key={req.uid} variants={itemVariants} className="p-5 bg-muted/20 rounded-[2rem] border border-border/50 space-y-5 group hover:border-primary/30 transition-all shadow-sm">
-                          <div className="flex items-center gap-4">
-                            <Avatar className="h-12 w-12 border-2 border-background shadow-md"><AvatarImage src={req.photoURL} /><AvatarFallback className="bg-primary text-white font-[900] uppercase">{req.username?.[0]}</AvatarFallback></Avatar>
-                            <div className="flex-1 min-w-0">
-                              <span className="text-sm font-[900] uppercase tracking-tight block truncate">@{req.username}</span>
-                              <p className="text-[10px] text-muted-foreground italic flex items-center gap-1"><ShieldCheck className="h-3 w-3" /> Wants review access.</p>
-                            </div>
+                      {INTERFACE_MODES.map((m) => (
+                        <motion.button 
+                          key={m.id}
+                          variants={itemVariants}
+                          onClick={() => setInterfaceMode(m.id)} 
+                          className={cn(
+                            "w-full flex items-center gap-5 p-6 rounded-[2rem] border-2 transition-all text-left group",
+                            interfaceMode === m.id ? "border-primary bg-primary/5 shadow-xl shadow-primary/5" : "border-transparent bg-muted/20 hover:bg-muted/40"
+                          )}
+                        >
+                          <div className={cn(
+                            "h-12 w-12 rounded-2xl flex items-center justify-center transition-all shadow-sm",
+                            interfaceMode === m.id ? "bg-primary text-white" : "bg-background text-muted-foreground"
+                          )}>
+                            {m.icon}
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Select onValueChange={(val) => handleApproveRequest(req, parseInt(val))}>
-                              <SelectTrigger className="flex-1 bg-background border-none rounded-2xl h-12 text-[10px] font-black uppercase tracking-widest shadow-sm hover:shadow-md transition-all">
-                                <SelectValue placeholder="APPROVE ACCESS" />
-                              </SelectTrigger>
-                              <SelectContent className="rounded-2xl border-none shadow-2xl">
-                                {DURATIONS.map(d => <SelectItem key={d.value} value={d.value.toString()} className="text-xs font-bold">Approve for {d.label}</SelectItem>)}
-                              </SelectContent>
-                            </Select>
-                            <Button size="icon" variant="ghost" className="h-12 w-12 rounded-2xl text-destructive hover:bg-destructive/10 transition-colors" onClick={() => handleDenyRequest(req)}><X className="h-5 w-5" /></Button>
+                          <div className="flex-1">
+                            <span className="text-sm font-black uppercase tracking-tight block">{m.label}</span>
+                            <span className="text-[10px] text-muted-foreground font-medium italic">{m.desc}</span>
                           </div>
-                        </motion.div>
+                          {interfaceMode === m.id && <Check className="h-5 w-5 text-primary animate-in zoom-in" />}
+                        </motion.button>
                       ))}
                     </div>
-                  ) : (
-                    <motion.div variants={itemVariants} className="flex flex-col items-center justify-center py-24 opacity-20 gap-6 text-center">
-                      <div className="p-10 bg-muted/50 rounded-[3rem]"><Shield className="h-20 w-20" /></div>
-                      <p className="text-xs font-black uppercase tracking-[0.3em]">Vault Secured — No Pending Requests</p>
+                  </motion.div>
+                </TabsContent>
+              )}
+
+              {activeTab === "privacy" && (
+                <TabsContent key="tab-privacy" value="privacy" className="p-10 m-0 space-y-10">
+                  <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-8">
+                    <motion.div variants={itemVariants} className="p-6 bg-muted/20 rounded-[2.5rem] border border-border/50 space-y-6">
+                      <div className="flex items-center justify-between">
+                        <div className="flex flex-col gap-1">
+                          <Label className="text-sm font-black uppercase tracking-tight flex items-center gap-2">
+                            <Lock className="h-3.5 w-3.5 text-rose-500" /> Identity Encryption
+                          </Label>
+                          <p className="text-[10px] text-muted-foreground italic">Activate @phide protocol to vanish from the Verse.</p>
+                        </div>
+                        <Switch checked={isProfileHidden} onCheckedChange={setIsProfileHidden} />
+                      </div>
+                      
+                      <Separator className="opacity-30" />
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex flex-col gap-1">
+                          <Label className="text-sm font-black uppercase tracking-tight flex items-center gap-2">
+                            <EyeOff className="h-3.5 w-3.5 text-amber-500" /> Blur Protocol
+                          </Label>
+                          <p className="text-[10px] text-muted-foreground italic">Force transient keys via @porn protocol.</p>
+                        </div>
+                        <Switch checked={isProfileBlurred} onCheckedChange={setIsProfileBlurred} />
+                      </div>
+
+                      <Separator className="opacity-30" />
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex flex-col gap-1">
+                          <Label className="text-sm font-black uppercase tracking-tight flex items-center gap-2">
+                            <ImagePlus className="h-3.5 w-3.5 text-emerald-500" /> Collaborative Look
+                          </Label>
+                          <p className="text-[10px] text-muted-foreground italic">Allow others to suggest identity updates.</p>
+                        </div>
+                        <Switch checked={allowExternalAvatarEdit} onCheckedChange={setAllowExternalAvatarEdit} />
+                      </div>
+
+                      <Separator className="opacity-30" />
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex flex-col gap-1">
+                          <Label className="text-sm font-black uppercase tracking-tight flex items-center gap-2">
+                            <Activity className="h-3.5 w-3.5 text-primary" /> Live Presence
+                          </Label>
+                          <p className="text-[10px] text-muted-foreground italic">Broadcast your real-time 'On Screen' status.</p>
+                        </div>
+                        <Switch checked={showOnlineStatus} onCheckedChange={setShowOnlineStatus} />
+                      </div>
                     </motion.div>
-                  )}
-                </motion.div>
-              </TabsContent>
+
+                    <motion.div variants={itemVariants} className="p-8 bg-primary/5 rounded-[2.5rem] border border-primary/10 space-y-6 relative overflow-hidden">
+                      <div className="absolute -top-4 -right-4 p-8 opacity-[0.03]"><Globe className="h-20 w-20 text-primary" /></div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex flex-col gap-1 relative z-10">
+                          <Label className="text-sm font-black uppercase text-primary tracking-tight">Identity Broadcast</Label>
+                          <p className="text-[10px] text-muted-foreground italic">Unmask identity for ALL users temporarily.</p>
+                        </div>
+                        <Switch checked={isGlobalAccessActive} onCheckedChange={setIsGlobalAccessActive} />
+                      </div>
+                      {isGlobalAccessActive && (
+                        <div className="space-y-3 pt-2 animate-in fade-in slide-in-from-top-2 relative z-10">
+                          <Label className="text-[9px] font-black uppercase text-primary tracking-widest ml-1">Broadcast Duration</Label>
+                          <Select value={globalDuration} onValueChange={setGlobalDuration}>
+                            <SelectTrigger className="bg-background/80 backdrop-blur-md border-none rounded-2xl h-12 text-xs font-bold shadow-sm">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-2xl border-none shadow-2xl">
+                              {DURATIONS.map(d => <SelectItem key={d.value} value={d.value.toString()} className="text-xs font-bold">Open for {d.label}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                    </motion.div>
+                  </motion.div>
+                </TabsContent>
+              )}
+
+              {activeTab === "keys" && (
+                <TabsContent key="tab-keys" value="keys" className="p-10 m-0 space-y-10">
+                  <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-8">
+                    <motion.div variants={itemVariants} className="p-6 bg-primary/5 rounded-[2rem] border border-primary/10 flex items-center gap-4 relative overflow-hidden">
+                      <div className="absolute top-0 right-0 p-4 opacity-10"><Zap className="h-12 w-12 text-primary" /></div>
+                      <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0"><Key className="h-6 w-6" /></div>
+                      <div className="flex flex-col">
+                        <span className="text-xs font-black uppercase tracking-widest text-primary leading-none">Security Suite</span>
+                        <p className="text-[10px] text-muted-foreground italic mt-1">Manage transient identity review keys.</p>
+                      </div>
+                    </motion.div>
+
+                    {userData?.pendingProfileRequests?.length > 0 ? (
+                      <div className="space-y-4">
+                        {userData.pendingProfileRequests.map((req: any) => (
+                          <motion.div key={req.uid} variants={itemVariants} className="p-5 bg-muted/20 rounded-[2rem] border border-border/50 space-y-5 group hover:border-primary/30 transition-all shadow-sm">
+                            <div className="flex items-center gap-4">
+                              <Avatar className="h-12 w-12 border-2 border-background shadow-md"><AvatarImage src={req.photoURL} /><AvatarFallback className="bg-primary text-white font-[900] uppercase">{req.username?.[0]}</AvatarFallback></Avatar>
+                              <div className="flex-1 min-w-0">
+                                <span className="text-sm font-[900] uppercase tracking-tight block truncate">@{req.username}</span>
+                                <p className="text-[10px] text-muted-foreground italic flex items-center gap-1"><ShieldCheck className="h-3 w-3" /> Wants review access.</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Select onValueChange={(val) => handleApproveRequest(req, parseInt(val))}>
+                                <SelectTrigger className="flex-1 bg-background border-none rounded-2xl h-12 text-[10px] font-black uppercase tracking-widest shadow-sm hover:shadow-md transition-all">
+                                  <SelectValue placeholder="APPROVE ACCESS" />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-2xl border-none shadow-2xl">
+                                  {DURATIONS.map(d => <SelectItem key={d.value} value={d.value.toString()} className="text-xs font-bold">Approve for {d.label}</SelectItem>)}
+                                </SelectContent>
+                              </Select>
+                              <Button size="icon" variant="ghost" className="h-12 w-12 rounded-2xl text-destructive hover:bg-destructive/10 transition-colors" onClick={() => handleDenyRequest(req)}><X className="h-5 w-5" /></Button>
+                            </div>
+                          </motion.div>
+                        ))}
+                      </div>
+                    ) : (
+                      <motion.div variants={itemVariants} className="flex flex-col items-center justify-center py-24 opacity-20 gap-6 text-center">
+                        <div className="p-10 bg-muted/50 rounded-[3rem]"><Shield className="h-20 w-20" /></div>
+                        <p className="text-xs font-black uppercase tracking-[0.3em]">Vault Secured — No Pending Requests</p>
+                      </motion.div>
+                    )}
+                  </motion.div>
+                </TabsContent>
+              )}
             </AnimatePresence>
           </ScrollArea>
         </Tabs>

@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { memo, useState, useRef, useEffect, useMemo, useCallback } from "react";
@@ -502,7 +501,7 @@ export const MessageBubble = memo(function MessageBubble({
       {!selectionMode && !isActuallyDeleted && (
         <div className={cn("mb-1 mx-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-center gap-1", isMe ? "mr-1 flex-row-reverse" : "ml-1 flex-row")}>
           <div className="flex items-center gap-0.5 bg-background/80 backdrop-blur-md rounded-full border border-border p-0.5 shadow-sm">
-            <Popover open={isReactionPickerOpen} onOpenChange={setIsReactionPickerOpen}>
+            <Popover>
               <PopoverTrigger asChild>
                 <button className="h-7 w-7 rounded-full hover:bg-muted/60 flex items-center justify-center text-muted-foreground transition-colors active:scale-90">
                   <Smile className="h-3.5 w-3.5" />
