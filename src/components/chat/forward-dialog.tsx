@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -22,6 +23,7 @@ interface ForwardDialogProps {
   messagesToForward: any[];
   currentCommunityName?: string;
   currentChannelName?: string;
+  currentServerId?: string | null;
 }
 
 interface SelectedTarget {
@@ -32,7 +34,7 @@ interface SelectedTarget {
   channelName: string;
 }
 
-export function ForwardDialog({ open, onOpenChange, messagesToForward, currentCommunityName, currentChannelName }: ForwardDialogProps) {
+export function ForwardDialog({ open, onOpenChange, messagesToForward, currentCommunityName, currentChannelName, currentServerId }: ForwardDialogProps) {
   const db = useFirestore();
   const { user } = useUser();
   const { toast } = useToast();
@@ -97,11 +99,10 @@ export function ForwardDialog({ open, onOpenChange, messagesToForward, currentCo
           if (msg.fileUrl && (msgType === "text" || !msgType)) msgType = "file";
           if (msg.audioUrl && (msgType === "text" || !msgType)) msgType = "media";
 
-          // CRITICAL FIX: Explicitly handle potential "undefined" fields.
-          // Firestore does not allow undefined; every field uses null-coalescing.
           const data = {
             id: newMsgRef.id,
             channelId: target.channelId || null,
+            serverId: target.communityId || null,
             senderId: user.uid,
             senderName: currentSenderName,
             content: msg.content || "",

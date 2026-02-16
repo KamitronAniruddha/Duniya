@@ -1,9 +1,9 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useCollection, useFirestore, useUser, useMemoFirebase } from "@/firebase";
-import { collection, query, where, doc, arrayUnion, getDocs, limit, writeBatch } from "firebase/firestore";
+import { collection, query, where, doc, arrayUnion, getDocs, limit, writeBatch, collectionGroup, orderBy } from "firebase/firestore";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -14,6 +14,7 @@ import { ServerSettingsDialog } from "@/components/servers/server-settings-dialo
 import { CommunityProfileDialog } from "@/components/communities/community-profile-dialog";
 import { CreateCommunityDialog } from "@/components/servers/create-community-dialog";
 import { JoinVerseDialog } from "@/components/servers/join-verse-dialog";
+import { motion } from "framer-motion";
 
 interface ServerSidebarProps {
   activeServerId: string | null;
@@ -91,11 +92,12 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive }
                     <TooltipTrigger asChild>
                       <button onClick={() => onSelectServer(s.id)} className="group relative flex items-center justify-center h-12 w-full">
                         <div className={cn("absolute left-0 w-1 bg-white rounded-r-full transition-all duration-150", activeServerId === s.id ? "h-8 opacity-100" : "h-0 opacity-0 group-hover:h-4 group-hover:opacity-100")} />
-                        <div className={cn("w-12 h-12 flex items-center justify-center transition-all duration-150 overflow-hidden shadow-lg rounded-[24px] group-hover:rounded-[12px] bg-sidebar-accent group-hover:scale-105", activeServerId === s.id && "rounded-[12px] ring-2 ring-primary ring-offset-2 ring-offset-sidebar")}>
+                        <div className={cn("w-12 h-12 flex items-center justify-center transition-all duration-150 overflow-hidden shadow-lg rounded-[24px] group-hover:rounded-[12px] bg-sidebar-accent group-hover:scale-105 relative", activeServerId === s.id && "rounded-[12px] ring-2 ring-primary ring-offset-2 ring-offset-sidebar")}>
                           <Avatar className="w-full h-full rounded-none">
                             <AvatarImage src={s.icon} className="object-cover" />
                             <AvatarFallback className="bg-primary text-white font-black text-lg">{s.name?.[0]?.toUpperCase()}</AvatarFallback>
                           </Avatar>
+                          <UnreadBadge serverId={s.id} />
                         </div>
                       </button>
                     </TooltipTrigger>
@@ -141,5 +143,46 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive }
       {editingServerId && <ServerSettingsDialog open={!!editingServerId} onOpenChange={(open) => !open && setEditingServerId(null)} serverId={editingServerId} />}
       {viewingProfileId && <CommunityProfileDialog open={!!viewingProfileId} onOpenChange={(open) => !open && setViewingProfileId(null)} serverId={viewingProfileId} />}
     </aside>
+  );
+}
+
+function UnreadBadge({ serverId }: { serverId: string }) {
+  const db = useFirestore();
+  const { user } = useUser();
+  
+  // collectionGroup query to find unread messages for this server across all channels.
+  // Requires serverId field in message docs (added in ChatWindow/ForwardDialog).
+  const messagesQuery = useMemoFirebase(() => {
+    if (!db || !user || !serverId) return null;
+    return query(
+      collectionGroup(db, "messages"),
+      where("serverId", "==", serverId),
+      orderBy("sentAt", "desc"),
+      limit(20) // Only check recent messages for performance
+    );
+  }, [db, user?.uid, serverId]);
+
+  const { data: messages } = useCollection(messagesQuery);
+
+  const unreadCount = useMemo(() => {
+    if (!messages || !user) return 0;
+    return messages.filter(msg => 
+      !msg.seenBy?.includes(user.uid) && 
+      msg.senderId !== user.uid &&
+      !msg.fullyDeleted &&
+      !msg.isDeleted
+    ).length;
+  }, [messages, user?.uid]);
+
+  if (unreadCount === 0) return null;
+
+  return (
+    <motion.div 
+      initial={{ scale: 0, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      className="absolute -top-1 -right-1 h-5 min-w-[20px] px-1.5 bg-destructive text-white text-[9px] font-[1000] rounded-full border-2 border-sidebar flex items-center justify-center shadow-lg z-10 animate-pulse"
+    >
+      {unreadCount > 9 ? "9+" : unreadCount}
+    </motion.div>
   );
 }

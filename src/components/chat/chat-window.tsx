@@ -137,6 +137,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
     const data: any = {
       id: messageRef.id,
       channelId: channelId || null,
+      serverId: serverId || null,
       senderId: user.uid,
       senderName: userData?.username || userData?.displayName || user.displayName || "User",
       senderPhotoURL: userData?.photoURL || user.photoURL || "",
@@ -186,7 +187,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
     setReplyingTo(null);
     setWhisperingTo(null);
     setProfileReplyTarget(null);
-  }, [db, basePath, user, replyingTo, whisperingTo, profileReplyTarget, channelId, userData]);
+  }, [db, basePath, user, replyingTo, whisperingTo, profileReplyTarget, channelId, serverId, userData]);
 
   const handleClearChat = useCallback(async () => {
     if (!db || !basePath || !user || !messages.length) return;
@@ -559,7 +560,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
         isSender={allSelectedFromMe} 
         count={selectedIds.size} 
       />
-      <ForwardDialog open={isForwardOpen} onOpenChange={(val) => { setIsForwardOpen(val); if (!val) handleCancelSelection(); }} messagesToForward={rawMessages?.filter(m => selectedIds.has(m.id)) || []} currentCommunityName={server?.name} currentChannelName={contextData?.name} />
+      <ForwardDialog open={isForwardOpen} onOpenChange={(val) => { setIsForwardOpen(val); if (!val) handleCancelSelection(); }} messagesToForward={rawMessages?.filter(m => selectedIds.has(m.id)) || []} currentCommunityName={server?.name} currentChannelName={contextData?.name} currentServerId={serverId} />
       {serverId && channelId && <ChannelSettingsDialog open={isChannelSettingsOpen} onOpenChange={setIsChannelSettingsOpen} serverId={serverId} channelId={channelId} />}
       <AlertDialog open={isClearChatDialogOpen} onOpenChange={setIsClearChatDialogOpen}>
         <AlertDialogContent className="rounded-[2.5rem] border-none shadow-2xl p-8">
