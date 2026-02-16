@@ -2,8 +2,9 @@
 
 import { useMemo } from "react";
 import { useCollection, useFirestore, useUser, useMemoFirebase } from "@/firebase";
-import { collection, query, where } from "firebase/firestore";
+import { collection, query } from "firebase/firestore";
 import { motion, AnimatePresence } from "framer-motion";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 
 interface TypingIndicatorProps {
@@ -26,8 +27,6 @@ export function TypingIndicator({ serverId, channelId }: TypingIndicatorProps) {
 
   const activeTypers = useMemo(() => {
     if (!typingUsers || !user) return [];
-    // Filter out self and ensure the data is fresh (Firestore real-time handles the removal, 
-    // but we filter just in case of race conditions during logout)
     return typingUsers.filter(u => u.id !== user.uid);
   }, [typingUsers, user]);
 
@@ -39,38 +38,65 @@ export function TypingIndicator({ serverId, channelId }: TypingIndicatorProps) {
   }, [activeTypers]);
 
   return (
-    <div className="h-6 px-4 flex items-center overflow-hidden">
-      <AnimatePresence>
+    <div className="h-10 px-4 flex items-center overflow-hidden pointer-events-none relative">
+      <AnimatePresence mode="wait">
         {activeTypers.length > 0 && (
           <motion.div 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
-            className="flex items-center gap-3"
+            initial={{ opacity: 0, y: 15, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 15, scale: 0.9 }}
+            transition={{ type: "spring", stiffness: 400, damping: 25 }}
+            className="flex items-center gap-2 bg-primary/5 dark:bg-primary/10 backdrop-blur-xl px-3 py-1.5 rounded-full border border-primary/20 shadow-[0_8px_30px_rgba(var(--primary),0.1)] group"
           >
-            {/* Animated Dots Bubble */}
-            <div className="flex items-center gap-1 bg-muted/40 backdrop-blur-md px-2.5 py-1 rounded-full border border-border/50">
+            {/* Animated Avatar Group */}
+            <div className="flex -space-x-2 mr-1">
+              {activeTypers.slice(0, 3).map((typer, i) => (
+                <motion.div
+                  key={typer.id}
+                  initial={{ scale: 0, x: -10 }}
+                  animate={{ scale: 1, x: 0 }}
+                  transition={{ delay: i * 0.1, type: "spring" }}
+                >
+                  <Avatar className="h-5 w-5 border-2 border-background shadow-sm ring-1 ring-primary/10">
+                    <AvatarImage src={typer.photoURL} />
+                    <AvatarFallback className="bg-primary text-[6px] text-white font-black">
+                      {typer.username?.[0]?.toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                </motion.div>
+              ))}
+            </div>
+
+            {/* Dot Dance Animation */}
+            <div className="flex items-center gap-1 bg-background/40 px-2 py-1 rounded-full border border-border/50">
               {[0, 1, 2].map((i) => (
                 <motion.div
                   key={i}
                   animate={{ 
-                    y: [0, -3, 0],
-                    opacity: [0.4, 1, 0.4]
+                    y: [0, -4, 0],
+                    opacity: [0.3, 1, 0.3],
+                    scale: [1, 1.2, 1]
                   }}
                   transition={{
-                    duration: 0.6,
+                    duration: 0.8,
                     repeat: Infinity,
                     delay: i * 0.15,
                     ease: "easeInOut"
                   }}
-                  className="w-1 h-1 bg-primary rounded-full"
+                  className="w-1.5 h-1.5 bg-primary rounded-full"
                 />
               ))}
             </div>
             
-            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 italic animate-pulse">
+            <motion.span 
+              layout
+              className="text-[10px] font-black uppercase tracking-widest text-primary/80 italic pr-1"
+            >
               {typingText}
-            </span>
+            </motion.span>
+
+            {/* Glow Accent */}
+            <div className="absolute inset-0 bg-primary/5 blur-xl rounded-full -z-10 group-hover:bg-primary/10 transition-colors" />
           </motion.div>
         )}
       </AnimatePresence>

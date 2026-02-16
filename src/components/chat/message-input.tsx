@@ -148,7 +148,7 @@ export function MessageInput({
   }, [db, serverId]);
   const { data: communityMembers } = useCollection(membersQuery);
 
-  // Typing Broadcast Logic
+  // Typing Broadcast Logic: WhatsApp-Fast Real-Time Identity Broadcast
   useEffect(() => {
     if (!db || !user || !serverId || !channelId) return;
 
@@ -162,9 +162,11 @@ export function MessageInput({
     if (text.trim().length > 0) {
       if (!isTypingBroadcastingRef.current) {
         isTypingBroadcastingRef.current = true;
+        // Broadcast full identity for beautiful indicators
         setDocumentNonBlocking(doc(db, "communities", serverId, "channels", channelId, "typing", user.uid), {
           id: user.uid,
           username: userData?.username || user.displayName || "User",
+          photoURL: userData?.photoURL || user.photoURL || "",
           lastTypedAt: new Date().toISOString()
         }, { merge: true });
       }
