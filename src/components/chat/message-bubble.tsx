@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useFirestore, useUser, useDoc, useMemoFirebase, useCollection } from "@/firebase";
 import { doc, arrayUnion, arrayRemove, deleteField, collection, query, where, documentId, getDocs } from "firebase/firestore";
 import { UserProfilePopover } from "@/components/profile/user-profile-popover";
-import { Reply, CornerDownRight, Play, Pause, MoreHorizontal, Trash2, Ban, Copy, Timer, Check, CheckCheck, Forward, Landmark, Mic, Maximize2, Heart, Download, FileText, File, Eye, Ghost, Lock, Smile, Plus, Users, Camera } from "lucide-react";
+import { Reply, CornerDownRight, Play, Pause, MoreHorizontal, Trash2, Ban, Copy, Timer, Check, CheckCheck, Forward, Landmark, Mic, Maximize2, Heart, Download, FileText, File, Eye, Ghost, Lock, Smile, Plus, Users, Camera, Info, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
@@ -59,6 +59,11 @@ interface MessageBubbleProps {
       senderName: string;
       senderPhotoURL?: string;
       text: string;
+      profileContext?: {
+        totalCommunities: number;
+        commonCommunities: number;
+        bio?: string;
+      }
     };
     whisperTo?: string | null;
     whisperToUsername?: string | null;
@@ -112,6 +117,7 @@ export const MessageBubble = memo(function MessageBubble({
   const [isPDFViewOpen, setIsPDFViewOpen] = useState(false);
   const [isReactionPickerOpen, setIsReactionPickerOpen] = useState(false);
   const [isFullPickerOpen, setIsFullPickerOpen] = useState(false);
+  const [isProfileThoughtOpen, setIsProfileThoughtOpen] = useState(false);
   const [reactionDetails, setReactionDetails] = useState<{ emoji: string; uids: string[] } | null>(null);
 
   const [dragX, setDragX] = useState(0);
@@ -405,16 +411,28 @@ export const MessageBubble = memo(function MessageBubble({
               )}
 
               {message.replyTo && (
-                <button className={cn("w-full text-left mb-2 p-2 rounded-xl border-l-2 text-[11px] bg-black/5 flex flex-col gap-0.5 backdrop-blur-sm transition-colors mx-auto max-w-[calc(100%-8px)]", isMe ? "border-primary-foreground/40" : "border-primary/50")}>
+                <button 
+                  onClick={() => {
+                    if (message.replyTo?.messageId === 'profile') setIsProfileThoughtOpen(true);
+                  }}
+                  className={cn(
+                    "w-full text-left mb-2 p-2 rounded-xl border-l-2 text-[11px] bg-black/5 flex flex-col gap-0.5 backdrop-blur-sm transition-all hover:bg-black/10 mx-auto max-w-[calc(100%-8px)]", 
+                    isMe ? "border-primary-foreground/40" : "border-primary/50",
+                    message.replyTo.messageId === 'profile' && "cursor-pointer"
+                  )}
+                >
                   <div className="flex items-center gap-2 mb-0.5">
                     <Avatar className="h-4 w-4 border shadow-sm">
                       <AvatarImage src={message.replyTo.senderPhotoURL} className="object-cover" />
                       <AvatarFallback className="bg-primary text-white text-[6px] font-black">{String(message.replyTo.senderName || "U")[0].toUpperCase()}</AvatarFallback>
                     </Avatar>
-                    <span className={cn("font-black text-[9px] flex items-center gap-1 uppercase tracking-wider", isMe ? "text-primary-foreground" : "text-primary")}>
-                      {message.replyTo.messageId === 'profile' ? <Camera className="h-3 w-3" /> : <CornerDownRight className="h-3 w-3" />}
-                      {message.replyTo.senderName}
-                    </span>
+                    <div className="flex-1 flex items-center justify-between min-w-0">
+                      <span className={cn("font-black text-[9px] flex items-center gap-1 uppercase tracking-wider truncate", isMe ? "text-primary-foreground" : "text-primary")}>
+                        {message.replyTo.messageId === 'profile' ? <Camera className="h-3 w-3" /> : <CornerDownRight className="h-3 w-3" />}
+                        {message.replyTo.senderName}
+                      </span>
+                      {message.replyTo.messageId === 'profile' && <Info className={cn("h-2.5 w-2.5 opacity-40", isMe ? "text-white" : "text-primary")} />}
+                    </div>
                   </div>
                   <p className={cn("line-clamp-1 italic font-medium px-1", isMe ? "text-primary-foreground/70" : "text-muted-foreground")}>{message.replyTo.text}</p>
                 </button>
@@ -677,6 +695,56 @@ export const MessageBubble = memo(function MessageBubble({
             />
             <div className="absolute top-4 right-4 p-2 bg-background/80 backdrop-blur-md rounded-lg border text-[8px] font-black uppercase tracking-widest text-primary opacity-40 pointer-events-none">
               Verified by Duniya
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isProfileThoughtOpen} onOpenChange={setIsProfileThoughtOpen}>
+        <DialogContent className="sm:max-w-[400px] rounded-[2.5rem] border-none shadow-2xl p-0 overflow-hidden bg-background z-[2000]">
+          <DialogHeader className="p-8 pb-4 bg-gradient-to-b from-primary/10 to-transparent">
+            <DialogTitle className="text-2xl font-black tracking-tight uppercase flex items-center gap-3">
+              <Sparkles className="h-6 w-6 text-primary" />
+              Shared Context
+            </DialogTitle>
+            <DialogDescription className="font-medium text-muted-foreground">
+              Captured intelligence from this identity thought.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="p-8 pt-2 space-y-6">
+            <div className="flex items-center gap-4">
+              <Avatar className="h-20 w-20 border-4 border-background shadow-xl rounded-[1.5rem]">
+                <AvatarImage src={message.replyTo?.senderPhotoURL} className="object-cover" />
+                <AvatarFallback className="bg-primary text-white text-2xl font-black uppercase">
+                  {message.replyTo?.senderName?.[0]}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col">
+                <h3 className="text-xl font-black uppercase tracking-tighter">@{message.replyTo?.senderName}</h3>
+                <span className="text-[9px] font-black uppercase tracking-widest text-primary/60">Verse Identified Member</span>
+              </div>
+            </div>
+            
+            <div className="p-4 bg-muted/30 rounded-2xl border border-transparent italic text-sm font-medium leading-relaxed">
+              "{message.replyTo?.profileContext?.bio || "A legendary member of the Duniya Verse."}"
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10 flex flex-col gap-1">
+                <span className="text-[9px] font-black uppercase tracking-widest text-primary">Connected</span>
+                <span className="text-xl font-black tracking-tighter">{message.replyTo?.profileContext?.totalCommunities || 0} Communities</span>
+              </div>
+              <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10 flex flex-col gap-1">
+                <span className="text-[9px] font-black uppercase tracking-widest text-primary">Mutual Verse</span>
+                <span className="text-xl font-black tracking-tighter">{message.replyTo?.profileContext?.commonCommunities || 0} Shared</span>
+              </div>
+            </div>
+          </div>
+          <div className="p-4 bg-muted/20 border-t flex items-center justify-center">
+            <div className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.3em] text-muted-foreground/40">
+              <span>Identity Verified by Duniya</span>
+              <div className="h-1 w-1 rounded-full bg-primary/40" />
+              <span>Aniruddha ❤️</span>
             </div>
           </div>
         </DialogContent>

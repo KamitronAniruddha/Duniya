@@ -179,11 +179,29 @@ export function AuthScreen() {
                       <AnimatePresence mode="wait">
                         {signatureType === "ani" ? (
                           <motion.svg key="ani-sig" width="80" height="36" viewBox="0 0 80 36" fill="none" className="text-primary" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                            <motion.path d="M15,25 L25,5 L40,25 M18,18 H32 M50,25 V12 C50,8 60,8 60,12 V25 M70,12 V25 M70,5 V8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.5 }} />
+                            <motion.path 
+                              d="M10,25 L20,5 L35,25 M12,18 H28 M45,25 V12 C45,8 55,8 55,12 V25 M65,12 V25 M65,5 V8" 
+                              stroke="currentColor" 
+                              strokeWidth="3" 
+                              strokeLinecap="round" 
+                              strokeLinejoin="round" 
+                              initial={{ pathLength: 0 }} 
+                              animate={{ pathLength: 1 }} 
+                              transition={{ duration: 1.5 }} 
+                            />
                           </motion.svg>
                         ) : (
                           <motion.svg key="sanu-sig" width="100" height="36" viewBox="0 0 100 36" fill="none" className="text-primary" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                            <motion.path d="M15,25 C15,10 30,5 30,15 C30,25 15,30 25,30 C35,30 40,20 40,15 M45,25 V12 C45,8 55,8 55,12 V25 M60,25 V12 C60,8 70,8 70,12 V25 M75,12 V20 C75,25 90,25 90,12" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.8 }} />
+                            <motion.path 
+                              d="M20,25 C20,10 35,5 35,15 C35,25 20,30 30,30 C40,30 45,20 45,15 M50,25 V12 C50,8 60,8 60,12 V25 M65,25 V12 C65,8 75,8 75,12 V25 M80,12 V20 C80,25 95,25 95,12" 
+                              stroke="currentColor" 
+                              strokeWidth="3" 
+                              strokeLinecap="round" 
+                              strokeLinejoin="round" 
+                              initial={{ pathLength: 0 }} 
+                              animate={{ pathLength: 1 }} 
+                              transition={{ duration: 1.8 }} 
+                            />
                           </motion.svg>
                         )}
                       </AnimatePresence>
