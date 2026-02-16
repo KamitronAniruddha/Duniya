@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { memo, useState, useRef, useEffect, useMemo, useCallback } from "react";
@@ -194,6 +193,7 @@ export const MessageBubble = memo(function MessageBubble({
     setIsFullPickerOpen(false);
   }, [user, messagePath, message.reactions, isActuallyDeleted, db]);
 
+  // STATE-UPDATE FIX: Ensure handleDownload is always wrapped in an event-safe closure
   const handleDownload = useCallback((url: string, name: string) => {
     const link = document.createElement("a");
     link.href = url;
@@ -350,7 +350,7 @@ export const MessageBubble = memo(function MessageBubble({
 
       <AnimatePresence>
         {dragX >= 60 && !isActuallyDeleted && (
-          <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} transition={{ duration: 0.1, ease: "easeOut" }} className="absolute left-6 top-1/2 -translate-y-1/2 bg-primary/20 rounded-full h-8 w-8 flex items-center justify-center pointer-events-none z-10 backdrop-blur-sm shadow-lg">
+          <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} transition={{ duration: 0.1, ease: "easeOut" }} className="absolute left-6 top-1/2 -translate-y-1/2 bg-primary/20 rounded-full h-8 w-8 flex items-center justify-center pointer-events-none z-10 backdrop-blur-sm shadow-lg">
             <Reply className="h-4 w-4 text-primary" />
           </motion.div>
         )}
@@ -374,7 +374,7 @@ export const MessageBubble = memo(function MessageBubble({
                 </div>
               ) : (
                 <>
-                  <AvatarImage src={message.senderPhotoURL} className="aspect-square object-cover" />
+                  <AvatarImage src={message.senderPhotoURL || undefined} className="aspect-square object-cover" />
                   <AvatarFallback className="text-[9px] font-black bg-primary text-primary-foreground">
                     {message.senderName?.[0]?.toUpperCase() || "?"}
                   </AvatarFallback>
@@ -447,7 +447,7 @@ export const MessageBubble = memo(function MessageBubble({
                 >
                   <div className="flex items-center gap-2 mb-0.5">
                     <Avatar className="h-4 w-4 border shadow-sm">
-                      <AvatarImage src={message.replyTo.senderPhotoURL} className="object-cover" />
+                      <AvatarImage src={message.replyTo.senderPhotoURL || undefined} className="object-cover" />
                       <AvatarFallback className="bg-primary text-white text-[6px] font-black">{String(message.replyTo.senderName || "U")[0].toUpperCase()}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1 flex items-center justify-between min-w-0">
@@ -720,7 +720,7 @@ export const MessageBubble = memo(function MessageBubble({
           </DialogHeader>
           <div className="flex-1 w-full bg-muted/10 relative overflow-hidden">
             <iframe 
-              src={message.fileUrl} 
+              src={message.fileUrl || undefined} 
               className="absolute inset-0 w-full h-full border-none" 
               title={message.fileName}
               style={{ colorScheme: 'light' }}
@@ -984,7 +984,7 @@ function ReactionDetailsDialog({ open, onOpenChange, emoji, uids }: { open: bool
                 <div key={u.id} className="flex items-center gap-3 p-3 rounded-2xl hover:bg-muted/50 transition-colors">
                   <UserProfilePopover userId={u.id} side="right">
                     <Avatar className="h-10 w-10 border border-border shadow-sm">
-                      <AvatarImage src={u.photoURL} />
+                      <AvatarImage src={u.photoURL || undefined} />
                       <AvatarFallback className="bg-primary text-white font-black text-xs">{u.username?.[0]?.toUpperCase()}</AvatarFallback>
                     </Avatar>
                   </UserProfilePopover>

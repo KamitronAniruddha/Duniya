@@ -1,7 +1,6 @@
-
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, SendHorizontal, Smile, History, Ghost, X, CornerDownRight, Mic, Square, Trash2, Video, Timer, Clock, Image as ImageIcon, Loader2, Paperclip, FileText, Bold, Italic, Type, TypeOutline, Eraser, Command, User as UserIcon, Reply, Camera, Globe, Users, Heart, Activity, Zap, Palette, Link, Compass, Check, BellOff, Bell, LogOut, Info, Sparkles, EyeOff, Lock, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -158,19 +157,15 @@ export function MessageInput({
   
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isTypingBroadcastingRef = useRef(false);
+  const lastTypingWriteRef = useRef<number>(0);
 
   const userDocRef = useMemoFirebase(() => (user ? doc(db, "users", user.uid) : null), [db, user?.uid]);
   const { data: userData } = useDoc(userDocRef);
 
-  const replyUserRef = useMemoFirebase(() => (replyingTo ? doc(db, "users", replyingTo.senderId) : null), [db, replyingTo?.senderId]);
-  const { data: replyUser } = useDoc(replyUserRef);
-
   // REAL-TIME PRIVACY SYNC FOR REPLY PREVIEW
-  const profileTargetRef = useMemoFirebase(() => (profileReplyTarget?.id ? doc(db, "users", profileReplyTarget.id) : null), [db, profileReplyTarget?.id]);
-  const { data: profileTargetData } = useDoc(profileTargetRef);
-
-  // Consolidate target data for privacy check
-  const activeTargetData = profileReplyTarget ? profileTargetData : replyUser;
+  const replyTargetId = profileReplyTarget?.id || replyingTo?.senderId;
+  const targetRef = useMemoFirebase(() => (replyTargetId ? doc(db, "users", replyTargetId) : null), [db, replyTargetId]);
+  const { data: activeTargetData } = useDoc(targetRef);
 
   const isTargetHidden = !!activeTargetData?.isProfileHidden && activeTargetData?.id !== user?.uid;
   const isTargetBlurred = !!activeTargetData?.isProfileBlurred && 
@@ -183,6 +178,7 @@ export function MessageInput({
   }, [db, serverId]);
   const { data: communityMembers } = useCollection(membersQuery);
 
+  // ACCURATE REAL-TIME TYPING ENGINE
   useEffect(() => {
     if (!db || !user || !serverId || !channelId) return;
 
@@ -193,25 +189,40 @@ export function MessageInput({
       }
     };
 
+    const broadcastTyping = () => {
+      setDocumentNonBlocking(doc(db, "communities", serverId, "channels", channelId, "typing", user.uid), {
+        id: user.uid,
+        username: userData?.username || user.displayName || "User",
+        photoURL: userData?.photoURL || user.photoURL || "",
+        lastTypedAt: new Date().toISOString()
+      }, { merge: true });
+      isTypingBroadcastingRef.current = true;
+      lastTypingWriteRef.current = Date.now();
+    };
+
     if (text.trim().length > 0) {
-      if (!isTypingBroadcastingRef.current) {
-        isTypingBroadcastingRef.current = true;
-        setDocumentNonBlocking(doc(db, "communities", serverId, "channels", channelId, "typing", user.uid), {
-          id: user.uid,
-          username: userData?.username || user.displayName || "User",
-          photoURL: userData?.photoURL || user.photoURL || "",
-          lastTypedAt: new Date().toISOString()
-        }, { merge: true });
+      const now = Date.now();
+      // Heartbeat: Update every 2.5 seconds to maintain active status
+      if (!isTypingBroadcastingRef.current || (now - lastTypingWriteRef.current > 2500)) {
+        broadcastTyping();
       }
 
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-      typingTimeoutRef.current = setTimeout(stopTyping, 3000);
+      // Auto-clear after 4 seconds of inactivity
+      typingTimeoutRef.current = setTimeout(stopTyping, 4000);
     } else {
       stopTyping();
     }
 
+    // Explicit cleanup for tab close/app switch
+    const handleUnload = () => stopTyping();
+    window.addEventListener('beforeunload', handleUnload);
+    window.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') stopTyping(); });
+
     return () => {
+      window.removeEventListener('beforeunload', handleUnload);
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      stopTyping();
     };
   }, [text, db, user, serverId, channelId, userData]);
 
@@ -333,8 +344,8 @@ export function MessageInput({
 
     const duration = disappearDuration === -1 ? (parseInt(customSeconds) || 10) * 1000 : disappearDuration;
     
-    const finalTargetName = profileReplyTarget?.username || replyUser?.username || replyingTo?.senderName || "User";
-    const finalTargetPhoto = profileReplyTarget?.photoURL || replyUser?.photoURL || replyingTo?.senderPhotoURL || "";
+    const finalTargetName = profileReplyTarget?.username || activeTargetData?.username || replyingTo?.senderName || "User";
+    const finalTargetPhoto = profileReplyTarget?.photoURL || activeTargetData?.photoURL || replyingTo?.senderPhotoURL || "";
 
     onSendMessage(
       finalContent, 
@@ -420,8 +431,8 @@ export function MessageInput({
         reader.readAsDataURL(blob);
         reader.onloadend = () => {
           const duration = disappearDuration === -1 ? (parseInt(customSeconds) || 10) * 1000 : disappearDuration;
-          const finalTargetName = profileReplyTarget?.username || replyUser?.username || replyingTo?.senderName || "User";
-          const finalTargetPhoto = profileReplyTarget?.photoURL || replyUser?.photoURL || replyingTo?.senderPhotoURL || "";
+          const finalTargetName = profileReplyTarget?.username || activeTargetData?.username || replyingTo?.senderName || "User";
+          const finalTargetPhoto = profileReplyTarget?.photoURL || activeTargetData?.photoURL || replyingTo?.senderPhotoURL || "";
           onSendMessage("", reader.result as string, undefined, finalTargetName, { enabled: disappearingEnabled, duration: duration }, undefined, undefined, whisperingTo, finalTargetPhoto, !!profileReplyTarget);
         };
         stream.getTracks().forEach(track => track.stop());
@@ -450,8 +461,8 @@ export function MessageInput({
         reader.readAsDataURL(blob);
         reader.onloadend = () => {
           const duration = disappearDuration === -1 ? (parseInt(customSeconds) || 10) * 1000 : disappearDuration;
-          const finalTargetName = profileReplyTarget?.username || replyUser?.username || replyingTo?.senderName || "User";
-          const finalTargetPhoto = profileReplyTarget?.photoURL || replyUser?.photoURL || replyingTo?.senderPhotoURL || "";
+          const finalTargetName = profileReplyTarget?.username || activeTargetData?.username || replyingTo?.senderName || "User";
+          const finalTargetPhoto = profileReplyTarget?.photoURL || activeTargetData?.photoURL || replyingTo?.senderPhotoURL || "";
           onSendMessage("", undefined, reader.result as string, finalTargetName, { enabled: disappearingEnabled, duration: duration }, undefined, undefined, whisperingTo, finalTargetPhoto, !!profileReplyTarget);
         };
         stream.getTracks().forEach(track => track.stop());
@@ -590,9 +601,9 @@ export function MessageInput({
                   </div>
                 ) : (
                   <>
-                    <AvatarImage src={isTargetBlurred ? undefined : (profileReplyTarget?.photoURL || replyUser?.photoURL || replyingTo?.senderPhotoURL || undefined)} className="object-cover" />
+                    <AvatarImage src={isTargetBlurred ? undefined : (profileReplyTarget?.photoURL || activeTargetData?.photoURL || replyingTo?.senderPhotoURL || undefined)} className="object-cover" />
                     <AvatarFallback className="bg-primary text-white text-xs font-black">
-                      {String(profileReplyTarget?.username || replyUser?.username || replyingTo?.senderName || "?")[0].toUpperCase()}
+                      {String(profileReplyTarget?.username || activeTargetData?.username || replyingTo?.senderName || "?")[0].toUpperCase()}
                     </AvatarFallback>
                   </>
                 )}
@@ -604,7 +615,7 @@ export function MessageInput({
             <div className="flex-1 min-w-0 flex flex-col">
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-[10px] font-black text-primary uppercase tracking-widest leading-none">
-                  {profileReplyTarget ? `Commenting on @${profileReplyTarget.username}'s identity` : `Replying to @${replyUser?.username || replyingTo?.senderName || "User"}`}
+                  {profileReplyTarget ? `Commenting on @${profileReplyTarget.username}'s identity` : `Replying to @${activeTargetData?.username || replyingTo?.senderName || "User"}`}
                 </span>
                 {profileReplyTarget && !isTargetHidden && <Heart className="h-2 w-2 text-red-500 fill-red-500 animate-pulse" />}
                 {isTargetHidden && <span className="text-[8px] font-black uppercase text-rose-500 bg-rose-500/10 px-1.5 py-0.5 rounded-full">Encrypted</span>}
@@ -613,14 +624,14 @@ export function MessageInput({
                 "text-xs text-muted-foreground truncate font-medium",
                 !isTargetHidden && "italic"
               )}>
-                {isTargetHidden ? "Captured identity context is no longer visible." : (profileReplyTarget ? (profileTargetData?.bio || profileReplyTarget.bio || "Sharing thoughts on this identity picture.") : (replyingTo.content || replyingTo.text || "Media message"))}
+                {isTargetHidden ? "Captured identity context is no longer visible." : (profileReplyTarget ? (activeTargetData?.bio || profileReplyTarget.bio || "Sharing thoughts on this identity picture.") : (replyingTo.content || replyingTo.text || "Media message"))}
               </p>
               
               {profileReplyTarget && !isTargetHidden && (
                 <div className="flex items-center gap-4 mt-1.5">
                   <div className="flex items-center gap-1.5">
                     <Globe className="h-3 w-3 text-primary/60" />
-                    <span className="text-[9px] font-black uppercase tracking-tighter text-muted-foreground">Connected: {profileTargetData?.serverIds?.length || profileReplyTarget.totalCommunities} Communities</span>
+                    <span className="text-[9px] font-black uppercase tracking-tighter text-muted-foreground">Connected: {activeTargetData?.serverIds?.length || profileReplyTarget.totalCommunities} Communities</span>
                   </div>
                   <div className="w-[1px] h-3 bg-border" />
                   <div className="flex items-center gap-1.5">

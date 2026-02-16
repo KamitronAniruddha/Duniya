@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useCollection, useFirestore, useUser, useMemoFirebase } from "@/firebase";
 import { collection, query } from "firebase/firestore";
 import { motion, AnimatePresence } from "framer-motion";
@@ -15,6 +15,13 @@ interface TypingIndicatorProps {
 export function TypingIndicator({ serverId, channelId }: TypingIndicatorProps) {
   const db = useFirestore();
   const { user } = useUser();
+  const [now, setNow] = useState(Date.now());
+
+  // Heartbeat for local pruning of stale typing records
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 2000);
+    return () => clearInterval(interval);
+  }, []);
 
   const typingQuery = useMemoFirebase(() => {
     if (!db || !serverId || !channelId) return null;
@@ -27,8 +34,16 @@ export function TypingIndicator({ serverId, channelId }: TypingIndicatorProps) {
 
   const activeTypers = useMemo(() => {
     if (!typingUsers || !user) return [];
-    return typingUsers.filter(u => u.id !== user.uid);
-  }, [typingUsers, user]);
+    
+    // STRICT REAL-TIME FILTERING:
+    // Only show typers who have updated their status in the last 6 seconds.
+    // This ensures that if a user goes offline abruptly, the indicator disappears.
+    return typingUsers.filter(u => {
+      if (u.id === user.uid) return false;
+      const lastTyped = u.lastTypedAt ? new Date(u.lastTypedAt).getTime() : 0;
+      return (now - lastTyped) < 6000;
+    });
+  }, [typingUsers, user, now]);
 
   const typingText = useMemo(() => {
     if (activeTypers.length === 0) return "";
@@ -58,7 +73,7 @@ export function TypingIndicator({ serverId, channelId }: TypingIndicatorProps) {
                   transition={{ delay: i * 0.1, type: "spring" }}
                 >
                   <Avatar className="h-5 w-5 border-2 border-background shadow-sm ring-1 ring-primary/10">
-                    <AvatarImage src={typer.photoURL} />
+                    <AvatarImage src={typer.photoURL || undefined} />
                     <AvatarFallback className="bg-primary text-[6px] text-white font-black">
                       {typer.username?.[0]?.toUpperCase()}
                     </AvatarFallback>

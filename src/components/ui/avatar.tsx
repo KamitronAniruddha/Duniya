@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -27,6 +26,7 @@ const AvatarImage = React.forwardRef<
 >(({ className, src, ...props }, ref) => (
   <AvatarPrimitive.Image
     ref={ref}
+    // RELIABILITY FIX: Ensure empty strings are converted to undefined to prevent NextJS redundant download errors
     src={src || undefined}
     className={cn("aspect-square h-full w-full object-cover", className)}
     {...props}
