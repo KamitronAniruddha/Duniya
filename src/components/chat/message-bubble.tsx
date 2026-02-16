@@ -599,21 +599,21 @@ function SharedIntelligenceDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[480px] rounded-[3rem] border-none shadow-[0_32px_128px_rgba(0,0,0,0.4)] p-0 overflow-hidden bg-background h-fit max-h-[90vh] flex flex-col z-[2000]">
-        <DialogHeader className="p-6 md:p-8 pb-4 bg-gradient-to-br from-primary/20 via-primary/5 to-transparent shrink-0 relative overflow-hidden">
+        <DialogHeader className="p-5 md:p-6 pb-4 bg-gradient-to-br from-primary/20 via-primary/5 to-transparent shrink-0 relative overflow-hidden">
           <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary/10 rounded-full blur-3xl animate-pulse" />
-          <div className="flex items-center justify-between mb-4 relative z-10">
+          <div className="flex items-center justify-between mb-2 relative z-10">
             <div className="flex items-center gap-2.5">
-              <Sparkles className="h-5 w-5 text-primary animate-spin-slow" />
-              <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary/80">Social Depth Intelligence</span>
+              <Sparkles className="h-4 w-4 text-primary animate-spin-slow" />
+              <span className="text-[8px] font-black uppercase tracking-[0.4em] text-primary/80">Social Depth Intelligence</span>
             </div>
-            <div className="px-3 py-1 bg-primary/10 rounded-full border border-primary/20">
-              <span className="text-[8px] font-black text-primary uppercase tracking-widest">v2.4.0 High-Fidelity</span>
+            <div className="px-2 py-0.5 bg-primary/10 rounded-full border border-primary/20">
+              <span className="text-[7px] font-black text-primary uppercase tracking-widest">v2.4.0 High-Fidelity</span>
             </div>
           </div>
-          <DialogTitle className="text-2xl md:text-3xl font-[900] tracking-tighter uppercase leading-tight text-foreground relative z-10">
+          <DialogTitle className="text-xl md:text-2xl font-[900] tracking-tighter uppercase leading-tight text-foreground relative z-10">
             Social <span className="text-primary italic">Pulse</span>
           </DialogTitle>
-          <DialogDescription className="font-medium text-muted-foreground/80 text-xs mt-2 italic relative z-10 leading-relaxed">
+          <DialogDescription className="font-medium text-muted-foreground/80 text-[10px] mt-1 italic relative z-10 leading-relaxed">
             "Real-time decryption of digital lineage across nodes."
           </DialogDescription>
         </DialogHeader>
