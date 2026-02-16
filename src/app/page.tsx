@@ -421,7 +421,8 @@ export default function DuniyaApp() {
       
       {mode === "mobile" ? renderMobileLayout() : mode === "tablet" ? renderTabletLayout() : renderLaptopLayout()}
       
-      <div className="hidden md:flex fixed bottom-4 right-6 items-center pointer-events-none z-50">
+      {/* Global Watermark Signature - Lower Z-Index to avoid popping over Dialogs */}
+      <div className="hidden md:flex fixed bottom-4 right-6 items-center pointer-events-none z-10">
         <CreatorFooter />
       </div>
     </div>
