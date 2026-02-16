@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useFirestore, useUser, useDoc, useMemoFirebase, useCollection } from "@/firebase";
 import { doc, arrayUnion, arrayRemove, deleteField, collection, query, where, documentId, getDocs } from "firebase/firestore";
 import { UserProfilePopover } from "@/components/profile/user-profile-popover";
-import { Reply, CornerDownRight, Play, Pause, MoreHorizontal, Trash2, Ban, Copy, Timer, Check, CheckCheck, Forward, Landmark, Mic, Maximize2, Heart, Download, FileText, File, Eye, Ghost, Lock, Smile, Plus, Users, Camera, Info, Sparkles, Globe } from "lucide-react";
+import { Reply, CornerDownRight, Play, Pause, MoreHorizontal, Trash2, Ban, Copy, Timer, Check, CheckCheck, Forward, Landmark, Mic, Maximize2, Heart, Download, FileText, File, Eye, Ghost, Lock, Smile, Plus, Users, Camera, Info, Sparkles, Globe, Activity, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
@@ -448,7 +448,7 @@ export const MessageBubble = memo(function MessageBubble({
                   <div className="flex-1 flex flex-col gap-1.5 min-w-0">
                     <div className="flex items-center gap-0.5 h-6 items-center">
                       {waveformHeights.map((h, i) => (
-                        <div key={i} className={cn("w-1 rounded-full shrink-0 transition-all duration-300", isMe ? (progress > (i * 5) ? "bg-primary-foreground" : "bg-primary-foreground/30") : (progress > (i * 5) ? "bg-primary" : "bg-primary/20"), isPlaying ? "animate-pulse" : "h-1")} style={{ height: isPlaying ? `${h}px` : '4px' }} />
+                        <div key={i} className={cn("w-1 rounded-full shrink-0 transition-all duration-300", isMe ? (progress > (i * 5) ? "bg-primary-foreground" : "bg-primary-foreground/30") : (progress > (i * 5) ? "bg-primary" : "bg-primary/20"), isPlaying ? "animate-pulse" : "h-1")} style={{ height: i < (progress / 5) ? `${h}px` : '4px' }} />
                       ))}
                     </div>
                     <div className="flex items-center justify-between gap-2">
@@ -640,7 +640,7 @@ export const MessageBubble = memo(function MessageBubble({
       />
 
       <Dialog open={isImageZoomOpen} onOpenChange={setIsImageZoomOpen}>
-        <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 border-none bg-transparent shadow-none flex flex-col items-center justify-center overflow-hidden z-[2000]">
+        <DialogContent className="max-w-[95vw] max-h-[95vh] h-[auto] p-0 border-none bg-transparent shadow-none flex flex-col items-center justify-center overflow-hidden z-[2000]">
           <DialogHeader className="sr-only">
             <DialogTitle>Image View</DialogTitle>
             <DialogDescription>Full-sized view of the sent image.</DialogDescription>
@@ -702,100 +702,124 @@ export const MessageBubble = memo(function MessageBubble({
       </Dialog>
 
       <Dialog open={isProfileThoughtOpen} onOpenChange={setIsProfileThoughtOpen}>
-        <DialogContent className="sm:max-w-[400px] rounded-[2.5rem] border-none shadow-2xl p-0 overflow-hidden bg-background z-[2000] animate-in fade-in zoom-in-95 duration-300">
-          <DialogHeader className="p-8 pb-4 bg-gradient-to-b from-primary/10 to-transparent shrink-0">
-            <DialogTitle className="text-2xl font-black tracking-tight uppercase flex items-center gap-3">
-              <Sparkles className="h-6 w-6 text-primary animate-pulse" />
-              Shared Context
-            </DialogTitle>
-            <DialogDescription className="font-medium text-muted-foreground">
-              Captured intelligence from this identity thought.
+        <DialogContent className="sm:max-w-[450px] w-[95vw] rounded-[2.5rem] border-none shadow-2xl p-0 overflow-hidden bg-background z-[2000] h-[80vh] max-h-[80vh] flex flex-col animate-in fade-in zoom-in-95 duration-300">
+          <DialogHeader className="p-8 pb-4 bg-gradient-to-b from-primary/15 via-primary/5 to-transparent shrink-0 relative">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary animate-pulse" />
+                <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary">Intelligence Insight</span>
+              </div>
+              <Zap className="h-4 w-4 text-primary/40" />
+            </div>
+            <DialogTitle className="text-3xl font-[900] tracking-tighter uppercase leading-none">Shared Context</DialogTitle>
+            <DialogDescription className="font-medium text-muted-foreground text-xs mt-2 italic">
+              "Captured intelligence from this identity thought."
             </DialogDescription>
           </DialogHeader>
-          <div className="p-8 pt-2 space-y-6">
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.4, ease: "easeOut" }}
-              className="flex items-center gap-4"
-            >
-              <div className="relative">
-                <Avatar className="h-20 w-20 border-4 border-background shadow-xl rounded-[1.5rem] ring-1 ring-primary/10">
-                  <AvatarImage src={message.replyTo?.senderPhotoURL} className="object-cover" />
-                  <AvatarFallback className="bg-primary text-white text-2xl font-black uppercase">
-                    {message.replyTo?.senderName?.[0]}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="absolute -bottom-1 -right-1 p-1.5 bg-primary rounded-lg shadow-lg border-2 border-background animate-in zoom-in duration-500 delay-200">
-                  <Camera className="h-3.5 w-3.5 text-white" />
-                </div>
-              </div>
-              <div className="flex flex-col">
-                <h3 className="text-xl font-black uppercase tracking-tighter text-foreground">@{message.replyTo?.senderName}</h3>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <div className="h-1.5 w-1.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)] animate-pulse" />
-                  <span className="text-[9px] font-black uppercase tracking-widest text-primary">Verse Identified Member</span>
-                </div>
-              </div>
-            </motion.div>
-            
-            <motion.div 
-              initial={{ y: 10, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.2, duration: 0.4 }}
-              className="p-5 bg-muted/30 rounded-[1.5rem] border border-border/50 relative overflow-hidden group"
-            >
-              <div className="absolute top-0 right-0 p-3 opacity-5 group-hover:opacity-10 transition-opacity">
-                <Info className="h-12 w-12 text-primary" />
-              </div>
-              <p className="text-sm text-foreground/80 leading-relaxed font-medium italic relative z-10">
-                "{message.replyTo?.profileContext?.bio || "A legendary member of the Duniya Verse."}"
-              </p>
-            </motion.div>
+          
+          <div className="flex-1 overflow-hidden relative">
+            <ScrollArea className="h-full">
+              <div className="p-8 pt-2 space-y-8">
+                <motion.div 
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ duration: 0.4, ease: "easeOut" }}
+                  className="flex items-center gap-5"
+                >
+                  <div className="relative group">
+                    <Avatar className="h-24 w-24 border-4 border-background shadow-2xl rounded-[2rem] ring-1 ring-primary/10 transition-transform group-hover:scale-105">
+                      <AvatarImage src={message.replyTo?.senderPhotoURL} className="object-cover" />
+                      <AvatarFallback className="bg-primary text-white text-3xl font-black uppercase">
+                        {message.replyTo?.senderName?.[0]}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="absolute -bottom-1 -right-1 p-2 bg-primary rounded-xl shadow-xl border-2 border-background animate-in zoom-in duration-500 delay-200">
+                      <Camera className="h-4 w-4 text-white" />
+                    </div>
+                  </div>
+                  <div className="flex flex-col">
+                    <h3 className="text-2xl font-[900] uppercase tracking-tighter text-foreground leading-none">@{message.replyTo?.senderName}</h3>
+                    <div className="flex items-center gap-2 mt-2">
+                      <div className="flex items-center gap-1.5 px-2 py-0.5 bg-primary/10 rounded-full border border-primary/20">
+                        <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+                        <span className="text-[8px] font-black uppercase tracking-widest text-primary">Verse Identified</span>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+                
+                <motion.div 
+                  initial={{ y: 15, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.2, duration: 0.4 }}
+                  className="p-6 bg-muted/30 rounded-[2rem] border border-border/50 relative overflow-hidden group glass"
+                >
+                  <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                    <Info className="h-14 w-14 text-primary" />
+                  </div>
+                  <p className="text-base text-foreground/80 leading-relaxed font-medium italic relative z-10">
+                    "{message.replyTo?.profileContext?.bio || "A legendary member of the Duniya Verse."}"
+                  </p>
+                </motion.div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <motion.div 
-                initial={{ x: -20, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                transition={{ delay: 0.3, duration: 0.5, type: "spring" }}
-                className="p-4 bg-primary/5 rounded-[1.5rem] border border-primary/10 flex flex-col gap-2 group hover:bg-primary/10 transition-all hover:scale-[1.02] active:scale-95 cursor-default shadow-sm"
-              >
-                <div className="flex items-center gap-2 text-primary">
-                  <div className="p-1.5 bg-primary/10 rounded-lg group-hover:scale-110 transition-transform">
-                    <Globe className="h-4 w-4" />
-                  </div>
-                  <span className="text-[9px] font-black uppercase tracking-widest">Connected</span>
+                <div className="grid grid-cols-2 gap-4">
+                  <motion.div 
+                    initial={{ x: -20, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    whileHover={{ y: -5, scale: 1.02 }}
+                    transition={{ delay: 0.3, duration: 0.5, type: "spring" }}
+                    className="p-5 bg-primary/5 rounded-[2rem] border border-primary/10 flex flex-col gap-3 group transition-all cursor-default shadow-sm hover:shadow-xl hover:bg-primary/10"
+                  >
+                    <div className="flex items-center gap-2 text-primary">
+                      <div className="p-2 bg-primary/10 rounded-xl group-hover:rotate-12 transition-transform">
+                        <Globe className="h-5 w-5" />
+                      </div>
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em]">Connected</span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-3xl font-[900] tracking-tighter text-foreground leading-none">
+                        {message.replyTo?.profileContext?.totalCommunities || 0}
+                      </span>
+                      <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 mt-1">Total Verses</span>
+                    </div>
+                  </motion.div>
+                  
+                  <motion.div 
+                    initial={{ x: 20, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    whileHover={{ y: -5, scale: 1.02 }}
+                    transition={{ delay: 0.4, duration: 0.5, type: "spring" }}
+                    className="p-5 bg-accent/5 rounded-[2rem] border border-accent/10 flex flex-col gap-3 group transition-all cursor-default shadow-sm hover:shadow-xl hover:bg-accent/10"
+                  >
+                    <div className="flex items-center gap-2 text-accent">
+                      <div className="p-2 bg-accent/10 rounded-xl group-hover:rotate-12 transition-transform">
+                        <Users className="h-5 w-5" />
+                      </div>
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em]">Mutual Verse</span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-3xl font-[900] tracking-tighter text-foreground leading-none">
+                        {message.replyTo?.profileContext?.commonCommunities || 0}
+                      </span>
+                      <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 mt-1">Shared Nodes</span>
+                    </div>
+                  </motion.div>
                 </div>
-                <div className="flex flex-col">
-                  <span className="text-2xl font-black tracking-tighter text-foreground leading-none">
-                    {message.replyTo?.profileContext?.totalCommunities || 0}
-                  </span>
-                  <span className="text-[8px] font-black uppercase tracking-tighter text-muted-foreground mt-1">Communities</span>
-                </div>
-              </motion.div>
-              
-              <motion.div 
-                initial={{ x: 20, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                transition={{ delay: 0.4, duration: 0.5, type: "spring" }}
-                className="p-4 bg-accent/5 rounded-[1.5rem] border border-accent/10 flex flex-col gap-2 group hover:bg-accent/10 transition-all hover:scale-[1.02] active:scale-95 cursor-default shadow-sm"
-              >
-                <div className="flex items-center gap-2 text-accent">
-                  <div className="p-1.5 bg-accent/10 rounded-lg group-hover:scale-110 transition-transform">
-                    <Users className="h-4 w-4" />
-                  </div>
-                  <span className="text-[9px] font-black uppercase tracking-widest">Mutual Verse</span>
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-2xl font-black tracking-tighter text-foreground leading-none">
-                    {message.replyTo?.profileContext?.commonCommunities || 0}
-                  </span>
-                  <span className="text-[8px] font-black uppercase tracking-tighter text-muted-foreground mt-1">Shared Connections</span>
-                </div>
-              </motion.div>
-            </div>
+
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.6 }}
+                  className="flex items-center justify-center gap-3 py-4 border-t border-dashed opacity-40 grayscale"
+                >
+                  <Activity className="h-4 w-4 text-primary" />
+                  <span className="text-[10px] font-black uppercase tracking-[0.3em]">Network Intelligence Verified</span>
+                </motion.div>
+              </div>
+            </ScrollArea>
           </div>
-          <div className="p-4 bg-muted/20 border-t flex items-center justify-center shrink-0">
+
+          <div className="p-6 bg-muted/20 border-t flex items-center justify-center shrink-0">
             <CreatorFooter />
           </div>
         </DialogContent>

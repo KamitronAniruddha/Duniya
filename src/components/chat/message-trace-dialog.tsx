@@ -19,7 +19,7 @@ interface MessageTraceDialogProps {
 export function MessageTraceDialog({ open, onOpenChange, chain }: MessageTraceDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[450px] w-[95vw] rounded-[2.5rem] p-0 overflow-hidden border-none shadow-[0_32px_64px_rgba(0,0,0,0.4)] bg-background max-h-[85vh] flex flex-col z-[2000]">
+      <DialogContent className="sm:max-w-[450px] w-[95vw] rounded-[2.5rem] p-0 overflow-hidden border-none shadow-[0_32px_64px_rgba(0,0,0,0.4)] bg-background h-[85vh] max-h-[85vh] flex flex-col z-[2000]">
         <DialogHeader className="p-8 pb-4 bg-gradient-to-b from-primary/15 via-primary/5 to-transparent shrink-0 relative">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
@@ -37,16 +37,16 @@ export function MessageTraceDialog({ open, onOpenChange, chain }: MessageTraceDi
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 min-h-0 relative">
-          <ScrollArea className="h-full px-6 md:px-10">
-            <div className="relative py-10">
+        <div className="flex-1 overflow-hidden relative">
+          <ScrollArea className="h-full">
+            <div className="relative py-10 px-6 md:px-10">
               {/* Animated Glowing Path Line */}
-              <div className="absolute left-[19px] top-12 bottom-12 w-[3px] bg-muted/20 rounded-full" />
+              <div className="absolute left-[43px] md:left-[59px] top-12 bottom-12 w-[3px] bg-muted/20 rounded-full" />
               <motion.div 
                 initial={{ height: 0 }}
                 animate={{ height: "calc(100% - 96px)" }}
                 transition={{ duration: 1.5, ease: "easeInOut", delay: 0.5 }}
-                className="absolute left-[19px] top-12 w-[3px] bg-gradient-to-b from-primary via-accent to-primary rounded-full shadow-[0_0_15px_rgba(var(--primary),0.5)] z-0"
+                className="absolute left-[43px] md:left-[59px] top-12 w-[3px] bg-gradient-to-b from-primary via-accent to-primary rounded-full shadow-[0_0_15px_rgba(var(--primary),0.5)] z-0"
               />
 
               <div className="space-y-10 relative z-10">
@@ -61,22 +61,22 @@ export function MessageTraceDialog({ open, onOpenChange, chain }: MessageTraceDi
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.2 + idx * 0.15, type: "spring", stiffness: 100 }}
-                      className="relative pl-12 group"
+                      className="relative pl-12 md:pl-16 group"
                     >
                       {/* Interactive Node Point */}
                       <motion.div 
                         whileHover={{ scale: 1.2 }}
                         className={cn(
-                          "absolute left-0 top-1 h-10 w-10 rounded-2xl border-4 border-background flex items-center justify-center transition-all shadow-xl z-20",
+                          "absolute left-0 top-1 h-10 w-10 md:h-12 md:w-12 rounded-2xl border-4 border-background flex items-center justify-center transition-all shadow-xl z-20",
                           isFirst ? "bg-primary text-white" : isLast ? "bg-green-500 text-white" : "bg-card text-muted-foreground border-muted/30"
                         )}
                       >
                         {isFirst ? (
-                          <Zap className="h-4 w-4 fill-current" />
+                          <Zap className="h-4 w-4 md:h-5 md:w-5 fill-current" />
                         ) : isLast ? (
-                          <CheckCircle2 className="h-5 w-5" />
+                          <CheckCircle2 className="h-5 w-5 md:h-6 md:w-6" />
                         ) : (
-                          <ArrowDown className="h-4 w-4" />
+                          <ArrowDown className="h-4 w-4 md:h-5 md:w-5" />
                         )}
                       </motion.div>
 

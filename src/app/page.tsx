@@ -415,11 +415,14 @@ export default function DuniyaApp() {
   );
 
   return (
-    <div className="flex h-[100dvh] w-full bg-background overflow-hidden font-body">
+    <div className="flex h-[100dvh] w-full bg-background overflow-hidden font-body relative">
       <InvitationManager />
       <ProfileDialog open={isProfileOpen} onOpenChange={setIsProfileOpen} />
       
-      {mode === "mobile" ? renderMobileLayout() : mode === "tablet" ? renderTabletLayout() : renderLaptopLayout()}
+      {/* Primary Layout Wrapper - Ensures elements inside have correct stacking context */}
+      <div className="relative z-10 w-full h-full flex flex-col md:flex-row overflow-hidden">
+        {mode === "mobile" ? renderMobileLayout() : mode === "tablet" ? renderTabletLayout() : renderLaptopLayout()}
+      </div>
       
       {/* Global Watermark Signature - Absolute Background layer to avoid overlapping UI */}
       <div className="hidden md:flex fixed bottom-4 right-6 items-center pointer-events-none z-0 opacity-50">
