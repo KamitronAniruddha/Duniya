@@ -15,7 +15,8 @@ import {
   Palette, Check, Upload, Link, Monitor, Tablet, Smartphone, 
   Sparkles, Trash2, Download, Heart, Maximize2, Shield, UserCheck, 
   X, Key, ImagePlus, Clock, Zap, Activity, Fingerprint, Globe, Waves, 
-  ShieldCheck, Milestone, Trophy, MessageSquare, Star, ListOrdered, History
+  ShieldCheck, Milestone, Trophy, MessageSquare, Star, ListOrdered, History,
+  Crown
 } from "lucide-react";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -567,7 +568,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
               className="flex-1 sm:flex-none rounded-2xl font-black h-14 text-[10px] px-14 shadow-[0_20px_50px_rgba(var(--primary),0.3)] uppercase tracking-[0.2em] gap-3 bg-primary hover:bg-primary/90 text-white transition-all active:scale-95" 
               disabled={isLoading}
             >
-              {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <ShieldCheck className="h-5 w-5 stroke-[2.5px]" />}
+              {isLoading ? <Self.Loader2 className="h-5 w-5 animate-spin" /> : <ShieldCheck className="h-5 w-5 stroke-[2.5px]" />}
               Commit Node Sync
             </Button>
           </div>
