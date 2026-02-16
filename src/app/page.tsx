@@ -439,7 +439,7 @@ function Logo({ size = 32 }: { size?: number }) {
       </svg>
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
         <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}>
-          <Heart className="h-2 w-2 text-red-500 fill-red-500" />
+          <Heart className="h-2 w-2 text-red-500 fill-red-500 animate-pulse" />
         </motion.div>
       </div>
     </div>
