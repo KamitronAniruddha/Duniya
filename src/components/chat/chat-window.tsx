@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useRef, useEffect, useState, useMemo, useCallback } from "react";
@@ -224,7 +223,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
       if (user?.uid) {
         const newState = !userData?.isProfileHidden;
         updateDocumentNonBlocking(doc(db, "users", user.uid), { isProfileHidden: newState });
-        toast({ title: newState ? "Identity Protocol: Hidden" : "Identity Protocol: Visible", description: newState ? "Your profile popover is now encrypted." : "Others can now see your identity." });
+        toast({ title: newState ? "Identity Protocol: Hidden" : "Identity Protocol: Visible" });
       }
       return true;
     }
@@ -232,31 +231,12 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
       if (user?.uid) {
         const newState = !userData?.isProfileBlurred;
         updateDocumentNonBlocking(doc(db, "users", user.uid), { isProfileBlurred: newState });
-        toast({ title: newState ? "Blur Protocol: Active" : "Blur Protocol: Disabled", description: newState ? "Profile now blurred. Others must request permission." : "Permission protocol removed." });
+        toast({ title: newState ? "Blur Protocol: Active" : "Blur Protocol: Disabled" });
       }
       return true;
     }
     if (cmd === "ping") {
       toast({ title: "Pong!", description: `Verse Sync Latency: ${Math.floor(Math.random() * 40) + 12}ms` });
-      return true;
-    }
-    if (cmd === "stats") {
-      toast({ title: "Verse Intelligence", description: `You are connected to ${userData?.serverIds?.length || 0} active communities.` });
-      return true;
-    }
-    if (cmd === "id") {
-      if (user?.uid) {
-        navigator.clipboard.writeText(user.uid);
-        toast({ title: "Identity Signature", description: "UID copied to clipboard." });
-      }
-      return true;
-    }
-    if (cmd === "time") {
-      toast({ title: "Verse Clock", description: `Current Sync: ${new Date().toLocaleTimeString()}` });
-      return true;
-    }
-    if (cmd === "version") {
-      toast({ title: "Verse Build", description: "Duniya Protocol v2.4.0 (High-Fidelity Stable)" });
       return true;
     }
     if (cmd === "theme") {
@@ -277,12 +257,8 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
     if (cmd === "help") {
       toast({ 
         title: "Verse Command Hub", 
-        description: "Available: @clr, @del, @whisper, @phide, @porn, @ping, @stats, @theme, @profile, @explore, @invite, @trace, @ghost, @font, @away, @online, @mute, @unmute, @shrug, @tableflip, @lenny, @sparkle, @logout, @id, @time, @version." 
+        description: "Available: @clr, @del, @whisper, @phide, @porn, @ping, @theme, @profile, @explore, @invite, @trace, @logout, @id, @time, @version." 
       });
-      return true;
-    }
-    if (cmd === "about") {
-      toast({ title: "Duniya Protocol", description: "A high-fidelity realtime communication network designed for privacy and speed." });
       return true;
     }
     if (cmd === "logout") {
@@ -295,10 +271,6 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
       toast({ title: "Status Updated", description: `You are now ${cmd === "away" ? "idle" : "online"} in the Verse.` });
       return true;
     }
-    if (cmd === "mute" || cmd === "unmute") {
-      toast({ title: cmd === "mute" ? "Notifications Suspended" : "Notifications Active", description: "Audio alerts adjusted locally." });
-      return true;
-    }
     if (cmd === "trace") {
       toast({ title: "Tracing Guide", description: "To trace a message, long-press it and select 'Trace' to see its journey through the Verse." });
       return true;
@@ -308,6 +280,19 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
         navigator.clipboard.writeText(`${window.location.origin}/invite/${serverId}`);
         toast({ title: "Portal Generated", description: "Invite link copied to clipboard." });
       }
+      return true;
+    }
+    if (cmd === "id" && user?.uid) {
+      navigator.clipboard.writeText(user.uid);
+      toast({ title: "Identity Signature", description: "UID copied to clipboard." });
+      return true;
+    }
+    if (cmd === "time") {
+      toast({ title: "Verse Clock", description: `Current Sync: ${new Date().toLocaleTimeString()}` });
+      return true;
+    }
+    if (cmd === "version") {
+      toast({ title: "Verse Build", description: "Duniya Protocol v2.4.0 (High-Fidelity Stable)" });
       return true;
     }
     return false;
@@ -410,7 +395,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
   if (!basePath) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center bg-background h-full p-6 text-center overflow-hidden font-body">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.15, ease: "easeOut" }} className="flex flex-col items-center">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center">
           <div className="relative mb-12">
             <motion.div animate={{ scale: [1, 1.05, 1] }} transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }} className="p-12 bg-primary/5 rounded-[3.5rem] relative z-10">
               <MessageCircle className="h-24 w-24 text-primary" />

@@ -33,11 +33,6 @@ export interface ForwardHop {
 
 const QUICK_REACTIONS = ["❤️", "😂", "😮", "😢", "🙏", "👍"];
 
-const EMOJI_CATEGORIES = [
-  { id: "smileys", icon: <Smile className="h-4 w-4" />, label: "Smileys", emojis: ["😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣", "😊", "😇", "🙂", "🙃", "😉", "😌", "😍", "🥰", "😘", "😗", "😙", "😚", "😋", "😛", "😝", "😜", "🤪", "🤨", "🧐", "🤓", "😎", "🤩", "🥳", "😏", "😒", "😞", "😔", "😟", "😕", "🙁", "☹️", "😮", "😯", "😲", "😳", "🥺", "😦", "😧", "😨", "😰", "😥", "😢", "😭", "😱", "😖", "😣", "😞", "😓", "😩", "😫", "🥱", "😤", "😡", "😠", "🤬", "😈", "👿", "💀", "☠️", "💩", "🤡", "👹", "👺", "👻", "👽", "👾", "🤖"] },
-  { id: "animals", icon: <Ghost className="h-4 w-4" />, label: "Animals", emojis: ["🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯", "🦁", "🐮", "🐷", "🐽", "🐸", "🐵", "🙈", "🙉", "🙊", "🐒", "🐔", "🐧", "🐦", "🐤", "🐣", "🐥", "🦆", "🦅", "🦉", "🦇", "🐺", "🐗", "🐴", "🦄", "🐝", "🐛", "🦋", "🐌", "🐞", "🐜", "🦟", "🦗", "🕷", "🕸", "🐙", "🦑", "🦐", "🦞", "🦀", "🐡", "🐠", "🐟", "🐬", "🐳", "🐋", "🦈", "🐊", "🐅", "🦓", "🦍", "🦧", "🐘", "🦛", "🦏", "🐪", "🐫", "🦒", "🦘", "🐃", "🐂", "🐄", "🐎", "🐖", "🐏", "🐑", "🐐", "🦌", "🐕", "🐩", "🦮", "🐈", "🐓", "🦃", "🦚", "🦜", "🦢", "🦩", "🕊", "🐇", "🦝", "🦨", "🦡", "🦦", "🦥", "🐁", "🐀", "🐿", "🦔"] }
-];
-
 interface MessageBubbleProps {
   message: {
     id: string;
@@ -111,7 +106,7 @@ export const MessageBubble = memo(function MessageBubble({
   const { data: senderData } = useDoc(senderRef);
 
   const isSenderHidden = !!senderData?.isProfileHidden && !isMe;
-  const isSenderBlurred = !!senderData?.isProfileBlurred && !isMe && !senderData?.authorizedViewers?.includes(user?.uid || "");
+  const isSenderBlurred = !!senderData?.isProfileBlurred && !isMe && !senderData?.authorizedViewers?.some((v: any) => v.uid === user?.uid && new Date(v.expiresAt) > new Date());
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -120,12 +115,8 @@ export const MessageBubble = memo(function MessageBubble({
   const [isForwardOpen, setIsForwardOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isImageZoomOpen, setIsImageZoomOpen] = useState(false);
-  const [isPDFViewOpen, setIsPDFViewOpen] = useState(false);
   const [isReactionPickerOpen, setIsReactionPickerOpen] = useState(false);
-  const [isFullPickerOpen, setIsFullPickerOpen] = useState(false);
-  const [isProfileThoughtOpen, setIsProfileThoughtOpen] = useState(false);
   const [isRevealed, setIsRevealed] = useState(false);
-  const [reactionDetails, setReactionDetails] = useState<{ emoji: string; uids: string[] } | null>(null);
 
   const [dragX, setDragX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -190,7 +181,6 @@ export const MessageBubble = memo(function MessageBubble({
       [`reactions.${emoji}`]: hasReacted ? arrayRemove(user.uid) : arrayUnion(user.uid)
     });
     setIsReactionPickerOpen(false);
-    setIsFullPickerOpen(false);
   }, [user, messagePath, message.reactions, isActuallyDeleted, db]);
 
   const handleDownload = useCallback((url: string, name: string) => {
@@ -296,20 +286,6 @@ export const MessageBubble = memo(function MessageBubble({
     else audioRef.current.play();
     setIsPlaying(!isPlaying);
   };
-
-  const latestHop = message.forwardingChain?.[message.forwardingChain.length - 1];
-
-  const reactionsData = useMemo(() => {
-    if (!message.reactions) return [];
-    return Object.entries(message.reactions)
-      .filter(([_, uids]) => uids && uids.length > 0)
-      .map(([emoji, uids]) => ({
-        emoji,
-        count: uids.length,
-        hasReacted: user ? uids.includes(user.uid) : false,
-        uids
-      }));
-  }, [message.reactions, user]);
 
   const sensitiveMask = message.isSensitive && !isRevealed;
 
@@ -423,9 +399,6 @@ export const MessageBubble = memo(function MessageBubble({
 
               {message.replyTo && (
                 <button 
-                  onClick={() => {
-                    if (message.replyTo?.messageId === 'profile') setIsProfileThoughtOpen(true);
-                  }}
                   className={cn(
                     "w-full text-left mb-2 p-2 rounded-xl border-l-2 text-[11px] bg-black/5 flex flex-col gap-0.5 backdrop-blur-sm transition-all hover:bg-black/10 mx-auto max-w-[calc(100%-8px)]", 
                     isMe ? "border-primary-foreground/40" : "border-primary/50"
@@ -467,7 +440,7 @@ export const MessageBubble = memo(function MessageBubble({
                       <ShieldAlert className="h-8 w-8 text-primary" />
                       <div className="space-y-1">
                         <p className="text-[10px] font-black uppercase tracking-widest text-foreground">Sensitive Content</p>
-                        <p className="text-[8px] font-medium text-muted-foreground leading-tight px-4">This media was flagged by the sender as sensitive.</p>
+                        <p className="text-[8px] font-medium text-muted-foreground leading-tight px-4">Flagged as sensitive content.</p>
                       </div>
                       <Button size="sm" className="h-8 rounded-xl font-black text-[9px] uppercase tracking-widest" onClick={(e) => { e.stopPropagation(); setIsRevealed(true); }}>Reveal Content</Button>
                     </div>
@@ -490,11 +463,6 @@ export const MessageBubble = memo(function MessageBubble({
                     <span className={cn("text-[8px] font-black uppercase opacity-60", isMe ? "text-primary-foreground" : "text-muted-foreground")}>{message.fileType?.split('/')[1]?.toUpperCase() || "FILE"}</span>
                   </div>
                   <div className="flex items-center gap-1">
-                    {message.fileType?.includes('pdf') && (
-                      <Button variant="ghost" size="icon" className={cn("h-8 w-8 rounded-full hover:bg-black/10 transition-colors", isMe ? "text-primary-foreground" : "text-primary")} onClick={(e) => { e.stopPropagation(); setIsPDFViewOpen(true); }}>
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                    )}
                     <Button variant="ghost" size="icon" className={cn("h-8 w-8 rounded-full hover:bg-black/10 transition-colors", isMe ? "text-primary-foreground" : "text-primary")} onClick={(e) => { e.stopPropagation(); handleDownload(message.fileUrl!, message.fileName!); }}>
                       <Download className="h-4 w-4" />
                     </Button>
