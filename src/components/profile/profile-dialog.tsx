@@ -42,9 +42,9 @@ const DURATIONS = [
 ];
 
 const INTERFACE_MODES = [
-  { id: 'laptop', label: 'Laptop', icon: <Monitor className="h-5 w-5" />, desc: 'Full-depth desktop interaction.' },
-  { id: 'tablet', label: 'Tablet', icon: <Tablet className="h-5 w-5" />, desc: 'Hybrid focus with sidebar nav.' },
-  { id: 'mobile', label: 'Mobile', icon: <Smartphone className="h-5 w-5" />, desc: 'Compact single-column view.' },
+  { id: 'laptop', label: 'Laptop', icon: <Monitor className="h-4 w-4" />, desc: 'Full desktop depth.' },
+  { id: 'tablet', label: 'Tablet', icon: <Tablet className="h-4 w-4" />, desc: 'Hybrid sidebar nav.' },
+  { id: 'mobile', label: 'Mobile', icon: <Smartphone className="h-4 w-4" />, desc: 'Compact view.' },
 ];
 
 export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
@@ -114,7 +114,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
         updatedAt: new Date().toISOString()
       });
 
-      toast({ title: "Identity Suite Updated", description: "Changes synchronized across the Verse." });
+      toast({ title: "Identity Synchronized" });
       onOpenChange(false);
     } catch (error: any) {
       toast({ variant: "destructive", title: "Update Error", description: error.message });
@@ -157,55 +157,69 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] rounded-[3rem] overflow-hidden p-0 border-none shadow-[0_32px_128px_rgba(0,0,0,0.4)] bg-background h-[90vh] max-h-[800px] flex flex-col">
-        <DialogHeader className="p-10 pb-6 bg-gradient-to-br from-primary/20 via-primary/5 to-transparent shrink-0 relative overflow-hidden">
-          <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary/10 rounded-full blur-3xl animate-pulse" />
-          <div className="flex items-center justify-between mb-4 relative z-10">
-            <div className="flex items-center gap-2.5">
-              <Fingerprint className="h-5 w-5 text-primary animate-pulse" />
-              <span className="text-[11px] font-black uppercase tracking-[0.5em] text-primary/80">Identity Suite v3.0</span>
+      <DialogContent className="sm:max-w-[850px] w-[95vw] rounded-[2rem] overflow-hidden p-0 border-none shadow-[0_32px_128px_rgba(0,0,0,0.4)] bg-background h-[85vh] max-h-[700px] flex flex-col font-body">
+        {/* Simplified Header */}
+        <DialogHeader className="px-8 py-6 border-b bg-card shrink-0 flex flex-row items-center justify-between">
+          <div className="flex flex-col">
+            <div className="flex items-center gap-2 mb-0.5">
+              <Fingerprint className="h-4 w-4 text-primary" />
+              <span className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/60">Verse Identity Suite v3.0</span>
             </div>
+            <DialogTitle className="text-2xl font-black tracking-tighter uppercase leading-none">
+              Identity <span className="text-primary italic">Node</span>
+            </DialogTitle>
+          </div>
+          <div className="hidden sm:flex items-center gap-3">
             <div className="px-3 py-1 bg-primary/10 rounded-full border border-primary/20">
-              <span className="text-[9px] font-black text-primary uppercase tracking-widest">Secure Node</span>
+              <span className="text-[8px] font-black text-primary uppercase tracking-widest">Secure Interaction</span>
             </div>
           </div>
-          <DialogTitle className="text-4xl font-[900] tracking-tighter uppercase leading-tight text-foreground relative z-10">
-            Manage <span className="text-primary italic">Persona</span>
-          </DialogTitle>
-          <DialogDescription className="font-medium text-muted-foreground/80 text-sm mt-2 italic relative z-10">
-            "Your digital signature and privacy protocols in the Duniya Verse."
-          </DialogDescription>
         </DialogHeader>
         
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 flex flex-col overflow-hidden">
-          <TabsList className="grid w-full grid-cols-4 bg-muted/30 rounded-none h-14 border-b border-border/50 shrink-0">
-            <TabsTrigger value="profile" className="font-black text-[10px] uppercase tracking-widest h-full data-[state=active]:bg-background data-[state=active]:shadow-none transition-all">Identity</TabsTrigger>
-            <TabsTrigger value="interface" className="font-black text-[10px] uppercase tracking-widest h-full data-[state=active]:bg-background data-[state=active]:shadow-none transition-all">Interface</TabsTrigger>
-            <TabsTrigger value="privacy" className="font-black text-[10px] uppercase tracking-widest h-full data-[state=active]:bg-background data-[state=active]:shadow-none transition-all">Shield</TabsTrigger>
-            <TabsTrigger value="keys" className="font-black text-[10px] uppercase tracking-widest h-full data-[state=active]:bg-background data-[state=active]:shadow-none transition-all relative">
-              Access
-              {userData?.pendingProfileRequests?.length > 0 && <span className="absolute top-3 right-3 h-2 w-2 bg-rose-500 rounded-full animate-ping" />}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 flex flex-row overflow-hidden">
+          {/* LEFT SIDEBAR NAVIGATION */}
+          <TabsList className="flex flex-col w-[200px] h-full bg-muted/20 border-r border-border/50 shrink-0 p-4 gap-1 justify-start">
+            <TabsTrigger value="profile" className="w-full justify-start gap-3 px-4 py-3 rounded-xl font-bold text-xs uppercase tracking-tight data-[state=active]:bg-background data-[state=active]:shadow-lg transition-all text-left">
+              <User className="h-4 w-4" /> Identity
             </TabsTrigger>
+            <TabsTrigger value="interface" className="w-full justify-start gap-3 px-4 py-3 rounded-xl font-bold text-xs uppercase tracking-tight data-[state=active]:bg-background data-[state=active]:shadow-lg transition-all text-left">
+              <Palette className="h-4 w-4" /> Interface
+            </TabsTrigger>
+            <TabsTrigger value="privacy" className="w-full justify-start gap-3 px-4 py-3 rounded-xl font-bold text-xs uppercase tracking-tight data-[state=active]:bg-background data-[state=active]:shadow-lg transition-all text-left">
+              <ShieldCheck className="h-4 w-4" /> Shield
+            </TabsTrigger>
+            <TabsTrigger value="keys" className="w-full justify-start gap-3 px-4 py-3 rounded-xl font-bold text-xs uppercase tracking-tight data-[state=active]:bg-background data-[state=active]:shadow-lg transition-all text-left relative">
+              <Key className="h-4 w-4" /> Access
+              {userData?.pendingProfileRequests?.length > 0 && <span className="absolute top-3 right-3 h-2 w-2 bg-rose-500 rounded-full animate-pulse" />}
+            </TabsTrigger>
+            
+            <div className="mt-auto pt-4 flex flex-col gap-2 opacity-40">
+              <div className="h-px bg-border w-full mb-2" />
+              <div className="flex items-center gap-2 px-2">
+                <Shield className="h-3 w-3" />
+                <span className="text-[8px] font-black uppercase">Verified State</span>
+              </div>
+            </div>
           </TabsList>
           
-          <ScrollArea className="flex-1">
-            <AnimatePresence mode="wait">
-              {activeTab === "profile" && (
-                <TabsContent key="tab-profile" value="profile" className="p-10 m-0 space-y-10">
-                  <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-10">
-                    <motion.div variants={itemVariants} className="flex flex-col items-center gap-6">
-                      <div className="relative group/avatar">
-                        <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full scale-125 opacity-0 group-hover/avatar:opacity-100 transition-opacity" />
-                        <Avatar className="h-32 w-32 ring-8 ring-background shadow-2xl transition-all group-hover/avatar:scale-105 relative z-10">
+          {/* RIGHT SIDE CONTENT AREA */}
+          <div className="flex-1 h-full overflow-hidden bg-card/30">
+            <ScrollArea className="h-full">
+              <AnimatePresence mode="wait">
+                <TabsContent key="tab-profile" value="profile" className="p-8 m-0 outline-none">
+                  <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-8">
+                    <motion.div variants={itemVariants} className="flex items-center gap-6 p-6 bg-background/50 rounded-3xl border border-border/50">
+                      <div className="relative shrink-0 group/avatar">
+                        <Avatar className="h-20 w-20 ring-4 ring-background shadow-xl">
                           <AvatarImage src={photoURL || undefined} className="object-cover" />
-                          <AvatarFallback className="text-5xl bg-primary text-white font-[900]">{username?.[0]?.toUpperCase()}</AvatarFallback>
+                          <AvatarFallback className="text-3xl bg-primary text-white font-black">{username?.[0]?.toUpperCase()}</AvatarFallback>
                         </Avatar>
                         <button 
                           type="button" 
                           onClick={() => fileInputRef.current?.click()} 
-                          className="absolute -bottom-2 -right-2 p-3 bg-primary rounded-2xl shadow-xl border-4 border-background text-white z-20 hover:scale-110 active:scale-95 transition-all"
+                          className="absolute -bottom-1 -right-1 p-2 bg-primary rounded-xl shadow-lg border-2 border-background text-white z-20 hover:scale-110 transition-all"
                         >
-                          <Camera className="h-6 w-6" />
+                          <Camera className="h-4 w-4" />
                         </button>
                         <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={(e) => {
                           const file = e.target.files?.[0];
@@ -216,157 +230,152 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
                           }
                         }} />
                       </div>
-                      <div className="text-center space-y-1">
-                        <h4 className="font-black text-2xl tracking-tight">@{userData?.username || username}</h4>
-                        <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.3em]">{user?.email}</p>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-black text-xl tracking-tight text-foreground truncate">@{userData?.username || username}</h4>
+                        <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">{user?.email}</p>
+                        <div className="mt-2 flex items-center gap-2">
+                          <Badge variant="secondary" className="bg-primary/5 text-primary border-none text-[8px] font-black uppercase">Node Participant</Badge>
+                        </div>
                       </div>
                     </motion.div>
 
-                    <motion.div variants={itemVariants} className="space-y-6">
+                    <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">Display Identity</Label>
+                        <Label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground ml-1">Display Name</Label>
                         <Input 
-                          className="bg-muted/30 border-none rounded-[1.25rem] h-14 font-bold text-base px-6 focus:ring-2 focus:ring-primary/20 transition-all" 
+                          className="bg-background border-none rounded-xl h-11 font-bold text-sm px-4 focus:ring-2 focus:ring-primary/20 transition-all" 
                           value={username} 
                           onChange={(e) => setUsername(e.target.value)} 
-                          placeholder="e.g. John Doe"
+                          placeholder="Your identity..."
                         />
                       </div>
 
                       <div className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">Identity URL (Optional)</Label>
-                        <div className="relative">
-                          <Link className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input 
-                            className="bg-muted/30 border-none rounded-[1.25rem] h-14 font-medium text-sm pl-12 pr-6 focus:ring-2 focus:ring-primary/20 transition-all" 
-                            value={photoURL} 
-                            onChange={(e) => setPhotoURL(e.target.value)} 
-                            placeholder="https://images.com/my-photo.jpg"
-                          />
-                        </div>
-                        <p className="text-[9px] text-muted-foreground italic px-2">Set avatar via direct link or local upload.</p>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">Social Bio Snapshot</Label>
-                        <Textarea 
-                          className="bg-muted/30 border-none rounded-[1.5rem] font-medium min-h-[120px] px-6 py-4 focus:ring-2 focus:ring-primary/20 transition-all resize-none" 
-                          value={bio} 
-                          onChange={(e) => setBio(e.target.value)} 
-                          placeholder="Tell the Verse about yourself..."
+                        <Label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground ml-1">Identity URL</Label>
+                        <Input 
+                          className="bg-background border-none rounded-xl h-11 font-medium text-xs px-4 focus:ring-2 focus:ring-primary/20 transition-all" 
+                          value={photoURL} 
+                          onChange={(e) => setPhotoURL(e.target.value)} 
+                          placeholder="https://..."
                         />
                       </div>
+                    </motion.div>
+
+                    <motion.div variants={itemVariants} className="space-y-2">
+                      <Label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground ml-1">Digital Persona Bio</Label>
+                      <Textarea 
+                        className="bg-background border-none rounded-2xl font-medium min-h-[100px] px-4 py-3 focus:ring-2 focus:ring-primary/20 transition-all resize-none text-sm" 
+                        value={bio} 
+                        onChange={(e) => setBio(e.target.value)} 
+                        placeholder="Share your thoughts with the Verse..."
+                      />
                     </motion.div>
                   </motion.div>
                 </TabsContent>
-              )}
 
-              {activeTab === "interface" && (
-                <TabsContent key="tab-interface" value="interface" className="p-10 m-0 space-y-10">
-                  <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-10">
-                    <motion.div variants={itemVariants} className="flex items-center gap-3">
-                      <Sparkles className="h-5 w-5 text-primary" />
-                      <h4 className="text-sm font-black uppercase tracking-widest">Interface Topology</h4>
-                    </motion.div>
+                <TabsContent key="tab-interface" value="interface" className="p-8 m-0 outline-none">
+                  <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-6">
+                    <div className="flex items-center gap-3 px-2 mb-2">
+                      <Monitor className="h-4 w-4 text-primary" />
+                      <h4 className="text-xs font-black uppercase tracking-widest text-foreground">UI Environment</h4>
+                    </div>
 
-                    <div className="space-y-4">
+                    <div className="grid grid-cols-1 gap-3">
                       {INTERFACE_MODES.map((m) => (
                         <motion.button 
                           key={m.id}
                           variants={itemVariants}
                           onClick={() => setInterfaceMode(m.id)} 
                           className={cn(
-                            "w-full flex items-center gap-5 p-6 rounded-[2rem] border-2 transition-all text-left group",
-                            interfaceMode === m.id ? "border-primary bg-primary/5 shadow-xl shadow-primary/5" : "border-transparent bg-muted/20 hover:bg-muted/40"
+                            "w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left",
+                            interfaceMode === m.id ? "border-primary bg-primary/5 shadow-sm" : "border-transparent bg-background/50 hover:bg-muted/50"
                           )}
                         >
                           <div className={cn(
-                            "h-12 w-12 rounded-2xl flex items-center justify-center transition-all shadow-sm",
-                            interfaceMode === m.id ? "bg-primary text-white" : "bg-background text-muted-foreground"
+                            "h-10 w-10 rounded-xl flex items-center justify-center transition-all",
+                            interfaceMode === m.id ? "bg-primary text-white" : "bg-muted text-muted-foreground"
                           )}>
                             {m.icon}
                           </div>
                           <div className="flex-1">
-                            <span className="text-sm font-black uppercase tracking-tight block">{m.label}</span>
-                            <span className="text-[10px] text-muted-foreground font-medium italic">{m.desc}</span>
+                            <span className="text-xs font-black uppercase tracking-tight block leading-none">{m.label} Mode</span>
+                            <span className="text-[10px] text-muted-foreground font-medium italic mt-1 block">{m.desc}</span>
                           </div>
-                          {interfaceMode === m.id && <Check className="h-5 w-5 text-primary animate-in zoom-in" />}
+                          {interfaceMode === m.id && <Check className="h-4 w-4 text-primary animate-in zoom-in" />}
                         </motion.button>
                       ))}
                     </div>
                   </motion.div>
                 </TabsContent>
-              )}
 
-              {activeTab === "privacy" && (
-                <TabsContent key="tab-privacy" value="privacy" className="p-10 m-0 space-y-10">
-                  <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-8">
-                    <motion.div variants={itemVariants} className="p-6 bg-muted/20 rounded-[2.5rem] border border-border/50 space-y-6">
-                      <div className="flex items-center justify-between">
+                <TabsContent key="tab-privacy" value="privacy" className="p-8 m-0 outline-none">
+                  <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-6">
+                    <motion.div variants={itemVariants} className="p-6 bg-background/50 rounded-3xl border border-border/50 space-y-5">
+                      <div className="flex items-center justify-between group">
                         <div className="flex flex-col gap-1">
-                          <Label className="text-sm font-black uppercase tracking-tight flex items-center gap-2">
+                          <Label className="text-xs font-black uppercase tracking-tight flex items-center gap-2">
                             <Lock className="h-3.5 w-3.5 text-rose-500" /> Identity Encryption
                           </Label>
-                          <p className="text-[10px] text-muted-foreground italic">Activate @phide protocol to vanish from the Verse.</p>
+                          <p className="text-[9px] text-muted-foreground italic">Activate @phide protocol to vanish.</p>
                         </div>
                         <Switch checked={isProfileHidden} onCheckedChange={setIsProfileHidden} />
                       </div>
                       
-                      <Separator className="opacity-30" />
+                      <Separator className="opacity-20" />
 
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between group">
                         <div className="flex flex-col gap-1">
-                          <Label className="text-sm font-black uppercase tracking-tight flex items-center gap-2">
+                          <Label className="text-xs font-black uppercase tracking-tight flex items-center gap-2">
                             <EyeOff className="h-3.5 w-3.5 text-amber-500" /> Blur Protocol
                           </Label>
-                          <p className="text-[10px] text-muted-foreground italic">Force transient keys via @porn protocol.</p>
+                          <p className="text-[9px] text-muted-foreground italic">Force transient keys via @porn protocol.</p>
                         </div>
                         <Switch checked={isProfileBlurred} onCheckedChange={setIsProfileBlurred} />
                       </div>
 
-                      <Separator className="opacity-30" />
+                      <Separator className="opacity-20" />
 
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between group">
                         <div className="flex flex-col gap-1">
-                          <Label className="text-sm font-black uppercase tracking-tight flex items-center gap-2">
+                          <Label className="text-xs font-black uppercase tracking-tight flex items-center gap-2">
                             <ImagePlus className="h-3.5 w-3.5 text-emerald-500" /> Collaborative Look
                           </Label>
-                          <p className="text-[10px] text-muted-foreground italic">Allow others to suggest identity updates.</p>
+                          <p className="text-[9px] text-muted-foreground italic">Allow others to 'Gift a Look'.</p>
                         </div>
                         <Switch checked={allowExternalAvatarEdit} onCheckedChange={setAllowExternalAvatarEdit} />
                       </div>
 
-                      <Separator className="opacity-30" />
+                      <Separator className="opacity-20" />
 
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between group">
                         <div className="flex flex-col gap-1">
-                          <Label className="text-sm font-black uppercase tracking-tight flex items-center gap-2">
-                            <Activity className="h-3.5 w-3.5 text-primary" /> Live Presence
+                          <Label className="text-xs font-black uppercase tracking-tight flex items-center gap-2 text-primary">
+                            <Activity className="h-3.5 w-3.5" /> Presence Broadcast
                           </Label>
-                          <p className="text-[10px] text-muted-foreground italic">Broadcast your real-time 'On Screen' status.</p>
+                          <p className="text-[9px] text-muted-foreground italic">Show 'On Screen' live status.</p>
                         </div>
                         <Switch checked={showOnlineStatus} onCheckedChange={setShowOnlineStatus} />
                       </div>
                     </motion.div>
 
-                    <motion.div variants={itemVariants} className="p-8 bg-primary/5 rounded-[2.5rem] border border-primary/10 space-y-6 relative overflow-hidden">
-                      <div className="absolute -top-4 -right-4 p-8 opacity-[0.03]"><Globe className="h-20 w-20 text-primary" /></div>
-                      <div className="flex items-center justify-between">
-                        <div className="flex flex-col gap-1 relative z-10">
-                          <Label className="text-sm font-black uppercase text-primary tracking-tight">Identity Broadcast</Label>
-                          <p className="text-[10px] text-muted-foreground italic">Unmask identity for ALL users temporarily.</p>
+                    <motion.div variants={itemVariants} className="p-6 bg-primary/5 rounded-3xl border border-primary/10 space-y-4 relative overflow-hidden">
+                      <div className="absolute -top-4 -right-4 p-8 opacity-[0.03]"><Globe className="h-16 w-16 text-primary" /></div>
+                      <div className="flex items-center justify-between relative z-10">
+                        <div className="flex flex-col gap-1">
+                          <Label className="text-xs font-black uppercase text-primary tracking-tight">Identity Broadcast</Label>
+                          <p className="text-[9px] text-muted-foreground italic">Temporary unmask for ALL members.</p>
                         </div>
                         <Switch checked={isGlobalAccessActive} onCheckedChange={setIsGlobalAccessActive} />
                       </div>
                       {isGlobalAccessActive && (
-                        <div className="space-y-3 pt-2 animate-in fade-in slide-in-from-top-2 relative z-10">
-                          <Label className="text-[9px] font-black uppercase text-primary tracking-widest ml-1">Broadcast Duration</Label>
+                        <div className="pt-2 animate-in fade-in slide-in-from-top-2 relative z-10 space-y-2">
+                          <Label className="text-[8px] font-black uppercase text-primary tracking-[0.2em] ml-1">Broadcast window</Label>
                           <Select value={globalDuration} onValueChange={setGlobalDuration}>
-                            <SelectTrigger className="bg-background/80 backdrop-blur-md border-none rounded-2xl h-12 text-xs font-bold shadow-sm">
+                            <SelectTrigger className="bg-background/80 border-none rounded-xl h-10 text-[10px] font-bold shadow-sm">
                               <SelectValue />
                             </SelectTrigger>
-                            <SelectContent className="rounded-2xl border-none shadow-2xl">
-                              {DURATIONS.map(d => <SelectItem key={d.value} value={d.value.toString()} className="text-xs font-bold">Open for {d.label}</SelectItem>)}
+                            <SelectContent className="rounded-xl border-none shadow-2xl">
+                              {DURATIONS.map(d => <SelectItem key={d.value} value={d.value.toString()} className="text-xs font-bold">{d.label}</SelectItem>)}
                             </SelectContent>
                           </Select>
                         </div>
@@ -374,73 +383,65 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
                     </motion.div>
                   </motion.div>
                 </TabsContent>
-              )}
 
-              {activeTab === "keys" && (
-                <TabsContent key="tab-keys" value="keys" className="p-10 m-0 space-y-10">
-                  <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-8">
-                    <motion.div variants={itemVariants} className="p-6 bg-primary/5 rounded-[2rem] border border-primary/10 flex items-center gap-4 relative overflow-hidden">
-                      <div className="absolute top-0 right-0 p-4 opacity-10"><Zap className="h-12 w-12 text-primary" /></div>
-                      <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0"><Key className="h-6 w-6" /></div>
-                      <div className="flex flex-col">
-                        <span className="text-xs font-black uppercase tracking-widest text-primary leading-none">Security Suite</span>
-                        <p className="text-[10px] text-muted-foreground italic mt-1">Manage transient identity review keys.</p>
-                      </div>
-                    </motion.div>
+                <TabsContent key="tab-keys" value="keys" className="p-8 m-0 outline-none">
+                  <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-6">
+                    <div className="flex items-center gap-3 px-2">
+                      <Key className="h-4 w-4 text-primary" />
+                      <h4 className="text-xs font-black uppercase tracking-widest text-foreground">Access Management</h4>
+                    </div>
 
                     {userData?.pendingProfileRequests?.length > 0 ? (
-                      <div className="space-y-4">
+                      <div className="grid grid-cols-1 gap-3">
                         {userData.pendingProfileRequests.map((req: any) => (
-                          <motion.div key={req.uid} variants={itemVariants} className="p-5 bg-muted/20 rounded-[2rem] border border-border/50 space-y-5 group hover:border-primary/30 transition-all shadow-sm">
-                            <div className="flex items-center gap-4">
-                              <Avatar className="h-12 w-12 border-2 border-background shadow-md"><AvatarImage src={req.photoURL} /><AvatarFallback className="bg-primary text-white font-[900] uppercase">{req.username?.[0]}</AvatarFallback></Avatar>
+                          <motion.div key={req.uid} variants={itemVariants} className="p-4 bg-background border border-border/50 rounded-2xl flex flex-col gap-4 shadow-sm">
+                            <div className="flex items-center gap-3">
+                              <Avatar className="h-10 w-10 border shadow-sm"><AvatarImage src={req.photoURL} /><AvatarFallback className="bg-primary text-white font-black text-xs">{req.username?.[0]?.toUpperCase()}</AvatarFallback></Avatar>
                               <div className="flex-1 min-w-0">
-                                <span className="text-sm font-[900] uppercase tracking-tight block truncate">@{req.username}</span>
-                                <p className="text-[10px] text-muted-foreground italic flex items-center gap-1"><ShieldCheck className="h-3 w-3" /> Wants review access.</p>
+                                <span className="text-xs font-black uppercase tracking-tight block truncate">@{req.username}</span>
+                                <p className="text-[9px] text-muted-foreground italic truncate">Requesting review access.</p>
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
                               <Select onValueChange={(val) => handleApproveRequest(req, parseInt(val))}>
-                                <SelectTrigger className="flex-1 bg-background border-none rounded-2xl h-12 text-[10px] font-black uppercase tracking-widest shadow-sm hover:shadow-md transition-all">
-                                  <SelectValue placeholder="APPROVE ACCESS" />
+                                <SelectTrigger className="flex-1 bg-muted/30 border-none rounded-xl h-10 text-[9px] font-black uppercase tracking-widest">
+                                  <SelectValue placeholder="APPROVE" />
                                 </SelectTrigger>
-                                <SelectContent className="rounded-2xl border-none shadow-2xl">
-                                  {DURATIONS.map(d => <SelectItem key={d.value} value={d.value.toString()} className="text-xs font-bold">Approve for {d.label}</SelectItem>)}
+                                <SelectContent className="rounded-xl border-none shadow-2xl">
+                                  {DURATIONS.map(d => <SelectItem key={d.value} value={d.value.toString()} className="text-xs font-bold">{d.label}</SelectItem>)}
                                 </SelectContent>
                               </Select>
-                              <Button size="icon" variant="ghost" className="h-12 w-12 rounded-2xl text-destructive hover:bg-destructive/10 transition-colors" onClick={() => handleDenyRequest(req)}><X className="h-5 w-5" /></Button>
+                              <Button size="icon" variant="ghost" className="h-10 w-10 rounded-xl text-destructive hover:bg-destructive/10" onClick={() => handleDenyRequest(req)}><X className="h-4 w-4" /></Button>
                             </div>
                           </motion.div>
                         ))}
                       </div>
                     ) : (
-                      <motion.div variants={itemVariants} className="flex flex-col items-center justify-center py-24 opacity-20 gap-6 text-center">
-                        <div className="p-10 bg-muted/50 rounded-[3rem]"><Shield className="h-20 w-20" /></div>
-                        <p className="text-xs font-black uppercase tracking-[0.3em]">Vault Secured — No Pending Requests</p>
-                      </motion.div>
+                      <div className="flex flex-col items-center justify-center py-20 opacity-20 text-center gap-4">
+                        <Shield className="h-12 w-12" />
+                        <p className="text-[9px] font-black uppercase tracking-[0.3em]">No Pending Identity Keys</p>
+                      </div>
                     )}
                   </motion.div>
                 </TabsContent>
-              )}
-            </AnimatePresence>
-          </ScrollArea>
+              </AnimatePresence>
+            </ScrollArea>
+          </div>
         </Tabs>
 
-        <DialogFooter className="p-10 pt-4 shrink-0 border-t bg-muted/10 flex flex-col gap-4">
-          <Button 
-            onClick={handleUpdateProfile} 
-            className="w-full h-16 rounded-[1.5rem] font-[900] text-lg shadow-2xl shadow-primary/20 uppercase tracking-widest gap-3 relative overflow-hidden group" 
-            disabled={isLoading}
-          >
-            {isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : (
-              <>
-                <ShieldCheck className="h-6 w-6 group-hover:rotate-12 transition-transform" />
-                Commit Identity
-              </>
-            )}
-          </Button>
-          <div className="flex items-center justify-center pt-2">
-            <CreatorFooter />
+        {/* Unified Footer */}
+        <DialogFooter className="px-8 py-6 bg-muted/10 border-t shrink-0 flex flex-row items-center justify-between gap-4">
+          <CreatorFooter className="hidden sm:flex opacity-60" />
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <Button variant="ghost" className="rounded-xl font-bold h-11 text-xs px-6" onClick={() => onOpenChange(false)} disabled={isLoading}>Cancel</Button>
+            <Button 
+              onClick={handleUpdateProfile} 
+              className="flex-1 sm:flex-none rounded-xl font-black h-11 text-xs px-8 shadow-lg shadow-primary/20 uppercase tracking-widest gap-2 bg-primary hover:bg-primary/90 text-white" 
+              disabled={isLoading}
+            >
+              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+              Commit Sync
+            </Button>
           </div>
         </DialogFooter>
       </DialogContent>
