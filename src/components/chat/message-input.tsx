@@ -165,6 +165,15 @@ export function MessageInput({
   const replyUserRef = useMemoFirebase(() => (replyingTo ? doc(db, "users", replyingTo.senderId) : null), [db, replyingTo?.senderId]);
   const { data: replyUser } = useDoc(replyUserRef);
 
+  // REAL-TIME PRIVACY SYNC FOR PROFILE REPLY PREVIEW
+  const profileTargetRef = useMemoFirebase(() => (profileReplyTarget?.id ? doc(db, "users", profileReplyTarget.id) : null), [db, profileReplyTarget?.id]);
+  const { data: profileTargetData } = useDoc(profileTargetRef);
+
+  const isTargetHidden = !!profileTargetData?.isProfileHidden && profileTargetData?.id !== user?.uid;
+  const isTargetBlurred = !!profileTargetData?.isProfileBlurred && 
+                          profileTargetData?.id !== user?.uid && 
+                          !profileTargetData?.authorizedViewers?.includes(user?.uid || "");
+
   const membersQuery = useMemoFirebase(() => {
     if (!db || !serverId) return null;
     return query(collection(db, "users"), where("serverIds", "array-contains", serverId));
@@ -567,11 +576,23 @@ export function MessageInput({
         <div className="px-4 py-2 bg-muted/30 border-t flex flex-col gap-2 animate-in slide-in-from-bottom-2 duration-150">
           <div className="flex items-center gap-3">
             <div className="relative shrink-0">
-              <Avatar className="h-12 w-12 border-2 border-primary/20 shadow-md">
-                <AvatarImage src={profileReplyTarget?.photoURL || replyUser?.photoURL || replyingTo?.senderPhotoURL} className="object-cover" />
-                <AvatarFallback className="bg-primary text-white text-xs font-black">
-                  {String(profileReplyTarget?.username || replyUser?.username || replyingTo?.senderName || "?")[0].toUpperCase()}
-                </AvatarFallback>
+              <Avatar className={cn(
+                "h-12 w-12 border-2 border-primary/20 shadow-md",
+                isTargetBlurred && "blur-sm",
+                isTargetHidden && "blur-xl"
+              )}>
+                {isTargetHidden ? (
+                  <div className="w-full h-full bg-muted flex items-center justify-center text-muted-foreground">
+                    <Ghost className="h-5 w-5" />
+                  </div>
+                ) : (
+                  <>
+                    <AvatarImage src={isTargetBlurred ? undefined : (profileReplyTarget?.photoURL || replyUser?.photoURL || replyingTo?.senderPhotoURL)} className="object-cover" />
+                    <AvatarFallback className="bg-primary text-white text-xs font-black">
+                      {String(profileReplyTarget?.username || replyUser?.username || replyingTo?.senderName || "?")[0].toUpperCase()}
+                    </AvatarFallback>
+                  </>
+                )}
               </Avatar>
               <div className="absolute -bottom-1 -right-1 p-1 bg-primary rounded-full shadow-lg border-2 border-background">
                 {profileReplyTarget ? <Camera className="h-3 w-3 text-white" /> : <Reply className="h-3 w-3 text-white" />}
@@ -582,22 +603,26 @@ export function MessageInput({
                 <span className="text-[10px] font-black text-primary uppercase tracking-widest leading-none">
                   {profileReplyTarget ? `Commenting on @${profileReplyTarget.username}'s identity` : `Replying to @${replyUser?.username || replyingTo?.senderName || "User"}`}
                 </span>
-                {profileReplyTarget && <Heart className="h-2 w-2 text-red-500 fill-red-500 animate-pulse" />}
+                {profileReplyTarget && !isTargetHidden && <Heart className="h-2 w-2 text-red-500 fill-red-500 animate-pulse" />}
+                {isTargetHidden && <span className="text-[8px] font-black uppercase text-rose-500 bg-rose-500/10 px-1.5 py-0.5 rounded-full">Encrypted</span>}
               </div>
-              <p className="text-xs text-muted-foreground truncate italic font-medium">
-                {profileReplyTarget ? (profileReplyTarget.bio || "Sharing thoughts on this identity picture.") : (replyingTo.content || replyingTo.text || "Media message")}
+              <p className={cn(
+                "text-xs text-muted-foreground truncate font-medium",
+                !isTargetHidden && "italic"
+              )}>
+                {isTargetHidden ? "Captured identity context is no longer visible." : (profileReplyTarget ? (profileTargetData?.bio || profileReplyTarget.bio || "Sharing thoughts on this identity picture.") : (replyingTo.content || replyingTo.text || "Media message"))}
               </p>
               
-              {profileReplyTarget && (
+              {profileReplyTarget && !isTargetHidden && (
                 <div className="flex items-center gap-4 mt-1.5">
                   <div className="flex items-center gap-1.5">
                     <Globe className="h-3 w-3 text-primary/60" />
-                    <span className="text-[9px] font-black uppercase tracking-tighter text-muted-foreground">Connected: {profileReplyTarget.totalCommunities} Communities</span>
+                    <span className="text-[9px] font-black uppercase tracking-tighter text-muted-foreground">Connected: {profileTargetData?.serverIds?.length || profileReplyTarget.totalCommunities} Communities</span>
                   </div>
                   <div className="w-[1px] h-3 bg-border" />
                   <div className="flex items-center gap-1.5">
                     <Users className="h-3 w-3 text-primary/60" />
-                    <span className="text-[9px] font-black uppercase tracking-tighter text-muted-foreground">Mutual Verse: {profileReplyTarget.commonCommunities} Shared</span>
+                    <span className="text-[9px] font-black uppercase tracking-tighter text-muted-foreground">Mutual Verse Identified</span>
                   </div>
                 </div>
               )}
