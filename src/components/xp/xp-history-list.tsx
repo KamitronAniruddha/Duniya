@@ -48,7 +48,7 @@ export function XPHistoryList({ userId }: XPHistoryListProps) {
         </div>
         <div className="space-y-1">
           <h4 className="text-lg font-black uppercase tracking-tighter text-muted-foreground/40">Zero Digital Footprint</h4>
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/30 px-10">Start interacting with the Verse to generate your digital history.</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/30 px-6 md:px-10">Start interacting with the Verse to generate your digital history.</p>
         </div>
       </div>
     );
@@ -66,13 +66,13 @@ export function XPHistoryList({ userId }: XPHistoryListProps) {
             <span className="text-[8px] font-bold text-muted-foreground uppercase mt-1">Verse Records Node</span>
           </div>
         </div>
-        <Badge variant="outline" className="text-[8px] font-black uppercase tracking-tighter opacity-40">Showing Last 25 Nodes</Badge>
+        <Badge variant="outline" className="text-[8px] font-black uppercase tracking-tighter opacity-40 hidden sm:inline-flex">Last 25 Nodes</Badge>
       </div>
       
-      <ScrollArea className="h-[400px] pr-4">
+      <ScrollArea className="h-[300px] md:h-[400px] pr-2 md:pr-4">
         <div className="space-y-4 relative pb-10">
           {/* Animated Timeline Connector */}
-          <div className="absolute left-[23px] top-6 bottom-6 w-[2px] bg-gradient-to-b from-primary/40 via-muted to-transparent rounded-full" />
+          <div className="absolute left-[19px] md:left-[23px] top-6 bottom-6 w-[2px] bg-gradient-to-b from-primary/40 via-muted to-transparent rounded-full" />
           
           <AnimatePresence mode="popLayout">
             {history.map((entry, idx) => (
@@ -81,51 +81,47 @@ export function XPHistoryList({ userId }: XPHistoryListProps) {
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: idx * 0.04, type: "spring", stiffness: 120 }}
-                className="flex items-start gap-5 relative z-10 group"
+                className="flex items-start gap-3 md:gap-5 relative z-10 group"
               >
                 {/* Node Point */}
                 <div className={cn(
-                  "h-12 w-12 rounded-[1.25rem] border-4 border-background shadow-xl flex items-center justify-center shrink-0 transition-all group-hover:scale-110",
+                  "h-10 w-10 md:h-12 md:w-12 rounded-[1.25rem] border-4 border-background shadow-xl flex items-center justify-center shrink-0 transition-all group-hover:scale-110",
                   entry.type === 'chatting' ? "bg-blue-500 text-white" :
                   entry.type === 'presence' ? "bg-emerald-500 text-white" :
                   entry.type === 'genesis' ? "bg-indigo-600 text-white" :
                   "bg-amber-500 text-white"
                 )}>
-                  {entry.type === 'chatting' ? <MessageSquare className="h-5 w-5" /> :
-                   entry.type === 'presence' ? <Activity className="h-5 w-5" /> :
-                   entry.type === 'genesis' ? <Globe className="h-5 w-5" /> :
-                   <Zap className="h-5 w-5 fill-current" />}
+                  {entry.type === 'chatting' ? <MessageSquare className="h-4 w-4 md:h-5 md:w-5" /> :
+                   entry.type === 'presence' ? <Activity className="h-4 w-4 md:h-5 md:w-5" /> :
+                   entry.type === 'genesis' ? <Globe className="h-4 w-4 md:h-5 md:w-5" /> :
+                   <Zap className="h-4 w-4 md:h-5 md:w-5 fill-current" />}
                 </div>
                 
                 {/* Log Content */}
-                <div className="flex-1 min-w-0 bg-muted/20 p-4 rounded-[1.75rem] border border-transparent hover:border-primary/20 hover:bg-card transition-all shadow-sm group-hover:shadow-lg relative overflow-hidden">
+                <div className="flex-1 min-w-0 bg-muted/20 p-3 md:p-4 rounded-[1.75rem] border border-transparent hover:border-primary/20 hover:bg-card transition-all shadow-sm group-hover:shadow-lg relative overflow-hidden">
                   <div className="absolute top-0 right-0 p-4 opacity-[0.03] pointer-events-none group-hover:opacity-[0.08] transition-opacity">
-                    <Star className="h-12 w-12" />
+                    <Star className="h-8 w-8 md:h-12 md:w-12" />
                   </div>
 
-                  <div className="flex flex-col gap-2">
-                    <div className="flex items-center justify-between gap-4">
-                      <span className="text-[11px] font-[1000] uppercase tracking-tight text-foreground truncate">
+                  <div className="flex flex-col gap-1 md:gap-2">
+                    <div className="flex items-center justify-between gap-2 md:gap-4">
+                      <span className="text-[10px] md:text-[11px] font-[1000] uppercase tracking-tight text-foreground truncate flex-1">
                         {entry.reason}
                       </span>
-                      <div className="flex items-center gap-1.5 shrink-0 px-2 py-1 bg-primary/5 rounded-lg border border-primary/10">
-                        <Plus className="h-3 w-3 text-primary stroke-[3px]" />
-                        <span className="text-sm font-black text-primary">{entry.amount} XP</span>
+                      <div className="flex items-center gap-1 md:gap-1.5 shrink-0 px-1.5 py-0.5 md:px-2 md:py-1 bg-primary/5 rounded-lg border border-primary/10">
+                        <Plus className="h-2.5 w-2.5 md:h-3 md:w-3 text-primary stroke-[3px]" />
+                        <span className="text-xs md:text-sm font-black text-primary">{entry.amount} XP</span>
                       </div>
                     </div>
                     
-                    <div className="flex items-center justify-between mt-1">
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-1 text-[9px] font-black text-muted-foreground/60 uppercase tracking-widest italic">
-                          <Clock className="h-3 w-3" />
+                    <div className="flex items-center justify-between mt-0.5 md:mt-1">
+                      <div className="flex items-center gap-2 md:gap-3">
+                        <div className="flex items-center gap-1 text-[8px] md:text-[9px] font-black text-muted-foreground/60 uppercase tracking-widest italic">
+                          <Clock className="h-2.5 w-2.5 md:h-3 md:w-3" />
                           <span>{entry.displayTime || formatDistanceToNow(new Date(entry.timestamp), { addSuffix: true })}</span>
                         </div>
                         <div className="h-1 w-1 rounded-full bg-muted-foreground/20" />
-                        <span className="text-[8px] font-black text-muted-foreground/40 uppercase tracking-[0.2em]">#{entry.type}</span>
-                      </div>
-                      
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Badge className="bg-primary/5 text-primary border-none text-[7px] font-black uppercase px-1.5 h-4">Verified</Badge>
+                        <span className="text-[7px] md:text-[8px] font-black text-muted-foreground/40 uppercase tracking-[0.2em]">#{entry.type}</span>
                       </div>
                     </div>
                   </div>

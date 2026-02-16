@@ -180,45 +180,37 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
           </div>
         </DialogHeader>
         
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 flex flex-row overflow-hidden">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 flex flex-col md:flex-row overflow-hidden">
           {/* LEFT SIDEBAR NAVIGATION */}
-          <TabsList className="flex flex-col w-[180px] h-full bg-muted/20 border-r border-border/50 shrink-0 p-3 gap-1 justify-start">
-            <TabsTrigger value="profile" className="w-full justify-start gap-2.5 px-3 py-2.5 rounded-xl font-bold text-[9px] uppercase tracking-widest data-[state=active]:bg-background data-[state=active]:shadow-lg transition-all text-left">
-              <User className="h-3.5 w-3.5" /> Identity
+          <TabsList className="flex flex-row md:flex-col w-full md:w-[180px] md:h-full bg-muted/20 border-b md:border-b-0 md:border-r border-border/50 shrink-0 p-2 md:p-3 gap-1 overflow-x-auto custom-scrollbar md:justify-start">
+            <TabsTrigger value="profile" className="flex-1 md:w-full justify-start gap-2.5 px-3 py-2 md:py-2.5 rounded-xl font-bold text-[9px] uppercase tracking-widest data-[state=active]:bg-background data-[state=active]:shadow-lg transition-all text-left">
+              <User className="h-3.5 w-3.5" /> <span className="hidden md:inline">Identity</span>
             </TabsTrigger>
-            <TabsTrigger value="ascension" className="w-full justify-start gap-2.5 px-3 py-2.5 rounded-xl font-bold text-[9px] uppercase tracking-widest data-[state=active]:bg-background data-[state=active]:shadow-lg transition-all text-left">
-              <Trophy className="h-3.5 w-3.5" /> Ascension
+            <TabsTrigger value="ascension" className="flex-1 md:w-full justify-start gap-2.5 px-3 py-2 md:py-2.5 rounded-xl font-bold text-[9px] uppercase tracking-widest data-[state=active]:bg-background data-[state=active]:shadow-lg transition-all text-left">
+              <Trophy className="h-3.5 w-3.5" /> <span className="hidden md:inline">Ascension</span>
             </TabsTrigger>
-            <TabsTrigger value="leaderboard" className="w-full justify-start gap-2.5 px-3 py-2.5 rounded-xl font-bold text-[9px] uppercase tracking-widest data-[state=active]:bg-background data-[state=active]:shadow-lg transition-all text-left">
-              <ListOrdered className="h-3.5 w-3.5" /> Sovereigns
+            <TabsTrigger value="leaderboard" className="flex-1 md:w-full justify-start gap-2.5 px-3 py-2 md:py-2.5 rounded-xl font-bold text-[9px] uppercase tracking-widest data-[state=active]:bg-background data-[state=active]:shadow-lg transition-all text-left">
+              <ListOrdered className="h-3.5 w-3.5" /> <span className="hidden md:inline">Sovereigns</span>
             </TabsTrigger>
-            <TabsTrigger value="interface" className="w-full justify-start gap-2.5 px-3 py-2.5 rounded-xl font-bold text-[9px] uppercase tracking-widest data-[state=active]:bg-background data-[state=active]:shadow-lg transition-all text-left">
-              <Palette className="h-3.5 w-3.5" /> Interface
+            <TabsTrigger value="interface" className="flex-1 md:w-full justify-start gap-2.5 px-3 py-2 md:py-2.5 rounded-xl font-bold text-[9px] uppercase tracking-widest data-[state=active]:bg-background data-[state=active]:shadow-lg transition-all text-left">
+              <Palette className="h-3.5 w-3.5" /> <span className="hidden md:inline">Interface</span>
             </TabsTrigger>
-            <TabsTrigger value="privacy" className="w-full justify-start gap-2.5 px-3 py-2.5 rounded-xl font-bold text-[9px] uppercase tracking-widest data-[state=active]:bg-background data-[state=active]:shadow-lg transition-all text-left">
-              <ShieldCheck className="h-3.5 w-3.5" /> Shield
+            <TabsTrigger value="privacy" className="flex-1 md:w-full justify-start gap-2.5 px-3 py-2 md:py-2.5 rounded-xl font-bold text-[9px] uppercase tracking-widest data-[state=active]:bg-background data-[state=active]:shadow-lg transition-all text-left">
+              <ShieldCheck className="h-3.5 w-3.5" /> <span className="hidden md:inline">Shield</span>
             </TabsTrigger>
-            <TabsTrigger value="keys" className="w-full justify-start gap-2.5 px-3 py-2.5 rounded-xl font-bold text-[9px] uppercase tracking-widest data-[state=active]:bg-background data-[state=active]:shadow-lg transition-all text-left relative">
-              <Key className="h-3.5 w-3.5" /> Access
+            <TabsTrigger value="keys" className="flex-1 md:w-full justify-start gap-2.5 px-3 py-2 md:py-2.5 rounded-xl font-bold text-[9px] uppercase tracking-widest data-[state=active]:bg-background data-[state=active]:shadow-lg transition-all text-left relative">
+              <Key className="h-3.5 w-3.5" /> <span className="hidden md:inline">Access</span>
               {userData?.pendingProfileRequests?.length > 0 && <span className="absolute top-2.5 right-2.5 h-2 w-2 bg-rose-500 rounded-full animate-pulse border border-background" />}
             </TabsTrigger>
-            
-            <div className="mt-auto pt-4 flex flex-col gap-2 opacity-40">
-              <div className="h-px bg-border w-full mb-2" />
-              <div className="flex items-center gap-2 px-2">
-                <Shield className="h-3 w-3" />
-                <span className="text-[7px] font-black uppercase tracking-tighter">Sovereign Node Certified</span>
-              </div>
-            </div>
           </TabsList>
           
           {/* RIGHT SIDE CONTENT AREA */}
           <div className="flex-1 h-full overflow-hidden bg-card/30">
             <ScrollArea className="h-full">
               <AnimatePresence mode="wait">
-                <TabsContent key="tab-profile" value="profile" className="p-6 m-0 outline-none">
-                  <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-8">
-                    <motion.div variants={itemVariants} className="flex items-center gap-6 p-6 bg-background/60 backdrop-blur-xl rounded-[2rem] border border-border/50 shadow-md">
+                <TabsContent key="tab-profile" value="profile" className="p-4 md:p-6 m-0 outline-none">
+                  <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-6 md:space-y-8">
+                    <motion.div variants={itemVariants} className="flex flex-col sm:flex-row items-center gap-6 p-6 bg-background/60 backdrop-blur-xl rounded-[2rem] border border-border/50 shadow-md">
                       <div className="relative shrink-0 group/avatar">
                         <div className="absolute inset-[-8px] bg-primary/10 rounded-full blur-xl opacity-0 group-hover/avatar:opacity-100 transition-opacity duration-700" />
                         <Avatar className="h-20 w-20 ring-4 ring-background shadow-xl relative z-10">
@@ -241,13 +233,13 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
                           }
                         }} />
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-0.5">
-                          <h4 className="font-black text-xl tracking-tighter text-foreground truncate">@{userData?.username || username}</h4>
+                      <div className="flex-1 min-w-0 text-center sm:text-left">
+                        <div className="flex flex-col sm:flex-row items-center gap-2 mb-0.5">
+                          <h4 className="font-black text-xl tracking-tighter text-foreground truncate max-w-full">@{userData?.username || username}</h4>
                           <Badge className="bg-primary/10 text-primary border-none text-[8px] font-black uppercase h-4.5 px-2">L{userData?.level || 1}</Badge>
                         </div>
-                        <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest opacity-60">{user?.email}</p>
-                        <div className="mt-3 flex flex-wrap gap-1.5">
+                        <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest opacity-60 truncate">{user?.email}</p>
+                        <div className="mt-3 flex flex-wrap justify-center sm:justify-start gap-1.5">
                           <Badge variant="secondary" className="bg-primary/5 text-primary border-none text-[7px] font-black uppercase px-2 h-5">Verified Participant</Badge>
                           <Badge variant="secondary" className="bg-accent/5 text-accent border-none text-[7px] font-black uppercase px-2 h-5">Duniya Sovereign</Badge>
                         </div>
@@ -256,7 +248,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
 
                     <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
-                        <Label className="text-[9px] font-black uppercase tracking-[0.2em] text-primary ml-1">Identity Signature</Label>
+                        <Label className="text-[9px] font-black uppercase tracking-[0.2em] text-primary ml-1">Identity Signature (Name)</Label>
                         <Input 
                           className="bg-background border-none rounded-xl h-11 font-black text-base px-4 focus:ring-2 focus:ring-primary/10 shadow-sm transition-all" 
                           value={username} 
@@ -288,8 +280,8 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
                   </motion.div>
                 </TabsContent>
 
-                <TabsContent key="tab-ascension" value="ascension" className="p-6 m-0 outline-none">
-                  <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-8">
+                <TabsContent key="tab-ascension" value="ascension" className="p-4 md:p-6 m-0 outline-none">
+                  <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-6 md:space-y-8">
                     <div className="flex items-center justify-between px-1">
                       <div className="flex items-center gap-3">
                         <div className="p-2 bg-primary/10 rounded-xl shadow-md">
@@ -300,7 +292,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
                           <span className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground mt-1">Digital Lineage Intel v4.1</span>
                         </div>
                       </div>
-                      <Badge className="bg-primary/10 text-primary border-primary/20 text-[8px] font-black uppercase px-2.5 h-5 rounded-full">Grade AAA Sovereign</Badge>
+                      <Badge className="hidden sm:inline-flex bg-primary/10 text-primary border-primary/20 text-[8px] font-black uppercase px-2.5 h-5 rounded-full">Grade AAA Sovereign</Badge>
                     </div>
 
                     <XPVisualizer xp={userData?.xp || 0} />
@@ -335,7 +327,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
                       </div>
                     </div>
 
-                    <div className="p-6 bg-background border border-dashed border-border/50 rounded-2xl relative overflow-hidden shadow-inner">
+                    <div className="p-4 md:p-6 bg-background border border-dashed border-border/50 rounded-2xl relative overflow-hidden shadow-inner">
                       <XPHistoryList userId={user?.uid || ""} />
                     </div>
 
@@ -345,13 +337,13 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
                       </div>
                       <div className="flex flex-col relative z-10">
                         <span className="text-[8px] font-black uppercase tracking-[0.3em] text-white/70 leading-none mb-1">Sync Streak</span>
-                        <span className="text-2xl font-black text-white italic tracking-tighter leading-none">{userData?.loginStreak || 0} CONTINUOUS DAYS</span>
+                        <span className="text-xl md:text-2xl font-black text-white italic tracking-tighter leading-none">{userData?.loginStreak || 0} CONTINUOUS DAYS</span>
                       </div>
                     </div>
                   </motion.div>
                 </TabsContent>
 
-                <TabsContent key="tab-leaderboard" value="leaderboard" className="p-6 m-0 outline-none">
+                <TabsContent key="tab-leaderboard" value="leaderboard" className="p-4 md:p-6 m-0 outline-none">
                   <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-6">
                     <div className="flex items-center gap-3 px-1">
                       <div className="p-2 bg-amber-500/10 rounded-xl shadow-md">
@@ -369,7 +361,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
                   </motion.div>
                 </TabsContent>
 
-                <TabsContent key="tab-interface" value="interface" className="p-6 m-0 outline-none">
+                <TabsContent key="tab-interface" value="interface" className="p-4 md:p-6 m-0 outline-none">
                   <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-6">
                     <div className="flex items-center gap-3 px-1 mb-2">
                       <div className="p-2 bg-primary/10 rounded-xl"><Monitor className="h-4 w-4 text-primary" /></div>
@@ -406,7 +398,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
                   </motion.div>
                 </TabsContent>
 
-                <TabsContent key="tab-privacy" value="privacy" className="p-6 m-0 outline-none">
+                <TabsContent key="tab-privacy" value="privacy" className="p-4 md:p-6 m-0 outline-none">
                   <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-6">
                     <motion.div variants={itemVariants} className="p-6 bg-background/60 backdrop-blur-xl rounded-2xl border border-border/50 space-y-5 shadow-lg">
                       <div className="flex items-center justify-between">
@@ -481,7 +473,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
                   </motion.div>
                 </TabsContent>
 
-                <TabsContent key="tab-keys" value="keys" className="p-6 m-0 outline-none">
+                <TabsContent key="tab-keys" value="keys" className="p-4 md:p-6 m-0 outline-none">
                   <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-6">
                     <div className="flex items-center gap-3 px-1">
                       <div className="p-2 bg-primary/10 rounded-xl"><Key className="h-4 w-4 text-primary" /></div>
@@ -530,15 +522,15 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
         </Tabs>
 
         {/* Unified Footer */}
-        <DialogFooter className="px-8 py-5 bg-muted/10 border-t shrink-0 flex flex-row items-center justify-between gap-4">
+        <DialogFooter className="px-6 md:px-8 py-4 md:py-5 bg-muted/10 border-t shrink-0 flex flex-row items-center justify-between gap-4">
           <div className="hidden sm:flex items-center">
             <CreatorFooter className="opacity-60 scale-90 origin-left" />
           </div>
           <div className="flex items-center gap-3 w-full sm:w-auto">
-            <Button variant="ghost" className="rounded-xl font-bold h-11 text-[9px] px-6 uppercase tracking-widest hover:bg-muted" onClick={() => onOpenChange(false)} disabled={isLoading}>Cancel Update</Button>
+            <Button variant="ghost" className="rounded-xl font-bold h-10 md:h-11 text-[9px] px-4 md:px-6 uppercase tracking-widest hover:bg-muted" onClick={() => onOpenChange(false)} disabled={isLoading}>Cancel Update</Button>
             <Button 
               onClick={handleUpdateProfile} 
-              className="flex-1 sm:flex-none rounded-xl font-black h-11 text-[9px] px-10 shadow-lg shadow-primary/20 uppercase tracking-[0.15em] gap-2.5 bg-primary hover:bg-primary/90 text-white transition-all active:scale-95" 
+              className="flex-1 sm:flex-none rounded-xl font-black h-10 md:h-11 text-[9px] px-6 md:px-10 shadow-lg shadow-primary/20 uppercase tracking-[0.15em] gap-2.5 bg-primary hover:bg-primary/90 text-white transition-all active:scale-95" 
               disabled={isLoading}
             >
               {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4 stroke-[2.5px]" />}
