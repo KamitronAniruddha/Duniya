@@ -191,14 +191,14 @@ export function AuthScreen() {
                       exit={{ opacity: 0, scale: 0.9 }}
                     >
                       <motion.path
-                        d="M10,25 L20,5 L35,25 M12,18 H28 M45,25 V12 Q45,8 55,8 V25 M65,12 V25 M65,5 V8"
+                        d="M10,25 L20,5 L35,25 M12,18 H28 M45,25 V12 C45,8 55,8 55,12 V25 M65,12 V25 M65,5 V8"
                         stroke="currentColor"
-                        strokeWidth="2.5"
+                        strokeWidth="3"
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         initial={{ pathLength: 0 }}
                         animate={{ pathLength: 1 }}
-                        transition={{ duration: 1.2, ease: "easeInOut" }}
+                        transition={{ duration: 1.5, ease: "easeInOut" }}
                       />
                     </motion.svg>
                   ) : (
@@ -214,14 +214,14 @@ export function AuthScreen() {
                       exit={{ opacity: 0, scale: 0.9 }}
                     >
                       <motion.path
-                        d="M10,20 Q10,5 25,5 Q35,5 20,25 Q35,25 35,15 M40,25 V12 Q40,8 50,8 V25 M55,25 V12 Q55,8 65,8 V25 M70,12 V20 Q70,25 85,25 V12"
+                        d="M10,25 C10,15 25,5 25,15 C25,25 10,30 20,30 C30,30 35,20 35,15 M40,25 V12 C40,8 50,8 50,12 V25 M55,25 V12 C55,8 65,8 65,12 V25 M70,12 V20 C70,25 85,25 85,12"
                         stroke="currentColor"
-                        strokeWidth="2.5"
+                        strokeWidth="3"
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         initial={{ pathLength: 0 }}
                         animate={{ pathLength: 1 }}
-                        transition={{ duration: 1.5, ease: "easeInOut" }}
+                        transition={{ duration: 1.8, ease: "easeInOut" }}
                       />
                     </motion.svg>
                   )}

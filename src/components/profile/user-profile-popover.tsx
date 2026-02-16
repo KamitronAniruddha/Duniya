@@ -33,7 +33,7 @@ export function UserProfilePopover({ userId, children, onWhisper, onReply, side 
       </PopoverTrigger>
       {isOpen && (
         <PopoverContent 
-          className="w-80 p-0 overflow-hidden border-none shadow-2xl rounded-[2rem] z-[100]" 
+          className="w-80 p-0 overflow-hidden border-none shadow-[0_32px_64px_rgba(0,0,0,0.3)] rounded-[2rem] z-[1000] animate-in zoom-in-95 duration-200" 
           side={side} 
           align="start" 
           sideOffset={10}
@@ -64,9 +64,20 @@ function UserProfileContent({ userId, onWhisper, onReply }: { userId: string; on
     return () => clearInterval(timer);
   }, []);
 
-  const joinDate = userData?.createdAt 
-    ? new Date(userData.createdAt).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
-    : "";
+  const getJoinDate = () => {
+    if (!userData?.createdAt) return "Origin Member";
+    try {
+      // Handle both string ISO and Firestore Timestamp
+      const date = typeof userData.createdAt === 'string' 
+        ? new Date(userData.createdAt) 
+        : (userData.createdAt.toDate ? userData.createdAt.toDate() : new Date(userData.createdAt));
+      
+      if (isNaN(date.getTime())) return "Origin Member";
+      return date.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+    } catch (e) {
+      return "Origin Member";
+    }
+  };
 
   const lastSeen = userData?.lastOnlineAt ? new Date(userData.lastOnlineAt).getTime() : 0;
   const isFresh = (now - lastSeen) < (3 * 60 * 1000);
@@ -97,11 +108,11 @@ function UserProfileContent({ userId, onWhisper, onReply }: { userId: string; on
            )}
         </div>
       </div>
-      <div className="px-5 pb-6">
+      <div className="px-5 pb-6 bg-card">
         <div className="relative -mt-10 mb-4 flex items-end justify-between">
           <button 
             onClick={() => setIsZoomOpen(true)}
-            className="group relative h-24 w-24 rounded-[2rem] border-4 border-background shadow-xl overflow-hidden transition-transform hover:scale-105 active:scale-95 bg-card shrink-0"
+            className="group relative h-24 w-24 rounded-[2rem] border-4 border-card shadow-xl overflow-hidden transition-transform hover:scale-105 active:scale-95 bg-muted shrink-0"
           >
             <Avatar className="h-full w-full rounded-none aspect-square">
               <AvatarImage src={userData?.photoURL || undefined} className="object-cover aspect-square" />
@@ -137,9 +148,9 @@ function UserProfileContent({ userId, onWhisper, onReply }: { userId: string; on
           </div>
 
           {isOnline ? (
-            <div className="absolute bottom-1 left-[76px] h-6 w-6 rounded-full border-4 border-background bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.6)] animate-pulse" />
+            <div className="absolute bottom-1 left-[76px] h-6 w-6 rounded-full border-4 border-card bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.6)] animate-pulse" />
           ) : isIdle ? (
-            <div className="absolute bottom-1 left-[76px] h-6 w-6 rounded-full border-4 border-background bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.6)]" />
+            <div className="absolute bottom-1 left-[76px] h-6 w-6 rounded-full border-4 border-card bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.6)]" />
           ) : null}
         </div>
 
@@ -153,7 +164,7 @@ function UserProfileContent({ userId, onWhisper, onReply }: { userId: string; on
             ) : null}
           </div>
           {userData?.bio && (
-            <p className="text-sm text-foreground/70 leading-relaxed font-medium mt-2">{userData.bio}</p>
+            <p className="text-sm text-foreground/70 leading-relaxed font-medium mt-2 line-clamp-3 italic">"{userData.bio}"</p>
           )}
         </div>
 
@@ -166,7 +177,7 @@ function UserProfileContent({ userId, onWhisper, onReply }: { userId: string; on
             </div>
             <div className="flex flex-col">
               <span className="text-[10px] font-black uppercase tracking-widest leading-none">Joined Dunia</span>
-              <span className="text-xs font-bold text-foreground mt-0.5">{joinDate || "Origin Member"}</span>
+              <span className="text-xs font-bold text-foreground mt-0.5">{getJoinDate()}</span>
             </div>
           </div>
 
@@ -183,7 +194,7 @@ function UserProfileContent({ userId, onWhisper, onReply }: { userId: string; on
           </div>
         </div>
       </div>
-      <div className="p-4 bg-muted/30 border-t flex items-center justify-center">
+      <div className="p-4 bg-muted/30 border-t flex items-center justify-center bg-card">
         <div className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.3em] text-muted-foreground/40">
           <span>Verified Verse Profile</span>
           <div className="h-1 w-1 rounded-full bg-primary/40" />
@@ -192,7 +203,7 @@ function UserProfileContent({ userId, onWhisper, onReply }: { userId: string; on
       </div>
 
       <Dialog open={isZoomOpen} onOpenChange={setIsZoomOpen}>
-        <DialogContent className="max-w-[90vw] max-h-[90vh] p-0 border-none bg-transparent shadow-none flex items-center justify-center">
+        <DialogContent className="max-w-[90vw] max-h-[90vh] p-0 border-none bg-transparent shadow-none flex items-center justify-center z-[2000]">
           <DialogHeader className="sr-only">
             <DialogTitle>@{userData?.username || 'User'} Profile Picture</DialogTitle>
             <DialogDescription>Full-sized profile picture view for the Verse user in high fidelity.</DialogDescription>

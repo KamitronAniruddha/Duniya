@@ -231,16 +231,21 @@ export function MessageInput({
     }
 
     const duration = disappearDuration === -1 ? (parseInt(customSeconds) || 10) * 1000 : disappearDuration;
+    
+    // CRITICAL IDENTITY FIX: Ensure target name is a clean string, avoiding [object Object] leaks
+    const finalTargetName = replyUser?.username || replyingTo?.senderName || "User";
+    const finalTargetPhoto = replyUser?.photoURL || replyingTo?.senderPhotoURL || "";
+
     onSendMessage(
       finalContent, 
       undefined, 
       undefined, 
-      replyUser?.username || replyingTo?.senderName || "User", 
+      finalTargetName, 
       { enabled: disappearingEnabled, duration: duration }, 
       imagePreview || undefined, 
       filePreview || undefined, 
       finalWhisperTo,
-      replyUser?.photoURL || replyingTo?.senderPhotoURL
+      finalTargetPhoto
     );
     
     setText("");
@@ -397,6 +402,7 @@ export function MessageInput({
                 {filteredCommands.map((c) => (
                   <button 
                     key={c.label} 
+                    type="button"
                     onClick={() => handleApplyCommand(c.usage)}
                     className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-muted transition-all text-left group"
                   >
@@ -434,6 +440,7 @@ export function MessageInput({
                     filteredMembers.map((m) => (
                       <button 
                         key={m.id} 
+                        type="button"
                         onClick={() => handleApplyWhisperTarget(m.username)}
                         className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-muted transition-all text-left group"
                       >
@@ -472,7 +479,7 @@ export function MessageInput({
             <span className="text-[10px] font-black text-primary uppercase tracking-widest leading-none mb-1">Replying to @{replyUser?.username || replyingTo?.senderName || "User" }</span>
             <p className="text-xs text-muted-foreground truncate italic font-medium">{replyingTo.content || replyingTo.text || "Media message"}</p>
           </div>
-          <button onClick={onCancelReply} className="h-8 w-8 rounded-full hover:bg-muted flex items-center justify-center transition-colors shadow-sm bg-background/50">
+          <button type="button" onClick={onCancelReply} className="h-8 w-8 rounded-full hover:bg-muted flex items-center justify-center transition-colors shadow-sm bg-background/50">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -487,7 +494,7 @@ export function MessageInput({
             <span className="text-[10px] font-black text-indigo-500 uppercase tracking-wider">Whispering to @{whisperingTo.username}</span>
             <p className="text-xs text-muted-foreground truncate italic font-medium">This message is invisible to others.</p>
           </div>
-          <button onClick={onCancelWhisper} className="h-6 w-6 rounded-full hover:bg-indigo-500/10 flex items-center justify-center transition-colors">
+          <button type="button" onClick={onCancelWhisper} className="h-6 w-6 rounded-full hover:bg-indigo-500/10 flex items-center justify-center transition-colors">
             <X className="h-3 w-3 text-indigo-500" />
           </button>
         </div>
@@ -497,7 +504,7 @@ export function MessageInput({
         <div className="px-4 py-3 bg-muted/20 border-t flex flex-col gap-2 animate-in slide-in-from-bottom-4 duration-200">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-black uppercase text-primary tracking-widest">Image Preview</span>
-            <button onClick={() => setImagePreview(null)} className="h-6 w-6 rounded-full bg-background/50 hover:bg-background flex items-center justify-center transition-colors shadow-sm">
+            <button type="button" onClick={() => setImagePreview(null)} className="h-6 w-6 rounded-full bg-background/50 hover:bg-background flex items-center justify-center transition-colors shadow-sm">
               <X className="h-3.5 w-3.5" />
             </button>
           </div>
@@ -511,7 +518,7 @@ export function MessageInput({
         <div className="px-4 py-3 bg-muted/20 border-t flex flex-col gap-2 animate-in slide-in-from-bottom-4 duration-200">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-black uppercase text-primary tracking-widest">Document Selected</span>
-            <button onClick={() => setFilePreview(null)} className="h-6 w-6 rounded-full bg-background/50 hover:bg-background flex items-center justify-center transition-colors shadow-sm">
+            <button type="button" onClick={() => setFilePreview(null)} className="h-6 w-6 rounded-full bg-background/50 hover:bg-background flex items-center justify-center transition-colors shadow-sm">
               <X className="h-3.5 w-3.5" />
             </button>
           </div>
@@ -550,8 +557,8 @@ export function MessageInput({
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <button onClick={cancelRecording} className="h-11 w-11 rounded-full hover:bg-destructive/10 hover:text-destructive flex items-center justify-center transition-colors"><Trash2 className="h-5 w-5" /></button>
-              <Button size="icon" className="h-14 w-14 rounded-full bg-red-500 hover:bg-red-600 shadow-2xl shadow-red-500/30 text-white transition-transform active:scale-90" onClick={stopRecording}>
+              <button type="button" onClick={cancelRecording} className="h-11 w-11 rounded-full hover:bg-destructive/10 hover:text-destructive flex items-center justify-center transition-colors"><Trash2 className="h-5 w-5" /></button>
+              <Button type="button" size="icon" className="h-14 w-14 rounded-full bg-red-500 hover:bg-red-600 shadow-2xl shadow-red-500/30 text-white transition-transform active:scale-90" onClick={stopRecording}>
                 <Square className="h-6 w-6 fill-current" />
               </Button>
             </div>
@@ -577,7 +584,7 @@ export function MessageInput({
                     <Input placeholder="Secs" className="h-7 w-16 text-[10px] p-1 font-bold" value={customSeconds} onChange={(e) => setCustomSeconds(e.target.value)} />
                   )}
                 </div>
-                <button onClick={() => setDisappearingEnabled(false)} className="h-6 w-6 rounded-full hover:bg-muted flex items-center justify-center"><X className="h-3 w-3" /></button>
+                <button type="button" onClick={() => setDisappearingEnabled(false)} className="h-6 w-6 rounded-full hover:bg-muted flex items-center justify-center"><X className="h-3 w-3" /></button>
               </div>
             )}
 
@@ -642,7 +649,7 @@ export function MessageInput({
                 <div className="flex-1 relative">
                   <input 
                     ref={inputRef}
-                    placeholder={replyingTo ? "Write a reply..." : (whisperingTo ? `Whisper to @${whisperingTo.username}...` : "Karo Chutiyapaa...")}
+                    placeholder={replyingTo ? `Replying...` : (whisperingTo ? `Whisper to @${whisperingTo.username}...` : "Karo Chutiyapaa...")}
                     value={text}
                     onChange={(e) => setText(e.target.value)}
                     disabled={isProcessing}
