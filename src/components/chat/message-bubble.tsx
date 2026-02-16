@@ -379,7 +379,7 @@ export const MessageBubble = memo(function MessageBubble({
                 onReply={onReplyToProfile}
                 side="right"
               >
-                <button className="text-[9px] font-black text-muted-foreground/60 ml-1 mb-0.5 hover:text-primary uppercase tracking-widest transition-colors">{message.senderName || "..."}</button>
+                <button className="text-[9px] font-black text-muted-foreground/60 ml-1 mb-0.5 hover:text-primary uppercase tracking-widest transition-colors">@{message.senderName || "..."}</button>
               </UserProfilePopover>
             )}
             

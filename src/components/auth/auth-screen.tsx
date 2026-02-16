@@ -236,10 +236,8 @@ export function AuthScreen() {
 }
 
 export function SignatureSVG({ type, size = 80, className }: { type: "ani" | "sanu", size?: number, className?: string }) {
-  // Traced "Ani" from user image: Tall A with loop, cursive n, circular dotted i
+  // Simpler earlier paths for Ani and Sanu
   const aniPath = "M15,35 C5,25 15,5 25,5 C35,5 30,35 30,35 M18,22 H35 M45,35 V22 C45,15 55,15 55,22 V35 C55,15 65,15 65,22 V35 M75,22 V35 M75,10 A1.5,1.5 0 1,1 75,13 A1.5,1.5 0 1,1 75,10";
-  
-  // Traced "Sanu": Elegant S loop, cursive a-n-u
   const sanuPath = "M20,15 C10,15 10,35 25,35 C40,35 40,5 25,5 C10,5 10,25 25,25 C40,25 50,35 60,35 M65,35 V25 C65,20 75,20 75,25 V35 M85,35 V25 C85,20 95,20 95,25 V35 M105,25 V30 C105,35 115,35 115,30 V25";
 
   return (
