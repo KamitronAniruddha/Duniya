@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
@@ -8,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useDoc, useFirestore, useMemoFirebase, useCollection } from "@/firebase";
+import { useDoc, useFirestore, useMemoFirebase, useCollection, useUser } from "@/firebase";
 import { doc, collection, query, where, getDocs, limit } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -18,6 +17,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { setDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 interface ProfileReplyTarget {
   id: string;
@@ -54,6 +54,7 @@ interface MessageInputProps {
   onTriggerReplyUser?: (userId: string, username: string) => void;
   onTriggerReplyProfile?: (userId: string, username: string, photoURL: string) => void;
   serverId?: string | null;
+  channelId?: string | null;
 }
 
 interface DisappearingConfig {
@@ -96,9 +97,11 @@ export function MessageInput({
   onTriggerWhisper, 
   onTriggerReplyUser,
   onTriggerReplyProfile,
-  serverId 
+  serverId,
+  channelId
 }: MessageInputProps) {
   const db = useFirestore();
+  const { user } = useUser();
   const { toast } = useToast();
   const [text, setText] = useState("");
   const [recentEmojis, setRecentEmojis] = useState<string[]>([]);
@@ -129,6 +132,12 @@ export function MessageInput({
   const streamRef = useRef<MediaStream | null>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isTypingBroadcastingRef = useRef(false);
+
+  const userDocRef = useMemoFirebase(() => (user ? doc(db, "users", user.uid) : null), [db, user?.uid]);
+  const { data: userData } = useDoc(userDocRef);
 
   const replyUserRef = useMemoFirebase(() => (replyingTo ? doc(db, "users", replyingTo.senderId) : null), [db, replyingTo?.senderId]);
   const { data: replyUser } = useDoc(replyUserRef);
@@ -138,6 +147,38 @@ export function MessageInput({
     return query(collection(db, "users"), where("serverIds", "array-contains", serverId));
   }, [db, serverId]);
   const { data: communityMembers } = useCollection(membersQuery);
+
+  // Typing Broadcast Logic
+  useEffect(() => {
+    if (!db || !user || !serverId || !channelId) return;
+
+    const stopTyping = () => {
+      if (isTypingBroadcastingRef.current) {
+        isTypingBroadcastingRef.current = false;
+        deleteDocumentNonBlocking(doc(db, "communities", serverId, "channels", channelId, "typing", user.uid));
+      }
+    };
+
+    if (text.trim().length > 0) {
+      if (!isTypingBroadcastingRef.current) {
+        isTypingBroadcastingRef.current = true;
+        setDocumentNonBlocking(doc(db, "communities", serverId, "channels", channelId, "typing", user.uid), {
+          id: user.uid,
+          username: userData?.username || user.displayName || "User",
+          lastTypedAt: new Date().toISOString()
+        }, { merge: true });
+      }
+
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = setTimeout(stopTyping, 3000);
+    } else {
+      stopTyping();
+    }
+
+    return () => {
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    };
+  }, [text, db, user, serverId, channelId, userData]);
 
   useEffect(() => {
     const saved = localStorage.getItem("recent-emojis");
@@ -249,7 +290,6 @@ export function MessageInput({
 
     const duration = disappearDuration === -1 ? (parseInt(customSeconds) || 10) * 1000 : disappearDuration;
     
-    // Normalizing identity to fix "js js"
     const finalTargetName = profileReplyTarget?.username || replyUser?.username || replyingTo?.senderName || "User";
     const finalTargetPhoto = profileReplyTarget?.photoURL || replyUser?.photoURL || replyingTo?.senderPhotoURL || "";
 

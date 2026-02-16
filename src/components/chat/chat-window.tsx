@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useRef, useEffect, useState, useMemo, useCallback } from "react";
@@ -6,6 +5,7 @@ import { useCollection, useFirestore, useUser, useDoc, useMemoFirebase } from "@
 import { collection, query, orderBy, limit, doc, arrayUnion, writeBatch, deleteField } from "firebase/firestore";
 import { MessageBubble } from "./message-bubble";
 import { MessageInput } from "./message-input";
+import { TypingIndicator } from "./typing-indicator";
 import { Hash, Users, Loader2, MessageCircle, X, Trash2, MoreVertical, Eraser, Forward, Settings, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
@@ -124,8 +124,6 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
     if (file) messageType = "file";
 
     const finalWhisper = whisperTarget !== undefined ? whisperTarget : whisperingTo;
-
-    // Normalizing identity string to fix "js js"
     const cleanReplyName = replySenderName ? replySenderName.replace(/^@/, '') : "";
 
     const data: any = {
@@ -297,10 +295,8 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
   const handleReplyToUser = useCallback((id: string, username: string) => {
     const userMessages = messages.filter(m => m.senderId === id);
     if (userMessages.length > 0) {
-      // If messages exist, use standard visual reply block (No tag needed)
       setReplyingTo(userMessages[userMessages.length - 1]);
     } else {
-      // If no history, prefix with tag only (No js js)
       toast({ title: "Identity Reply", description: `Tagging @${username} in your next message.` });
       if (inputRef.current) {
         const cleanName = username.replace(/^@/, '');
@@ -420,7 +416,9 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
               </div>
             )}
           </div>
+          
           <div className="shrink-0 border-t bg-background">
+            {serverId && channelId && <TypingIndicator serverId={serverId} channelId={channelId} />}
             <MessageInput 
               onSendMessage={handleSendMessage} 
               onExecuteCommand={handleCommand}
@@ -434,6 +432,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
               onTriggerReplyUser={handleReplyToUser}
               onTriggerReplyProfile={handleReplyToProfile}
               serverId={serverId}
+              channelId={channelId}
               inputRef={inputRef}
             />
           </div>
