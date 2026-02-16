@@ -29,6 +29,42 @@
       "description": "Hero image for landing page",
       "imageUrl": "https://images.unsplash.com/photo-1565164705190-d5e3b7fb3446?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8cGVvcGxlJTIwY29ubmVjdGlvbnxlbnwwfHx8fDE3NzEwNzM2ODh8MA&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "people connection"
+    },
+    {
+      "id": "feature-identity",
+      "description": "Verse Identity Preview",
+      "imageUrl": "https://images.unsplash.com/photo-1764336222789-28fd1846c6e3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxiaW9tZXRyaWMlMjBzY2FufGVufDB8fHx8MTc3MTI0MTcyOHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "biometric scan"
+    },
+    {
+      "id": "feature-ghost",
+      "description": "Ghost Mode Privacy Preview",
+      "imageUrl": "https://images.unsplash.com/photo-1758983308742-f4ba1f8c8cb4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxkaWdpdGFsJTIwcHJpdmFjeXxlbnwwfHx8fDE3NzEyNDE3Mjl8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "digital privacy"
+    },
+    {
+      "id": "feature-genealogy",
+      "description": "Message Trace Genealogy Preview",
+      "imageUrl": "https://images.unsplash.com/photo-1655546366716-384ec36bf7cf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxuZXR3b3JrJTIwaGlzdG9yeXxlbnwwfHx8fDE3NzEyNDE3Mjh8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "network history"
+    },
+    {
+      "id": "feature-intelligence",
+      "description": "Visual Intelligence Preview",
+      "imageUrl": "https://images.unsplash.com/photo-1676565415288-e5d295fff87a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxzb2NpYWwlMjBkYXRhfGVufDB8fHx8MTc3MTI0MTcyOHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "social data"
+    },
+    {
+      "id": "feature-discovery",
+      "description": "Duniya Discovery Hub Preview",
+      "imageUrl": "https://images.unsplash.com/photo-1731010623742-25d10570848b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjb21tdW5pdHklMjB1bml2ZXJzZXxlbnwwfHx8fDE3NzEyNDE3Mjh8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "community universe"
+    },
+    {
+      "id": "feature-whispers",
+      "description": "Private Whisper Context Preview",
+      "imageUrl": "https://images.unsplash.com/photo-1477039181047-efb4357d01bd?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxlbmNyeXB0ZWQlMjBzZWNyZXR8ZW58MHx8fHwxNzcxMjQxNzI4fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "encrypted secret"
     }
   ]
 }

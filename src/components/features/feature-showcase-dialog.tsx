@@ -8,6 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, Ghost, Timer, Landmark, Globe, Shield, MessageSquare, Zap, Heart, Camera, Users, Lock, Share2, Activity, Fingerprint } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PlaceHolderImages } from "@/lib/placeholder-images";
 
 interface Feature {
   id: string;
@@ -27,35 +28,35 @@ const VERSE_FEATURES: Feature[] = [
     id: "identity",
     title: "Verse Identity",
     description: "Your persona is your unique signature in the digital world.",
-    longDescription: "Experience high-fidelity profile synchronization powered by the Duniya Identity Protocol. Every user receives a unique handwriting authentication signature (Ani or Sanu) that draws itself in real-time. Profiles support Base64 high-resolution avatars, dynamic bios, and instant 'On-Screen' status tracking that stays synchronized across all your devices.",
+    longDescription: "Experience high-fidelity profile synchronization powered by the Duniya Identity Protocol. Every user receives a unique handwriting authentication signature (Ani or Sanu) that draws itself in real-time. Profiles support Base64 high-resolution avatars, dynamic bios, and instant 'On-Screen' status tracking that stays synchronized across all your devices with <50ms latency.",
     icon: <Fingerprint className="h-6 w-6" />,
     color: "bg-primary",
-    image: "https://picsum.photos/seed/id1/800/500",
-    hint: "digital identity",
-    performanceNote: "Instant profile sync with <50ms latency.",
+    image: PlaceHolderImages.find(img => img.id === 'feature-identity')?.imageUrl || "",
+    hint: "biometric scan",
+    performanceNote: "Instant profile sync with high-fidelity caching.",
     securityNote: "End-to-end encrypted identity metadata."
   },
   {
     id: "ghost",
     title: "Ghost Mode",
     description: "True ephemeral privacy designed for the modern era.",
-    longDescription: "Enable vanishing interactions with Ghost Mode. Messages sent in this state are governed by a strict 'Seen-to-Vanish' timer. Once a participant views the message, a countdown begins before the content is permanently purged from the Verse. This ensures that sensitive conversations leave zero digital footprint, protected by our custom ephemeral state management.",
+    longDescription: "Enable vanishing interactions with Ghost Mode. Messages sent in this state are governed by a strict 'Seen-to-Vanish' timer. Once a participant views the message, a countdown begins before the content is permanently purged from the Verse. This ensures that sensitive conversations leave zero digital footprint, protected by our custom non-recoverable deletion protocol.",
     icon: <Ghost className="h-6 w-6" />,
     color: "bg-orange-500",
-    image: "https://picsum.photos/seed/ghost/800/500",
-    hint: "privacy security",
+    image: PlaceHolderImages.find(img => img.id === 'feature-ghost')?.imageUrl || "",
+    hint: "digital privacy",
     performanceNote: "Zero-lag automated purge cycles.",
-    securityNote: "Non-recoverable data deletion protocol."
+    securityNote: "Secure ephemeral state management."
   },
   {
     id: "genealogy",
     title: "Message Genealogy",
     description: "Trace the lineage and history of every piece of information.",
-    longDescription: "Stop misinformation at its root. Message Genealogy allows you to 'Trace' any forwarded content back to its origin. See a high-fidelity vertical timeline of every community, channel, and sender that touched the message. It includes precise 'Time-Distance' calculations, showing you exactly how long ago and from where the information originated.",
+    longDescription: "Stop misinformation at its root. Message Genealogy allows you to 'Trace' any forwarded content back to its origin. See a high-fidelity vertical timeline of every community, channel, and sender that touched the message. It includes recursive hop-tracing and precise 'Time-Distance' calculations, showing you exactly how long ago the information originated.",
     icon: <Landmark className="h-6 w-6" />,
     color: "bg-indigo-500",
-    image: "https://picsum.photos/seed/trace/800/500",
-    hint: "history timeline",
+    image: PlaceHolderImages.find(img => img.id === 'feature-genealogy')?.imageUrl || "",
+    hint: "network history",
     performanceNote: "Recursive hop-tracing optimized for speed.",
     securityNote: "Verified source-validation algorithms."
   },
@@ -63,11 +64,11 @@ const VERSE_FEATURES: Feature[] = [
     id: "intelligence",
     title: "Visual Intelligence",
     description: "Deep social insights through identity interaction.",
-    longDescription: "Duniya goes beyond standard profiles. Our Visual Intelligence suite allows you to 'Share Thoughts' on any identity. When you comment on a profile picture, the Verse automatically calculates social depth metrics: Total Community Reach and Mutual Verse Connections. This data is captured as a permanent intelligence snapshot within the chat thread.",
+    longDescription: "Duniya goes beyond standard profiles. Our Visual Intelligence suite allows you to 'Share Thoughts' on any identity. When you comment on a profile picture, the Verse automatically calculates social depth metrics: Total Community Reach and Mutual Verse Connections. This data is captured as a permanent intelligence snapshot within the chat thread for all participants.",
     icon: <Sparkles className="h-6 w-6" />,
     color: "bg-pink-500",
-    image: "https://picsum.photos/seed/intel/800/500",
-    hint: "social intelligence",
+    image: PlaceHolderImages.find(img => img.id === 'feature-intelligence')?.imageUrl || "",
+    hint: "social data",
     performanceNote: "Real-time cross-community calculation.",
     securityNote: "Privacy-preserving mutual lookup logic."
   },
@@ -78,8 +79,8 @@ const VERSE_FEATURES: Feature[] = [
     longDescription: "The Discovery Hub is your gateway to new communities. Browse through a high-fidelity directory of public 'Verses' or use secure 5-digit Join Codes to enter private spaces. Our 'WhatsApp-Fast' auto-routing ensures that as soon as you join or switch communities, you land directly in the primary conversation with zero extra clicks.",
     icon: <Globe className="h-6 w-6" />,
     color: "bg-emerald-500",
-    image: "https://picsum.photos/seed/globe/800/500",
-    hint: "world network",
+    image: PlaceHolderImages.find(img => img.id === 'feature-discovery')?.imageUrl || "",
+    hint: "community universe",
     performanceNote: "Paginated directory for instant loading.",
     securityNote: "Multi-factor join-code validation."
   },
@@ -87,11 +88,11 @@ const VERSE_FEATURES: Feature[] = [
     id: "whispers",
     title: "Whispers",
     description: "Private sub-contexts within public conversation streams.",
-    longDescription: "Whispers enable the power of Direct Messaging inside any public channel. Send a message that is only visible to you and one other specific participant. This creates a secure, private sub-context that doesn't disrupt the flow of the main group, allowing for high-fidelity side-conversations that are completely hidden from other members.",
+    longDescription: "Whispers enable the power of Direct Messaging inside any public channel. Send a message that is only visible to you and one other specific participant. This creates a secure, private sub-context that doesn't disrupt the flow of the main group, allowing for high-fidelity side-conversations that are completely hidden from other members by the rendering engine.",
     icon: <Lock className="h-6 w-6" />,
     color: "bg-indigo-800",
-    image: "https://picsum.photos/seed/whisper/800/500",
-    hint: "private encrypted",
+    image: PlaceHolderImages.find(img => img.id === 'feature-whispers')?.imageUrl || "",
+    hint: "encrypted secret",
     performanceNote: "Selective visibility rendering engine.",
     securityNote: "Participant-only data visibility rules."
   }
@@ -207,7 +208,7 @@ export function FeatureShowcaseDialog({ open, onOpenChange }: { open: boolean; o
                         </p>
                       </div>
                       
-                      <div className="grid grid-cols-2 gap-6 pt-4">
+                      <div className="grid grid-cols-2 gap-6 pt-4 pb-10">
                         <div className="p-8 bg-primary/5 rounded-[2.5rem] border border-primary/10 shadow-sm hover:shadow-md transition-all group/stat">
                           <div className="flex items-center gap-3 mb-4">
                             <Zap className="h-6 w-6 text-primary group-hover/stat:animate-bounce" />
