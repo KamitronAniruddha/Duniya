@@ -100,7 +100,8 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
     disappearing?: { enabled: boolean; duration: number }, 
     imageUrl?: string,
     file?: { url: string; name: string; type: string },
-    whisperTarget?: { id: string; username: string } | null
+    whisperTarget?: { id: string; username: string } | null,
+    replySenderPhotoURL?: string
   ) => {
     if (!db || !basePath || !user) return;
     const messageRef = doc(collection(db, basePath, "messages"));
@@ -116,7 +117,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
       id: messageRef.id,
       channelId: channelId || null,
       senderId: user.uid,
-      senderName: user.displayName || "User",
+      senderName: userData?.displayName || user.displayName || "User",
       senderPhotoURL: userData?.photoURL || user.photoURL || "",
       content: text || "",
       type: messageType,
@@ -146,6 +147,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
       data.replyTo = { 
         messageId: replyingTo.id || "", 
         senderName: replySenderName || "User", 
+        senderPhotoURL: replySenderPhotoURL || replyingTo.senderPhotoURL || "",
         text: replyingTo.content || replyingTo.text || 'Media Message' 
       };
     }
@@ -153,7 +155,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
     setDocumentNonBlocking(messageRef, data, { merge: true });
     setReplyingTo(null);
     setWhisperingTo(null);
-  }, [db, basePath, user, replyingTo, whisperingTo, channelId, userData?.photoURL]);
+  }, [db, basePath, user, replyingTo, whisperingTo, channelId, userData]);
 
   const handleClearChat = useCallback(async () => {
     if (!db || !basePath || !user || !messages.length) return;

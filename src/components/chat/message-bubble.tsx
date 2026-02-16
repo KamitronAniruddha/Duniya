@@ -57,6 +57,7 @@ interface MessageBubbleProps {
     replyTo?: {
       messageId: string;
       senderName: string;
+      senderPhotoURL?: string;
       text: string;
     };
     whisperTo?: string | null;
@@ -403,10 +404,16 @@ export const MessageBubble = memo(function MessageBubble({
 
               {message.replyTo && (
                 <button className={cn("w-full text-left mb-2 p-2 rounded-xl border-l-2 text-[11px] bg-black/5 flex flex-col gap-0.5 backdrop-blur-sm transition-colors mx-auto max-w-[calc(100%-8px)]", isMe ? "border-primary-foreground/40" : "border-primary/50")}>
-                  <span className={cn("font-black text-[9px] flex items-center gap-1 uppercase tracking-wider", isMe ? "text-primary-foreground" : "text-primary")}>
-                    <CornerDownRight className="h-3 w-3" />{(message.replyTo as any).senderName}
-                  </span>
-                  <p className={cn("line-clamp-1 italic font-medium", isMe ? "text-primary-foreground/70" : "text-muted-foreground")}>{(message.replyTo as any).text}</p>
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <Avatar className="h-4 w-4 border shadow-sm">
+                      <AvatarImage src={message.replyTo.senderPhotoURL} className="object-cover" />
+                      <AvatarFallback className="bg-primary text-white text-[6px] font-black">{message.replyTo.senderName?.[0]?.toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                    <span className={cn("font-black text-[9px] flex items-center gap-1 uppercase tracking-wider", isMe ? "text-primary-foreground" : "text-primary")}>
+                      <CornerDownRight className="h-3 w-3" />{message.replyTo.senderName}
+                    </span>
+                  </div>
+                  <p className={cn("line-clamp-1 italic font-medium px-1", isMe ? "text-primary-foreground/70" : "text-muted-foreground")}>{message.replyTo.text}</p>
                 </button>
               )}
 
@@ -681,7 +688,8 @@ export const MessageBubble = memo(function MessageBubble({
          prev.selectionMode === next.selectionMode &&
          prev.message.senderExpireAt === next.message.senderExpireAt &&
          prev.message.viewerExpireAt === next.message.viewerExpireAt &&
-         JSON.stringify(prev.message.reactions) === JSON.stringify(next.message.reactions);
+         JSON.stringify(prev.message.reactions) === JSON.stringify(next.message.reactions) &&
+         JSON.stringify(prev.message.replyTo) === JSON.stringify(next.message.replyTo);
 });
 
 function ReactionDetailsDialog({ open, onOpenChange, emoji, uids }: { open: boolean; onOpenChange: (open: boolean) => void; emoji: string; uids: string[] }) {

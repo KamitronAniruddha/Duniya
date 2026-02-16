@@ -28,7 +28,8 @@ interface MessageInputProps {
     disappearing?: DisappearingConfig, 
     imageUrl?: string,
     file?: { url: string; name: string; type: string },
-    whisperTarget?: { id: string; username: string } | null
+    whisperTarget?: { id: string; username: string } | null,
+    replySenderPhotoURL?: string
   ) => void;
   onExecuteCommand?: (cmd: string, args: string[]) => Promise<boolean>;
   inputRef?: React.RefObject<HTMLInputElement>;
@@ -230,10 +231,17 @@ export function MessageInput({
     }
 
     const duration = disappearDuration === -1 ? (parseInt(customSeconds) || 10) * 1000 : disappearDuration;
-    onSendMessage(finalContent, undefined, undefined, replyUser?.username, {
-      enabled: disappearingEnabled,
-      duration: duration
-    }, imagePreview || undefined, filePreview || undefined, finalWhisperTo);
+    onSendMessage(
+      finalContent, 
+      undefined, 
+      undefined, 
+      replyUser?.username || replyingTo?.senderName, 
+      { enabled: disappearingEnabled, duration: duration }, 
+      imagePreview || undefined, 
+      filePreview || undefined, 
+      finalWhisperTo,
+      replyUser?.photoURL || replyingTo?.senderPhotoURL
+    );
     
     setText("");
     setImagePreview(null);
@@ -449,11 +457,19 @@ export function MessageInput({
 
       {replyingTo && (
         <div className="px-4 py-2 bg-muted/30 border-t flex items-center gap-3 animate-in slide-in-from-bottom-2 duration-150">
-          <div className="p-1.5 bg-primary/10 rounded-lg shrink-0">
-            <CornerDownRight className="h-4 w-4 text-primary" />
+          <div className="relative shrink-0">
+            <Avatar className="h-8 w-8 border shadow-sm">
+              <AvatarImage src={replyUser?.photoURL || replyingTo?.senderPhotoURL} className="object-cover" />
+              <AvatarFallback className="bg-primary text-white text-[10px] font-black">
+                {replyUser?.username?.[0]?.toUpperCase() || replyingTo?.senderName?.[0]?.toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div className="absolute -bottom-1 -right-1 p-0.5 bg-primary rounded-full shadow-sm">
+              <CornerDownRight className="h-2.5 w-2.5 text-white" />
+            </div>
           </div>
           <div className="flex-1 min-w-0 flex flex-col">
-            <span className="text-[10px] font-black text-primary uppercase tracking-wider">Replying to {replyUser?.username || "..." }</span>
+            <span className="text-[10px] font-black text-primary uppercase tracking-wider">Replying to {replyUser?.username || replyingTo?.senderName || "..." }</span>
             <p className="text-xs text-muted-foreground truncate italic font-medium">{replyingTo.content || replyingTo.text || "Media message"}</p>
           </div>
           <button onClick={onCancelReply} className="h-6 w-6 rounded-full hover:bg-muted flex items-center justify-center transition-colors">
