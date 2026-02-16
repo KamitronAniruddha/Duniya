@@ -1,9 +1,9 @@
 /**
  * @fileOverview Core logic for the Duniya XP and Leveling system.
- * Handles XP calculations, level thresholds, and point distributions.
+ * Handles XP calculations, level thresholds, rank titles, and history distribution.
  */
 
-import { Firestore, doc, collection, increment } from 'firebase/firestore';
+import { Firestore, doc, collection, increment, serverTimestamp } from 'firebase/firestore';
 import { updateDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 export const XP_PER_LEVEL = 1000;
@@ -20,39 +20,38 @@ export interface XPState {
 
 /**
  * Calculates the current level based on total XP.
- * Uses a linear progression for clarity in this version.
  */
 export function calculateLevel(xp: number): number {
-  return Math.floor(xp / (XP_PER_LEVEL || 1000)) + 1;
+  return Math.floor((xp || 0) / XP_PER_LEVEL) + 1;
 }
 
 /**
- * Returns the XP needed to reach the next level from the current total.
+ * Returns the XP needed to reach the next level.
  */
 export function getXPToNextLevel(xp: number): number {
   const currentLevel = calculateLevel(xp);
-  const nextLevelThreshold = currentLevel * (XP_PER_LEVEL || 1000);
-  return nextLevelThreshold - xp;
+  const nextLevelThreshold = currentLevel * XP_PER_LEVEL;
+  return nextLevelThreshold - (xp || 0);
 }
 
 /**
  * Returns the percentage progress through the current level.
  */
 export function getLevelProgress(xp: number): number {
-  const xpInCurrentLevel = xp % (XP_PER_LEVEL || 1000);
-  return (xpInCurrentLevel / (XP_PER_LEVEL || 1000)) * 100;
+  const xpInCurrentLevel = (xp || 0) % XP_PER_LEVEL;
+  return (xpInCurrentLevel / XP_PER_LEVEL) * 100;
 }
 
 /**
  * Returns a rank title based on level.
  */
 export function getRankTitle(level: number): string {
-  if (level >= 100) return "Singularity";
-  if (level >= 75) return "Ancient";
-  if (level >= 50) return "Architect";
-  if (level >= 25) return "Sentinel";
-  if (level >= 10) return "Acolyte";
-  return "Initiate";
+  if (level >= 100) return "Universal Singularity";
+  if (level >= 75) return "Ancient Spirit";
+  if (level >= 50) return "Verse Architect";
+  if (level >= 25) return "Elite Sentinel";
+  if (level >= 10) return "Core Acolyte";
+  return "Verse Initiate";
 }
 
 /**
@@ -65,7 +64,7 @@ export function getRankTitle(level: number): string {
 export const XP_REWARDS = {
   MESSAGE_BASE: 10,
   MESSAGE_PER_CHAR: 0.1,
-  PASSIVE_HEARTBEAT: 5, // Per 5 minutes
+  PASSIVE_HEARTBEAT: 5,
   GENESIS_CREATION: 500,
   DAILY_LOGIN_BASE: 100,
   STREAK_BONUS: 10,
@@ -73,12 +72,13 @@ export const XP_REWARDS = {
 
 /**
  * Award XP to a user and log it in history (Non-Blocking).
+ * Maintains a detailed lineage of every point gained.
  */
 export function awardXP(
   db: Firestore,
   userId: string,
   amount: number,
-  type: 'chatting' | 'presence' | 'genesis',
+  type: 'chatting' | 'presence' | 'genesis' | 'bonus',
   reason: string
 ) {
   if (!db || !userId || amount <= 0) return;
@@ -86,19 +86,23 @@ export function awardXP(
   const userRef = doc(db, "users", userId);
   const historyRef = collection(db, "users", userId, "xp_history");
 
+  const finalAmount = Math.floor(amount);
+
   // Update user totals and breakdown
   updateDocumentNonBlocking(userRef, {
-    xp: increment(Math.floor(amount)),
-    [`xpBreakdown.${type}`]: increment(Math.floor(amount)),
+    xp: increment(finalAmount),
+    [`xpBreakdown.${type}`]: increment(finalAmount),
     updatedAt: new Date().toISOString()
   });
 
-  // Log history entry with precise timestamp
+  // Log history entry with millisecond precision
   addDocumentNonBlocking(historyRef, {
     userId,
     type,
     reason,
-    amount: Math.floor(amount),
-    timestamp: new Date().toISOString()
+    amount: finalAmount,
+    timestamp: new Date().toISOString(),
+    displayTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+    displayDate: new Date().toLocaleDateString()
   });
 }

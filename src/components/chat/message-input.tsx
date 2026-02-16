@@ -57,11 +57,6 @@ interface MessageInputProps {
   channelId?: string | null;
 }
 
-const EMOJI_CATEGORIES = [
-  { id: "smileys", icon: <Smile className="h-4 w-4" />, label: "Smileys", emojis: ["😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣", "😊", "😇", "🙂", "🙃", "😉", "😌", "😍", "🥰", "😘", "😗", "😙", "😚", "😋", "😛", "😝", "😜", "🤪", "🤨", "🧐", "🤓", "😎", "🤩", "🥳", "😏", "😒", "😞", "😔", "😟", "😕", "🙁", "☹️", "😮", "😯", "😲", "😳", "🥺", "😦", "😧", "😨", "😰", "😥", "😢", "😭", "😱", "😖", "😣", "😞", "😓", "😩", "😫", "🥱", "😤", "😡", "😠", "🤬", "😈", "👿", "💀", "☠️", "💩", "🤡", "👹", "👺", "👻", "👽", "👾", "🤖"] },
-  { id: "animals", icon: <Ghost className="h-4 w-4" />, label: "Animals", emojis: ["🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯", "🦁", "🐮", "🐷", "🐽", "🐸", "🐵", "🙈", "🙉", "🙊", "🐒", "🐔", "🐧", "🐦", "🐤", "🐣", "🐥", "🦆", "🦅", "🦉", "🦇", "🐺", "🐗", "🐴", "🦄", "🐝", "🐛", "🦋", "🐌", "🐞", "🐜", "🦟", "🦗", "🕷", "🕸", "🐙", "🦑", "🦐", "🦞", "🦀", "🐡", "🐠", "🐟", "🐬", "🐳", "🐋", "🦈", "🐊", "🐅", "🦓", "🦍", "🦧", "🐘", "🦛", "🦏", "🐪", "🐫", "🦒", "🦘", "🐃", "🐂", "🐄", "🐎", "🐖", "🐏", "🐑", "🐐", "🦌", "🐕", "🐩", "🦮", "🐈", "🐓", "🦃", "🦚", "🦜", "🦢", "🦩", "🕊", "🐇", "🦝", "🦨", "🦡", "🦦", "🦥", "🐁", "🐀", "🐿", "🦔"] }
-];
-
 const CHEAT_CODES = [
   { icon: <Eraser className="h-4 w-4 text-orange-500" />, label: "clr", description: "Clear current chat history", usage: "@clr" },
   { icon: <Trash2 className="h-4 w-4 text-red-500" />, label: "del", description: "Delete last X messages", usage: "@del 5" },
@@ -70,8 +65,6 @@ const CHEAT_CODES = [
   { icon: <Palette className="h-4 w-4 text-pink-500" />, label: "theme", description: "Cycle visual vibes", usage: "@theme" },
   { icon: <UserIcon className="h-4 w-4 text-blue-500" />, label: "profile", description: "Modify identity signature", usage: "@profile" },
   { icon: <Compass className="h-4 w-4 text-indigo-600" />, label: "explore", description: "Duniya discovery hub", usage: "@explore" },
-  { icon: <Sparkles className="h-4 w-4 text-primary" />, label: "sparkle", description: "Verse energy wrapper", usage: "@sparkle text" },
-  { icon: <Heart className="h-4 w-4 text-red-500" />, label: "about", description: "Protocol details", usage: "@about" },
   { icon: <Info className="h-4 w-4 text-cyan-500" />, label: "help", description: "Reveal command library", usage: "@help" }
 ];
 
@@ -203,7 +196,7 @@ export function MessageInput({
       joinedAt: profileReplyTarget.joinedAt || new Date().toISOString()
     } : undefined;
 
-    // XP REWARD FOR MESSAGE
+    // AWARD XP FOR MESSAGE DISPATCH
     const xpReward = Math.floor(XP_REWARDS.MESSAGE_BASE + (text.length * XP_REWARDS.MESSAGE_PER_CHAR));
     awardXP(db, user!.uid, xpReward, 'chatting', `Creative Dispatch: ${text.slice(0, 30)}${text.length > 30 ? '...' : ''}`);
 
@@ -278,10 +271,10 @@ export function MessageInput({
       <AnimatePresence>
         {showSuggestions && filteredCommands.length > 0 && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute bottom-full left-4 mb-2 z-50 w-72">
-            <Card className="rounded-2xl border-none shadow-2xl bg-popover/95 backdrop-blur-xl p-1 overflow-hidden">
+            <Card className="rounded-[2rem] border-none shadow-2xl bg-popover/95 backdrop-blur-xl p-1 overflow-hidden">
               <ScrollArea className="h-64">
                 {filteredCommands.map(c => (
-                  <button key={c.label} type="button" onClick={() => { setText(c.usage); setShowSuggestions(false); inputRef.current?.focus(); }} className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-muted text-left group">
+                  <button key={c.label} type="button" onClick={() => { setText(c.usage); setShowSuggestions(false); inputRef.current?.focus(); }} className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-muted text-left group">
                     <div className="p-2 bg-background rounded-lg shadow-sm group-hover:scale-110 transition-transform">{c.icon}</div>
                     <div className="flex flex-col min-w-0"><span className="text-xs font-black uppercase tracking-tight text-foreground">@{c.label}</span><span className="text-[10px] text-muted-foreground truncate font-medium italic">{c.description}</span></div>
                   </button>
@@ -343,44 +336,21 @@ export function MessageInput({
         </div>
       )}
 
-      {(imagePreview || filePreview) && (
-        <div className="px-4 py-3 bg-muted/20 border-t flex flex-col gap-2 animate-in slide-in-from-bottom-4 duration-200">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <span className="text-[10px] font-black uppercase text-primary tracking-widest">Media Preview</span>
-              <div className="flex items-center gap-2 px-2 py-1 bg-amber-500/10 rounded-lg border border-amber-500/20 cursor-pointer" onClick={() => setIsSensitive(!isSensitive)}>
-                <ShieldAlert className={cn("h-3 w-3 transition-colors", isSensitive ? "text-amber-600 fill-amber-600" : "text-muted-foreground")} />
-                <span className={cn("text-[8px] font-black uppercase", isSensitive ? "text-amber-600" : "text-muted-foreground")}>{isSensitive ? 'Marked Sensitive' : 'Mark Sensitive'}</span>
-              </div>
-            </div>
-            <button type="button" onClick={() => { setImagePreview(null); setFilePreview(null); setIsSensitive(false); }} className="h-6 w-6 rounded-full bg-background/50 hover:bg-background flex items-center justify-center shadow-sm"><X className="h-3.5 w-3.5" /></button>
-          </div>
-          {imagePreview ? <div className="relative w-24 h-24 rounded-xl overflow-hidden border-2 border-primary/20 shadow-lg"><img src={imagePreview} className={cn("w-full h-full object-cover transition-all", isSensitive && "blur-md")} alt="Preview" />{isSensitive && <div className="absolute inset-0 bg-black/20 flex items-center justify-center"><Shield className="h-6 w-6 text-white" /></div>}</div> : filePreview && <div className="flex items-center gap-3 p-3 bg-background rounded-xl border-2 border-primary/20 shadow-lg w-fit max-w-full"><div className="p-2 bg-primary/10 rounded-lg"><Paperclip className="h-5 w-5 text-primary" /></div><div className="flex flex-col"><span className="text-xs font-bold truncate max-w-[200px]">{filePreview.name}</span><span className="text-[9px] font-black text-muted-foreground uppercase">{filePreview.type.split('/')[1] || 'FILE'}</span></div></div>}
-        </div>
-      )}
-
       <div className="p-4 bg-background border-t relative">
-        {isRecording ? (
-          <div className="flex items-center gap-4 max-w-5xl mx-auto bg-muted/20 p-3 rounded-2xl animate-in fade-in zoom-in-95 border border-primary/10 shadow-xl">
-            <div className="flex items-center gap-2 px-4 py-1.5 bg-red-500/10 text-red-500 rounded-full w-fit border border-red-500/20"><motion.div animate={{ scale: [1, 1.2, 1], opacity: [1, 0.5, 1] }} transition={{ repeat: Infinity, duration: 1 }} className="h-2.5 w-2.5 rounded-full bg-red-500" /><span className="text-sm font-black font-mono">{recordingTime}s</span></div>
-            <Button size="icon" className="h-14 w-14 rounded-full bg-red-500 hover:bg-red-600 shadow-xl ml-auto" onClick={stopRecording}><Square className="h-6 w-6 fill-current" /></Button>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="flex flex-col gap-2 max-w-5xl mx-auto">
-            <div className="flex flex-col gap-2 bg-muted/20 rounded-2xl p-1.5 border border-border/50">
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1 shrink-0 ml-1">
-                  <button type="button" onClick={() => setDisappearingEnabled(!disappearingEnabled)} className={cn("h-9 w-9 flex items-center justify-center transition-colors rounded-xl", disappearingEnabled ? "text-primary bg-primary/10" : "text-muted-foreground hover:bg-muted")}><Clock className="h-5 w-5" /></button>
-                  <button type="button" onClick={() => setShowFormatting(!showFormatting)} className={cn("h-9 w-9 flex items-center justify-center transition-colors rounded-xl", showFormatting ? "text-primary bg-primary/10" : "text-muted-foreground hover:bg-muted")}><TypeOutline className="h-5 w-5" /></button>
-                </div>
-                <input ref={inputRef} placeholder="Karo Chutiyapaa..." value={text} onChange={(e) => setText(e.target.value)} disabled={isProcessing} className="w-full bg-transparent border-none px-2 py-2.5 text-sm font-medium focus:outline-none text-foreground placeholder:text-muted-foreground/70" />
-                <div className="flex items-center gap-1 pr-1.5">
-                  {(text.trim() || imagePreview || filePreview) ? <Button type="submit" size="icon" disabled={isProcessing} className="rounded-xl h-10 w-10 shadow-lg"><SendHorizontal className="h-4 w-4" /></Button> : <><input type="file" ref={imageInputRef} className="hidden" accept="image/*" onChange={handleImageSelect} /><input type="file" ref={fileInputRef} className="hidden" accept=".pdf,.doc,.docx,.txt" onChange={handleFileSelect} /><button type="button" onClick={() => imageInputRef.current?.click()} className="h-10 w-10 flex items-center justify-center text-muted-foreground hover:text-primary"><ImageIcon className="h-5 w-5" /></button><button type="button" onClick={() => fileInputRef.current?.click()} className="h-10 w-10 flex items-center justify-center text-muted-foreground hover:text-primary"><Paperclip className="h-5 w-5" /></button><button type="button" onClick={startRecording} className="h-10 w-10 flex items-center justify-center rounded-xl bg-muted hover:bg-primary hover:text-white"><Mic className="h-5 w-5" /></button></>}
-                </div>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-2 max-w-5xl mx-auto">
+          <div className="flex flex-col gap-2 bg-muted/20 rounded-2xl p-1.5 border border-border/50">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 shrink-0 ml-1">
+                <button type="button" onClick={() => setDisappearingEnabled(!disappearingEnabled)} className={cn("h-9 w-9 flex items-center justify-center transition-colors rounded-xl", disappearingEnabled ? "text-primary bg-primary/10" : "text-muted-foreground hover:bg-muted")}><Clock className="h-5 w-5" /></button>
+                <button type="button" onClick={() => setShowFormatting(!showFormatting)} className={cn("h-9 w-9 flex items-center justify-center transition-colors rounded-xl", showFormatting ? "text-primary bg-primary/10" : "text-muted-foreground hover:bg-muted")}><TypeOutline className="h-5 w-5" /></button>
+              </div>
+              <input ref={inputRef} placeholder="Karo Chutiyapaa..." value={text} onChange={(e) => setText(e.target.value)} disabled={isProcessing} className="w-full bg-transparent border-none px-2 py-2.5 text-sm font-medium focus:outline-none text-foreground placeholder:text-muted-foreground/70" />
+              <div className="flex items-center gap-1 pr-1.5">
+                {(text.trim() || imagePreview || filePreview) ? <Button type="submit" size="icon" disabled={isProcessing} className="rounded-xl h-10 w-10 shadow-lg"><SendHorizontal className="h-4 w-4" /></Button> : <><input type="file" ref={imageInputRef} className="hidden" accept="image/*" onChange={handleImageSelect} /><input type="file" ref={fileInputRef} className="hidden" accept=".pdf,.doc,.docx,.txt" onChange={handleFileSelect} /><button type="button" onClick={() => imageInputRef.current?.click()} className="h-10 w-10 flex items-center justify-center text-muted-foreground hover:text-primary"><ImageIcon className="h-5 w-5" /></button><button type="button" onClick={startRecording} className="h-10 w-10 flex items-center justify-center rounded-xl bg-muted hover:bg-primary hover:text-white"><Mic className="h-5 w-5" /></button></>}
               </div>
             </div>
-          </form>
-        )}
+          </div>
+        </form>
       </div>
     </div>
   );

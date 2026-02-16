@@ -72,14 +72,14 @@ export default function DuniyaApp() {
       
       const xpReward = XP_REWARDS.DAILY_LOGIN_BASE + (newStreak * XP_REWARDS.STREAK_BONUS);
       
-      awardXP(db, user.uid, xpReward, 'presence', `Daily Sync Streak: ${newStreak} Days`);
+      awardXP(db, user.uid, xpReward, 'bonus', `Daily Sync Streak: ${newStreak} Days`);
       
       updateDocumentNonBlocking(doc(db, "users", user.uid), {
         lastLoginDate: today,
         loginStreak: newStreak,
       });
     }
-  }, [user?.uid, db, userData?.lastLoginDate]);
+  }, [user?.uid, db, userData]);
 
   // PASSIVE XP HEARTBEAT (Every 5 minutes)
   useEffect(() => {
@@ -173,8 +173,9 @@ export default function DuniyaApp() {
 
   if (isUserLoading) {
     return (
-      <div className="h-[100dvh] w-full flex items-center justify-center bg-background">
+      <div className="h-[100dvh] w-full flex flex-col items-center justify-center bg-background gap-4">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground animate-pulse">Initializing Verse Node</p>
       </div>
     );
   }
@@ -475,12 +476,12 @@ export default function DuniyaApp() {
         )}
       </AnimatePresence>
 
-      {/* Primary Layout Wrapper - Ensures elements inside have correct stacking context */}
+      {/* Primary Layout Wrapper */}
       <div className="relative w-full h-full flex flex-col md:flex-row overflow-hidden z-10">
         {mode === "mobile" ? renderMobileLayout() : mode === "tablet" ? renderTabletLayout() : renderLaptopLayout()}
       </div>
       
-      {/* Global Watermark Signature - Absolute Background layer to avoid overlapping UI */}
+      {/* Global Watermark Signature */}
       <div className="hidden md:flex fixed bottom-4 right-6 items-center pointer-events-none z-0 opacity-50">
         <CreatorFooter />
       </div>
