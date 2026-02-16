@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, User, Lock, Camera, ShieldAlert, Eye, EyeOff, Users, Palette, Check, Upload, Link, Monitor, Tablet, Smartphone, Sparkles, Trash2, Download, Heart, Maximize2, Shield, UserCheck, X, Key } from "lucide-react";
+import { Loader2, User, Lock, Camera, ShieldAlert, Eye, EyeOff, Users, Palette, Check, Upload, Link, Monitor, Tablet, Smartphone, Sparkles, Trash2, Download, Heart, Maximize2, Shield, UserCheck, X, Key, ImagePlus } from "lucide-react";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -68,6 +68,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
   const [interfaceMode, setInterfaceMode] = useState("laptop");
   const [isProfileHidden, setIsProfileHidden] = useState(false);
   const [isProfileBlurred, setIsProfileBlurred] = useState(false);
+  const [allowExternalAvatarEdit, setAllowExternalAvatarEdit] = useState(false);
 
   useEffect(() => {
     if (userData && open) {
@@ -79,6 +80,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
       setInterfaceMode(userData.interfaceMode || "laptop");
       setIsProfileHidden(!!userData.isProfileHidden);
       setIsProfileBlurred(!!userData.isProfileBlurred);
+      setAllowExternalAvatarEdit(!!userData.allowExternalAvatarEdit);
     }
   }, [userData, open]);
 
@@ -135,6 +137,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
         interfaceMode: interfaceMode,
         isProfileHidden,
         isProfileBlurred,
+        allowExternalAvatarEdit,
         updatedAt: new Date().toISOString()
       });
 
@@ -240,35 +243,33 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
                 </form>
               </TabsContent>
 
-              <TabsContent value="interface" className="p-6 m-0">
-                <div className="space-y-6">
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 mb-1"><Sparkles className="h-4 w-4 text-primary" /><h4 className="text-xs font-black uppercase tracking-widest">Interface Mode</h4></div>
-                    <div className="grid grid-cols-1 gap-2">
-                      {INTERFACE_MODES.map((mode) => (
-                        <button key={mode.id} onClick={() => setInterfaceMode(mode.id)} className={cn("flex items-center gap-4 p-3 rounded-2xl border-2 transition-all text-left", interfaceMode === mode.id ? "border-primary bg-primary/5 shadow-sm" : "border-transparent bg-muted/30 hover:bg-muted/50")}>
-                          <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center shadow-sm", interfaceMode === mode.id ? "bg-primary text-white" : "bg-background text-muted-foreground")}>{mode.icon}</div>
-                          <div className="flex flex-col"><span className={cn("text-xs font-black uppercase tracking-tight", interfaceMode === mode.id ? "text-primary" : "text-foreground")}>{mode.name}</span><span className="text-[10px] text-muted-foreground font-medium italic">{mode.desc}</span></div>
-                          {interfaceMode === mode.id && <Check className="h-4 w-4 ml-auto text-primary" />}
-                        </button>
-                      ))}
-                    </div>
+              <TabsContent value="interface" className="p-6 m-0 space-y-6">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 mb-1"><Sparkles className="h-4 w-4 text-primary" /><h4 className="text-xs font-black uppercase tracking-widest">Interface Mode</h4></div>
+                  <div className="grid grid-cols-1 gap-2">
+                    {INTERFACE_MODES.map((mode) => (
+                      <button key={mode.id} onClick={() => setInterfaceMode(mode.id)} className={cn("flex items-center gap-4 p-3 rounded-2xl border-2 transition-all text-left", interfaceMode === mode.id ? "border-primary bg-primary/5 shadow-sm" : "border-transparent bg-muted/30 hover:bg-muted/50")}>
+                        <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center shadow-sm", interfaceMode === mode.id ? "bg-primary text-white" : "bg-background text-muted-foreground")}>{mode.icon}</div>
+                        <div className="flex flex-col"><span className={cn("text-xs font-black uppercase tracking-tight", interfaceMode === mode.id ? "text-primary" : "text-foreground")}>{mode.name}</span><span className="text-[10px] text-muted-foreground font-medium italic">{mode.desc}</span></div>
+                        {interfaceMode === mode.id && <Check className="h-4 w-4 ml-auto text-primary" />}
+                      </button>
+                    ))}
                   </div>
-                  <Separator className="opacity-50" />
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 mb-1"><Palette className="h-4 w-4 text-primary" /><h4 className="text-xs font-black uppercase tracking-widest">Verse Vibe</h4></div>
-                    <div className="grid grid-cols-2 gap-2">
-                      {THEMES.map((t) => (
-                        <button key={t.id} onClick={() => setTheme(t.id)} className={cn("flex flex-col items-center gap-2 p-2 rounded-xl border-2 transition-all relative", theme === t.id ? "border-primary bg-primary/5" : "border-transparent bg-muted/30 hover:bg-muted/50")}>
-                          <div className={cn("h-10 w-full rounded-lg border shadow-sm", t.color, t.border)} /><span className={cn("text-[9px] font-bold uppercase tracking-tight truncate w-full text-center", theme === t.id ? "text-primary" : "text-muted-foreground")}>{t.name}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <Button onClick={handleUpdateProfile} className="w-full h-12 rounded-xl font-black shadow-lg shadow-primary/20 uppercase tracking-widest" disabled={isLoading}>
-                    {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Apply Settings"}
-                  </Button>
                 </div>
+                <Separator className="opacity-50" />
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 mb-1"><Palette className="h-4 w-4 text-primary" /><h4 className="text-xs font-black uppercase tracking-widest">Verse Vibe</h4></div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {THEMES.map((t) => (
+                      <button key={t.id} onClick={() => setTheme(t.id)} className={cn("flex flex-col items-center gap-2 p-2 rounded-xl border-2 transition-all relative", theme === t.id ? "border-primary bg-primary/5" : "border-transparent bg-muted/30 hover:bg-muted/50")}>
+                        <div className={cn("h-10 w-full rounded-lg border shadow-sm", t.color, t.border)} /><span className={cn("text-[9px] font-bold uppercase tracking-tight truncate w-full text-center", theme === t.id ? "text-primary" : "text-muted-foreground")}>{t.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <Button onClick={handleUpdateProfile} className="w-full h-12 rounded-xl font-black shadow-lg shadow-primary/20 uppercase tracking-widest" disabled={isLoading}>
+                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Apply Settings"}
+                </Button>
               </TabsContent>
 
               <TabsContent value="privacy" className="p-6 m-0 space-y-6">
@@ -293,6 +294,17 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
                       <p className="text-[10px] text-muted-foreground font-medium italic">Request permission to view profile.</p>
                     </div>
                     <Switch checked={isProfileBlurred} onCheckedChange={setIsProfileBlurred} />
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 bg-muted/20 rounded-2xl border border-border/50">
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                        <ImagePlus className="h-4 w-4 text-primary" />
+                        <Label className="text-sm font-black uppercase tracking-tight">Avatar Control</Label>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground font-medium italic">Allow others to update your photo.</p>
+                    </div>
+                    <Switch checked={allowExternalAvatarEdit} onCheckedChange={setAllowExternalAvatarEdit} />
                   </div>
 
                   <div className="flex items-center justify-between p-4 bg-muted/20 rounded-2xl border border-border/50">

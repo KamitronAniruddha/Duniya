@@ -9,12 +9,15 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { CalendarDays, User as UserIcon, Maximize2, EyeOff, Ghost, Clock, Download, Heart, Reply, Camera, Lock, Key, ShieldAlert, Sparkles, Loader2 } from "lucide-react";
-import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogDescription } from "@/components/ui/dialog";
+import { CalendarDays, User as UserIcon, Maximize2, EyeOff, Ghost, Clock, Download, Heart, Reply, Camera, Lock, Key, ShieldAlert, Sparkles, Loader2, ImagePlus, Check, X, Upload } from "lucide-react";
+import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { motion } from "framer-motion";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { CreatorFooter } from "@/components/creator-footer";
 
 interface UserProfilePopoverProps {
   userId: string;
@@ -27,6 +30,7 @@ interface UserProfilePopoverProps {
 export function UserProfilePopover({ userId, children, onWhisper, onReply, side = "right" }: UserProfilePopoverProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isZoomOpen, setIsZoomOpen] = useState(false);
+  const [isContributeOpen, setIsContributeOpen] = useState(false);
   const { toast } = useToast();
   const db = useFirestore();
   const { user: currentUser } = useUser();
@@ -81,6 +85,7 @@ export function UserProfilePopover({ userId, children, onWhisper, onReply, side 
               onWhisper={(id, name) => { onWhisper?.(id, name); setIsOpen(false); }}
               onReply={(id, name, photo, bio, total, common) => { onReply?.(id, name, photo, bio, total, common); setIsOpen(false); }}
               onOpenZoom={() => setIsZoomOpen(true)}
+              onOpenContribute={() => { setIsContributeOpen(true); setIsOpen(false); }}
             />
           </PopoverContent>
         )}
@@ -105,11 +110,18 @@ export function UserProfilePopover({ userId, children, onWhisper, onReply, side 
           </div>
         </DialogContent>
       </Dialog>
+
+      <IdentityContributeDialog 
+        open={isContributeOpen} 
+        onOpenChange={setIsContributeOpen} 
+        userId={userId} 
+        username={cleanUsername} 
+      />
     </>
   );
 }
 
-function UserProfileContent({ userId, onWhisper, onReply, onOpenZoom }: { userId: string; onWhisper?: (userId: string, username: string) => void; onReply?: (userId: string, username: string, photoURL: string, bio?: string, totalCommunities?: number, commonCommunities?: number) => void; onOpenZoom: () => void }) {
+function UserProfileContent({ userId, onWhisper, onReply, onOpenZoom, onOpenContribute }: { userId: string; onWhisper?: (userId: string, username: string) => void; onReply?: (userId: string, username: string, photoURL: string, bio?: string, totalCommunities?: number, commonCommunities?: number) => void; onOpenZoom: () => void; onOpenContribute: () => void }) {
   const db = useFirestore();
   const { user: currentUser } = useUser();
   const [now, setNow] = useState(Date.now());
@@ -122,7 +134,6 @@ function UserProfileContent({ userId, onWhisper, onReply, onOpenZoom }: { userId
   const currentUserRef = useMemoFirebase(() => (currentUser ? doc(db, "users", currentUser.uid) : null), [db, currentUser?.uid]);
   const { data: currentUserData } = useDoc(currentUserRef);
 
-  // Transient Key Logic: Automatically revoke authorization when the popover closes (unmounts)
   useEffect(() => {
     return () => {
       if (userData?.id && currentUser?.uid && userData.authorizedViewers?.includes(currentUser.uid)) {
@@ -139,6 +150,7 @@ function UserProfileContent({ userId, onWhisper, onReply, onOpenZoom }: { userId
                     !userData?.authorizedViewers?.includes(currentUser?.uid || "");
 
   const isHidden = !!userData?.isProfileHidden && userData?.id !== currentUser?.uid;
+  const canContribute = !!userData?.allowExternalAvatarEdit && userData?.id !== currentUser?.uid;
 
   const hasRequested = userData?.pendingProfileRequests?.some((req: any) => req.uid === currentUser?.uid);
 
@@ -220,6 +232,7 @@ function UserProfileContent({ userId, onWhisper, onReply, onOpenZoom }: { userId
               !isBlurred ? (
                 <>
                   {onReply && userData && userData.id !== currentUser?.uid && <Button size="sm" className="rounded-xl h-8 px-4 gap-2 bg-primary text-primary-foreground font-black uppercase text-[9px] tracking-widest shadow-lg" onClick={() => onReply(userData.id, cleanUsername, userData.photoURL || "", userData.bio, stats.total, stats.common)}><Camera className="h-3 w-3" /> Reply</Button>}
+                  {canContribute && <Button size="sm" className="rounded-xl h-8 px-4 gap-2 bg-accent text-accent-foreground font-black uppercase text-[9px] tracking-widest shadow-lg" onClick={onOpenContribute}><ImagePlus className="h-3 w-3" /> Gift Look</Button>}
                   {onWhisper && userData && userData.id !== currentUser?.uid && <Button size="sm" variant="outline" className="rounded-xl h-8 px-4 gap-2 text-indigo-600 font-black uppercase text-[9px] tracking-widest bg-indigo-50/50" onClick={() => onWhisper(userData.id, cleanUsername)}><Ghost className="h-3 w-3" /> Whisper</Button>}
                 </>
               ) : (
@@ -295,5 +308,123 @@ function UserProfileContent({ userId, onWhisper, onReply, onOpenZoom }: { userId
         <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/40 text-center">Made by Aniruddha with love ❤️</span>
       </div>
     </div>
+  );
+}
+
+function IdentityContributeDialog({ open, onOpenChange, userId, username }: { open: boolean; onOpenChange: (open: boolean) => void; userId: string; username: string }) {
+  const db = useFirestore();
+  const { toast } = useToast();
+  const [newPhotoURL, setNewPhotoURL] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPhotoURL.trim()) return;
+    setIsLoading(true);
+
+    try {
+      const targetUserRef = doc(db, "users", userId);
+      updateDocumentNonBlocking(targetUserRef, {
+        photoURL: newPhotoURL.trim(),
+        updatedAt: new Date().toISOString()
+      });
+
+      toast({ 
+        title: "Identity Gift Dispatched", 
+        description: `@${username} now has a new look in the Verse.` 
+      });
+      onOpenChange(false);
+      setNewPhotoURL("");
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Contribution Failed", description: error.message });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 200 * 1024) {
+      toast({ variant: "destructive", title: "Image too large", description: "Limit: 200KB." });
+      return;
+    }
+    const reader = new FileReader();
+    reader.onloadend = () => setNewPhotoURL(reader.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[400px] rounded-[2.5rem] border-none shadow-2xl p-0 overflow-hidden bg-background z-[2000] animate-in fade-in zoom-in-95 duration-300">
+        <DialogHeader className="p-8 pb-4 bg-gradient-to-b from-accent/15 via-accent/5 to-transparent">
+          <div className="flex items-center gap-2 mb-2">
+            <Sparkles className="h-4 w-4 text-accent animate-pulse" />
+            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-accent">Identity contribution</span>
+          </div>
+          <DialogTitle className="text-3xl font-[900] tracking-tighter uppercase leading-none">Gift a Look</DialogTitle>
+          <DialogDescription className="font-medium text-muted-foreground text-xs mt-2 italic">
+            "Modify how @{username} identifies in the Verse."
+          </DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={handleUpdate} className="p-8 pt-2 space-y-6">
+          <div className="flex flex-col items-center gap-6">
+            <div className="relative group/gift">
+              <Avatar className="h-32 w-32 border-4 border-background shadow-2xl rounded-[2.5rem] ring-1 ring-accent/20 transition-transform group-hover/gift:scale-105">
+                <AvatarImage src={newPhotoURL} className="object-cover" />
+                <AvatarFallback className="bg-muted text-accent text-4xl font-black">
+                  <UserIcon className="h-12 w-12" />
+                </AvatarFallback>
+              </Avatar>
+              <button 
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="absolute -bottom-2 -right-2 p-3 bg-accent rounded-2xl shadow-xl border-2 border-background text-white hover:scale-110 transition-transform active:scale-95"
+              >
+                <Upload className="h-5 w-5" />
+              </button>
+              <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
+            </div>
+
+            <div className="w-full space-y-2">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Proposed Photo URL</Label>
+              <div className="relative">
+                <Link className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input 
+                  className="pl-9 bg-muted/30 border-none rounded-xl font-medium h-11 text-xs focus:ring-2 focus:ring-accent/20" 
+                  value={newPhotoURL} 
+                  onChange={(e) => setNewPhotoURL(e.target.value)} 
+                  placeholder="https://..." 
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-accent/5 rounded-2xl p-4 border border-accent/10">
+            <div className="flex items-center gap-2 mb-1 text-accent">
+              <Lock className="h-3.5 w-3.5" />
+              <h4 className="text-[10px] font-black uppercase tracking-widest">Protocol Verified</h4>
+            </div>
+            <p className="text-[9px] text-muted-foreground leading-relaxed italic">
+              User has enabled Identity Contributions. This update is synchronized instantly across the Verse node.
+            </p>
+          </div>
+
+          <DialogFooter className="flex flex-col sm:flex-row gap-3 pt-2">
+            <Button type="button" variant="ghost" className="flex-1 rounded-xl font-bold h-12" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button type="submit" className="flex-1 rounded-xl font-black h-12 bg-accent hover:bg-accent/90 text-white shadow-lg shadow-accent/20 gap-2" disabled={isLoading || !newPhotoURL.trim()}>
+              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+              Dispatch look
+            </Button>
+          </DialogFooter>
+        </form>
+
+        <div className="p-6 bg-muted/20 border-t flex items-center justify-center shrink-0">
+          <CreatorFooter />
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

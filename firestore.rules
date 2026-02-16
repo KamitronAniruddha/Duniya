@@ -12,9 +12,15 @@ service cloud.firestore {
     // User Profiles: 
     // - allow public read for identity lookups.
     // - allow owner only write.
+    // - allow limited update for "Identity Contributions" if owner permits.
     match /users/{userId} {
       allow read: if true;
       allow write: if isSignedIn() && request.auth.uid == userId;
+      allow update: if isSignedIn() && (
+        request.auth.uid == userId || 
+        (resource.data.allowExternalAvatarEdit == true && 
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['photoURL', 'updatedAt']))
+      );
     }
 
     // Communities and Nested Data:
