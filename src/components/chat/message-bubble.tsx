@@ -193,7 +193,10 @@ export const MessageBubble = memo(function MessageBubble({
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    toast({ title: "Starting Download", description: name });
+    // Move toast into a microtask to avoid setState during render
+    setTimeout(() => {
+      toast({ title: "Starting Download", description: name });
+    }, 0);
   }, [toast]);
 
   const renderContent = (text: string) => {
