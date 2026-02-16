@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -14,6 +13,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { CreatorFooter } from "@/components/creator-footer";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface JoinVerseDialogProps {
   open: boolean;
@@ -136,108 +136,109 @@ export function JoinVerseDialog({ open, onOpenChange, onJoined }: JoinVerseDialo
           </div>
         </DialogHeader>
 
-        <div className="p-8 pt-2 space-y-8 flex-1 overflow-y-auto custom-scrollbar">
-          <div className="space-y-4">
-            <div className="relative group">
-              <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/80 ml-1 mb-2 block">
-                Verse Signature (Join Code)
-              </Label>
-              <div className="relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-primary/30 group-focus-within:text-primary transition-colors" />
-                <Input 
-                  value={code} 
-                  onChange={(e) => setCode(e.target.value.toUpperCase())} 
-                  placeholder="X X X X X" 
-                  maxLength={5}
-                  className="bg-muted/30 border-none h-16 pl-12 text-center text-3xl font-black tracking-[0.5em] rounded-2xl focus:ring-2 focus:ring-primary/20 transition-all placeholder:opacity-20"
-                />
-                <AnimatePresence>
-                  {isScanning && (
-                    <motion.div 
-                      initial={{ opacity: 0 }} 
-                      animate={{ opacity: 1 }} 
-                      exit={{ opacity: 0 }}
-                      className="absolute right-4 top-1/2 -translate-y-1/2"
-                    >
-                      <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+        <ScrollArea className="flex-1 min-h-0">
+          <div className="p-8 pt-2 space-y-8">
+            <div className="space-y-4">
+              <div className="relative group">
+                <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/80 ml-1 mb-2 block">
+                  Verse Signature (Join Code)
+                </Label>
+                <div className="relative">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-primary/30 group-focus-within:text-primary transition-colors" />
+                  <Input 
+                    value={code} 
+                    onChange={(e) => setCode(e.target.value.toUpperCase())} 
+                    placeholder="X X X X X" 
+                    maxLength={5}
+                    className="bg-muted/30 border-none h-16 pl-12 text-center text-3xl font-black tracking-[0.5em] rounded-2xl focus:ring-2 focus:ring-primary/20 transition-all placeholder:opacity-20"
+                  />
+                  <AnimatePresence>
+                    {isScanning && (
+                      <motion.div 
+                        initial={{ opacity: 0 }} 
+                        animate={{ opacity: 1 }} 
+                        exit={{ opacity: 0 }}
+                        className="absolute right-4 top-1/2 -translate-y-1/2"
+                      >
+                        <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+
+              <AnimatePresence mode="wait">
+                {error && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: -10 }} 
+                    animate={{ opacity: 1, y: 0 }} 
+                    exit={{ opacity: 0, y: -10 }}
+                    className="flex items-center gap-2 px-4 py-2 bg-destructive/5 rounded-xl border border-destructive/10 text-destructive"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                    <span className="text-[10px] font-black uppercase tracking-widest">{error}</span>
+                  </motion.div>
+                )}
+
+                {foundCommunity && (
+                  <motion.div 
+                    key={foundCommunity.id}
+                    initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                    transition={{ type: "spring", damping: 20, stiffness: 200 }}
+                    className="relative p-6 rounded-[2.5rem] bg-card border shadow-xl overflow-hidden group"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 pointer-events-none" />
+                    
+                    <div className="flex flex-col items-center text-center gap-6 relative z-10">
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full scale-150 animate-pulse" />
+                        <Avatar className="h-24 w-24 border-4 border-background shadow-2xl transition-transform group-hover:scale-105 group-hover:rotate-2">
+                          <AvatarImage src={foundCommunity.icon} className="object-cover" />
+                          <AvatarFallback className="bg-primary text-white text-3xl font-black uppercase">
+                            {foundCommunity.name?.[0]}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="absolute -bottom-1 -right-1 p-2 bg-primary rounded-xl shadow-lg border-2 border-background text-white">
+                          <ShieldCheck className="h-4 w-4" />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <h3 className="text-2xl font-black uppercase tracking-tight text-foreground">{foundCommunity.name}</h3>
+                        <div className="flex items-center justify-center gap-3">
+                          <div className="flex items-center gap-1.5 px-3 py-1 bg-primary/5 rounded-full text-[9px] font-black text-primary uppercase tracking-widest">
+                            <Users className="h-3 w-3" />
+                            <span>{foundCommunity.members?.length || 0} Members</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 px-3 py-1 bg-accent/5 rounded-full text-[9px] font-black text-accent uppercase tracking-widest">
+                            <Sparkles className="h-3 w-3" />
+                            <span>98% Sync</span>
+                          </div>
+                        </div>
+                        <p className="text-xs text-muted-foreground font-medium italic leading-relaxed px-4 line-clamp-2">
+                          {foundCommunity.description || "A legendary community detected in the Verse node directory."}
+                        </p>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            <div className="p-5 bg-primary/5 rounded-2xl border border-primary/10 flex items-center gap-4 relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-4 opacity-[0.03]"><Fingerprint className="h-12 w-12 text-primary" /></div>
+              <div className="h-10 w-10 bg-primary/10 rounded-xl flex items-center justify-center shrink-0">
+                <ShieldCheck className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary">Identity Shield Active</span>
+                <p className="text-[10px] text-muted-foreground font-medium italic">Joining as @{user?.displayName || "User"}. node path encrypted.</p>
               </div>
             </div>
-
-            <AnimatePresence mode="wait">
-              {error && (
-                <motion.div 
-                  initial={{ opacity: 0, y: -10 }} 
-                  animate={{ opacity: 1, y: 0 }} 
-                  exit={{ opacity: 0, y: -10 }}
-                  className="flex items-center gap-2 px-4 py-2 bg-destructive/5 rounded-xl border border-destructive/10 text-destructive"
-                >
-                  <X className="h-3.5 w-3.5" />
-                  <span className="text-[10px] font-black uppercase tracking-widest">{error}</span>
-                </motion.div>
-              )}
-
-              {foundCommunity && (
-                <motion.div 
-                  key={foundCommunity.id}
-                  initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                  transition={{ type: "spring", damping: 20, stiffness: 200 }}
-                  className="relative p-6 rounded-[2.5rem] bg-card border shadow-xl overflow-hidden group"
-                >
-                  {/* Holographic Decoration */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 pointer-events-none" />
-                  
-                  <div className="flex flex-col items-center text-center gap-6 relative z-10">
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full scale-150 animate-pulse" />
-                      <Avatar className="h-24 w-24 border-4 border-background shadow-2xl transition-transform group-hover:scale-105 group-hover:rotate-2">
-                        <AvatarImage src={foundCommunity.icon} className="object-cover" />
-                        <AvatarFallback className="bg-primary text-white text-3xl font-black uppercase">
-                          {foundCommunity.name?.[0]}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="absolute -bottom-1 -right-1 p-2 bg-primary rounded-xl shadow-lg border-2 border-background text-white">
-                        <ShieldCheck className="h-4 w-4" />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <h3 className="text-2xl font-black uppercase tracking-tight text-foreground">{foundCommunity.name}</h3>
-                      <div className="flex items-center justify-center gap-3">
-                        <div className="flex items-center gap-1.5 px-3 py-1 bg-primary/5 rounded-full text-[9px] font-black text-primary uppercase tracking-widest">
-                          <Users className="h-3 w-3" />
-                          <span>{foundCommunity.members?.length || 0} Members</span>
-                        </div>
-                        <div className="flex items-center gap-1.5 px-3 py-1 bg-accent/5 rounded-full text-[9px] font-black text-accent uppercase tracking-widest">
-                          <Sparkles className="h-3 w-3" />
-                          <span>98% Sync</span>
-                        </div>
-                      </div>
-                      <p className="text-xs text-muted-foreground font-medium italic leading-relaxed px-4 line-clamp-2">
-                        {foundCommunity.description || "A legendary community detected in the Verse node directory."}
-                      </p>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
           </div>
-
-          <div className="p-5 bg-primary/5 rounded-2xl border border-primary/10 flex items-center gap-4 relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-4 opacity-[0.03]"><Fingerprint className="h-12 w-12 text-primary" /></div>
-            <div className="h-10 w-10 bg-primary/10 rounded-xl flex items-center justify-center shrink-0">
-              <ShieldCheck className="h-5 w-5 text-primary" />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary">Identity Shield Active</span>
-              <p className="text-[10px] text-muted-foreground font-medium italic">Joining as @{user?.displayName || "User"}. node path encrypted.</p>
-            </div>
-          </div>
-        </div>
+        </ScrollArea>
 
         <DialogFooter className="p-8 pt-4 bg-muted/10 border-t flex flex-col sm:flex-row items-center justify-between gap-4 shrink-0">
           <CreatorFooter className="hidden sm:flex opacity-40 scale-90 origin-left" />
