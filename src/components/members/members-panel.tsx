@@ -509,7 +509,7 @@ function MemberItem({
       </div>
 
       <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-        {onReply && member.id !== currentUser?.uid && (
+        {onReply && member.id !== currentUser?.uid && !isHidden && (
           <Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:text-primary/80 hover:bg-primary/10" onClick={() => onReply(member)}>
             <Camera className="h-3.5 w-3.5" />
           </Button>

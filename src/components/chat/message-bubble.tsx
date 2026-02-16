@@ -61,6 +61,7 @@ interface MessageBubbleProps {
       senderPhotoURL?: string;
       text: string;
       profileContext?: {
+        targetUserId?: string;
         totalCommunities: number;
         commonCommunities: number;
         bio?: string;
@@ -683,7 +684,7 @@ export const MessageBubble = memo(function MessageBubble({
                   <Reply className="h-3.5 w-3.5" /> Reply
                 </button>
                 <div className="w-[1px] h-4 bg-border" />
-                <button onClick={() => handleDownload(message.imageUrl!, message.fileName || "image.jpg")} className="flex items-center gap-2 text-[10px] font-black uppercase text-foreground hover:text-primary transition-colors">
+                <button onClick={handleDownload(message.imageUrl!, message.fileName || "image.jpg")} className="flex items-center gap-2 text-[10px] font-black uppercase text-foreground hover:text-primary transition-colors">
                   <Download className="h-3.5 w-3.5" /> Save
                 </button>
               </div>
@@ -723,129 +724,13 @@ export const MessageBubble = memo(function MessageBubble({
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isProfileThoughtOpen} onOpenChange={setIsProfileThoughtOpen}>
-        <DialogContent className="sm:max-w-[450px] w-[95vw] rounded-[2.5rem] border-none shadow-2xl p-0 overflow-hidden bg-background z-[2000] h-[80vh] max-h-[80vh] flex flex-col animate-in fade-in zoom-in-95 duration-300">
-          <DialogHeader className="p-8 pb-4 bg-gradient-to-b from-primary/15 via-primary/5 to-transparent shrink-0 relative">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-primary animate-pulse" />
-                <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary">Intelligence Insight</span>
-              </div>
-              <Zap className="h-4 w-4 text-primary/40" />
-            </div>
-            <DialogTitle className="text-3xl font-[900] tracking-tighter uppercase leading-none">Shared Context</DialogTitle>
-            <DialogDescription className="font-medium text-muted-foreground text-xs mt-2 italic">
-              "Captured intelligence from this identity thought."
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="flex-1 overflow-hidden relative">
-            <ScrollArea className="h-full">
-              <div className="p-8 pt-2 space-y-8">
-                <motion.div 
-                  initial={{ scale: 0.9, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ duration: 0.4, ease: "easeOut" }}
-                  className="flex items-center gap-5"
-                >
-                  <div className="relative group">
-                    <Avatar className="h-24 w-24 border-4 border-background shadow-2xl rounded-[2rem] ring-1 ring-primary/10 transition-transform group-hover:scale-105">
-                      <AvatarImage src={message.replyTo?.senderPhotoURL} className="object-cover" />
-                      <AvatarFallback className="bg-primary text-white text-3xl font-black uppercase">
-                        {message.replyTo?.senderName?.[0]}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="absolute -bottom-1 -right-1 p-2 bg-primary rounded-xl shadow-xl border-2 border-background animate-in zoom-in duration-500 delay-200">
-                      <Camera className="h-4 w-4 text-white" />
-                    </div>
-                  </div>
-                  <div className="flex flex-col">
-                    <h3 className="text-2xl font-[900] uppercase tracking-tighter text-foreground leading-none">@{message.replyTo?.senderName}</h3>
-                    <div className="flex items-center gap-2 mt-2">
-                      <div className="flex items-center gap-1.5 px-2 py-0.5 bg-primary/10 rounded-full border border-primary/20">
-                        <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-                        <span className="text-[8px] font-black uppercase tracking-widest text-primary">Verse Identified</span>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-                
-                <motion.div 
-                  initial={{ y: 15, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.2, duration: 0.4 }}
-                  className="p-6 bg-muted/30 rounded-[2rem] border border-border/50 relative overflow-hidden group glass"
-                >
-                  <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                    <Info className="h-14 w-14 text-primary" />
-                  </div>
-                  <p className="text-base text-foreground/80 leading-relaxed font-medium italic relative z-10">
-                    "{message.replyTo?.profileContext?.bio || "A legendary member of the Duniya Verse."}"
-                  </p>
-                </motion.div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <motion.div 
-                    initial={{ x: -20, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    whileHover={{ y: -5, scale: 1.02 }}
-                    transition={{ delay: 0.3, duration: 0.5, type: "spring" }}
-                    className="p-5 bg-primary/5 rounded-[2rem] border border-primary/10 flex flex-col gap-3 group transition-all cursor-default shadow-sm hover:shadow-xl hover:bg-primary/10"
-                  >
-                    <div className="flex items-center gap-2 text-primary">
-                      <div className="p-2 bg-primary/10 rounded-xl group-hover:rotate-12 transition-transform">
-                        <Globe className="h-5 w-5" />
-                      </div>
-                      <span className="text-[10px] font-black uppercase tracking-[0.2em]">Connected</span>
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-3xl font-[900] tracking-tighter text-foreground leading-none">
-                        {message.replyTo?.profileContext?.totalCommunities || 0}
-                      </span>
-                      <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 mt-1">Total Verses</span>
-                    </div>
-                  </motion.div>
-                  
-                  <motion.div 
-                    initial={{ x: 20, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    whileHover={{ y: -5, scale: 1.02 }}
-                    transition={{ delay: 0.4, duration: 0.5, type: "spring" }}
-                    className="p-5 bg-accent/5 rounded-[2rem] border border-accent/10 flex flex-col gap-3 group transition-all cursor-default shadow-sm hover:shadow-xl hover:bg-accent/10"
-                  >
-                    <div className="flex items-center gap-2 text-accent">
-                      <div className="p-2 bg-accent/10 rounded-xl group-hover:rotate-12 transition-transform">
-                        <Users className="h-5 w-5" />
-                      </div>
-                      <span className="text-[10px] font-black uppercase tracking-[0.2em]">Mutual Verse</span>
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-3xl font-[900] tracking-tighter text-foreground leading-none">
-                        {message.replyTo?.profileContext?.commonCommunities || 0}
-                      </span>
-                      <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 mt-1">Shared Nodes</span>
-                    </div>
-                  </motion.div>
-                </div>
-
-                <motion.div 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.6 }}
-                  className="flex items-center justify-center gap-3 py-4 border-t border-dashed opacity-40 grayscale"
-                >
-                  <Activity className="h-4 w-4 text-primary" />
-                  <span className="text-[10px] font-black uppercase tracking-[0.3em]">Network Intelligence Verified</span>
-                </motion.div>
-              </div>
-            </ScrollArea>
-          </div>
-
-          <div className="p-6 bg-muted/20 border-t flex items-center justify-center shrink-0">
-            <CreatorFooter />
-          </div>
-        </DialogContent>
-      </Dialog>
+      {message.replyTo?.messageId === 'profile' && (
+        <SharedContextDialog 
+          open={isProfileThoughtOpen} 
+          onOpenChange={setIsProfileThoughtOpen} 
+          replyTo={message.replyTo} 
+        />
+      )}
     </div>
   );
 }, (prev, next) => {
@@ -859,6 +744,184 @@ export const MessageBubble = memo(function MessageBubble({
          JSON.stringify(prev.message.reactions) === JSON.stringify(next.message.reactions) &&
          JSON.stringify(prev.message.replyTo) === JSON.stringify(next.message.replyTo);
 });
+
+function SharedContextDialog({ open, onOpenChange, replyTo }: { open: boolean; onOpenChange: (open: boolean) => void; replyTo: any }) {
+  const db = useFirestore();
+  const { user: currentUser } = useUser();
+  const targetUserId = replyTo.profileContext?.targetUserId;
+  
+  const targetUserRef = useMemoFirebase(() => (targetUserId ? doc(db, "users", targetUserId) : null), [db, targetUserId]);
+  const { data: currentTargetData } = useDoc(targetUserRef);
+
+  // Transient Key Logic for Shared Context
+  const isBlurred = !!currentTargetData?.isProfileBlurred && 
+                    currentTargetData?.id !== currentUser?.uid && 
+                    !currentTargetData?.authorizedViewers?.includes(currentUser?.uid || "");
+  
+  const isHidden = !!currentTargetData?.isProfileHidden && currentTargetData?.id !== currentUser?.uid;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[450px] w-[95vw] rounded-[2.5rem] border-none shadow-2xl p-0 overflow-hidden bg-background z-[2000] h-[80vh] max-h-[80vh] flex flex-col animate-in fade-in zoom-in-95 duration-300">
+        <DialogHeader className="p-8 pb-4 bg-gradient-to-b from-primary/15 via-primary/5 to-transparent shrink-0 relative">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary animate-pulse" />
+              <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary">Intelligence Insight</span>
+            </div>
+            <Zap className="h-4 w-4 text-primary/40" />
+          </div>
+          <DialogTitle className="text-3xl font-[900] tracking-tighter uppercase leading-none">Shared Context</DialogTitle>
+          <DialogDescription className="font-medium text-muted-foreground text-xs mt-2 italic">
+            {isHidden ? "The source identity has been encrypted." : "\"Captured intelligence from this identity thought.\""}
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="flex-1 overflow-hidden relative">
+          <ScrollArea className="h-full">
+            <div className="p-8 pt-2 space-y-8">
+              {isHidden ? (
+                <div className="flex flex-col items-center justify-center py-12 gap-6 text-center">
+                  <div className="h-32 w-32 bg-muted rounded-[3rem] flex items-center justify-center text-muted-foreground animate-pulse border-4 border-background shadow-2xl">
+                    <Ghost className="h-16 w-16" />
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="text-xl font-black uppercase tracking-tighter">Identity Encrypted</h3>
+                    <p className="text-xs text-muted-foreground font-medium italic px-8">The user has restricted access to their identity protocol. Captured context is no longer visible.</p>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <motion.div 
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ duration: 0.4, ease: "easeOut" }}
+                    className="flex items-center gap-5"
+                  >
+                    <div className="relative group">
+                      <Avatar className={cn(
+                        "h-24 w-24 border-4 border-background shadow-2xl rounded-[2rem] ring-1 ring-primary/10 transition-transform",
+                        !isBlurred && "group-hover:scale-105",
+                        isBlurred && "blur-xl"
+                      )}>
+                        <AvatarImage src={isBlurred ? undefined : replyTo.senderPhotoURL} className="object-cover" />
+                        <AvatarFallback className="bg-primary text-white text-3xl font-black uppercase">
+                          {replyTo.senderName?.[0]}
+                        </AvatarFallback>
+                      </Avatar>
+                      {!isBlurred && (
+                        <div className="absolute -bottom-1 -right-1 p-2 bg-primary rounded-xl shadow-xl border-2 border-background animate-in zoom-in duration-500 delay-200">
+                          <Camera className="h-4 w-4 text-white" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex flex-col">
+                      <h3 className="text-2xl font-[900] uppercase tracking-tighter text-foreground leading-none">@{replyTo.senderName}</h3>
+                      <div className="flex items-center gap-2 mt-2">
+                        <div className="flex items-center gap-1.5 px-2 py-0.5 bg-primary/10 rounded-full border border-primary/20">
+                          <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+                          <span className="text-[8px] font-black uppercase tracking-widest text-primary">Verse Identified</span>
+                        </div>
+                        {isBlurred && (
+                          <div className="flex items-center gap-1.5 px-2 py-0.5 bg-amber-500/10 rounded-full border border-amber-500/20">
+                            <Lock className="h-2 w-2 text-amber-600" />
+                            <span className="text-[8px] font-black uppercase tracking-widest text-amber-600">Blurred</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                  
+                  <motion.div 
+                    initial={{ y: 15, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.2, duration: 0.4 }}
+                    className={cn(
+                      "p-6 bg-muted/30 rounded-[2rem] border border-border/50 relative overflow-hidden group glass",
+                      isBlurred && "blur-md select-none pointer-events-none"
+                    )}
+                  >
+                    <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                      <Info className="h-14 w-14 text-primary" />
+                    </div>
+                    <p className="text-base text-foreground/80 leading-relaxed font-medium italic relative z-10">
+                      "{replyTo.profileContext?.bio || "A legendary member of the Duniya Verse."}"
+                    </p>
+                  </motion.div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <motion.div 
+                      initial={{ x: -20, opacity: 0 }}
+                      animate={{ x: 0, opacity: 1 }}
+                      whileHover={{ y: -5, scale: 1.02 }}
+                      transition={{ delay: 0.3, duration: 0.5, type: "spring" }}
+                      className="p-5 bg-primary/5 rounded-[2rem] border border-primary/10 flex flex-col gap-3 group transition-all cursor-default shadow-sm hover:shadow-xl hover:bg-primary/10"
+                    >
+                      <div className="flex items-center gap-2 text-primary">
+                        <div className="p-2 bg-primary/10 rounded-xl group-hover:rotate-12 transition-transform">
+                          <Globe className="h-5 w-5" />
+                        </div>
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em]">Connected</span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-3xl font-[900] tracking-tighter text-foreground leading-none">
+                          {replyTo.profileContext?.totalCommunities || 0}
+                        </span>
+                        <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 mt-1">Total Verses</span>
+                      </div>
+                    </motion.div>
+                    
+                    <motion.div 
+                      initial={{ x: 20, opacity: 0 }}
+                      animate={{ x: 0, opacity: 1 }}
+                      whileHover={{ y: -5, scale: 1.02 }}
+                      transition={{ delay: 0.4, duration: 0.5, type: "spring" }}
+                      className="p-5 bg-accent/5 rounded-[2rem] border border-accent/10 flex flex-col gap-3 group transition-all cursor-default shadow-sm hover:shadow-xl hover:bg-accent/10"
+                    >
+                      <div className="flex items-center gap-2 text-accent">
+                        <div className="p-2 bg-accent/10 rounded-xl group-hover:rotate-12 transition-transform">
+                          <Users className="h-5 w-5" />
+                        </div>
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em]">Mutual Verse</span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-3xl font-[900] tracking-tighter text-foreground leading-none">
+                          {replyTo.profileContext?.commonCommunities || 0}
+                        </span>
+                        <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 mt-1">Shared Nodes</span>
+                      </div>
+                    </motion.div>
+                  </div>
+
+                  {isBlurred && (
+                    <div className="mt-4 p-4 bg-amber-500/5 rounded-2xl border border-amber-500/10 text-center">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-amber-700">Transient Permission Required</p>
+                      <p className="text-[9px] text-muted-foreground mt-1">Open the source profile to request an unblur key.</p>
+                    </div>
+                  )}
+
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.6 }}
+                    className="flex items-center justify-center gap-3 py-4 border-t border-dashed opacity-40 grayscale"
+                  >
+                    <Activity className="h-4 w-4 text-primary" />
+                    <span className="text-[10px] font-black uppercase tracking-[0.3em]">Network Intelligence Verified</span>
+                  </motion.div>
+                </>
+              )}
+            </div>
+          </ScrollArea>
+        </div>
+
+        <div className="p-6 bg-muted/20 border-t flex items-center justify-center shrink-0">
+          <CreatorFooter />
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 function ReactionDetailsDialog({ open, onOpenChange, emoji, uids }: { open: boolean; onOpenChange: (open: boolean) => void; emoji: string; uids: string[] }) {
   const db = useFirestore();

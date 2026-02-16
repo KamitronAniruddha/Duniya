@@ -336,6 +336,7 @@ export function MessageInput({
       finalTargetPhoto,
       !!profileReplyTarget,
       profileReplyTarget ? {
+        targetUserId: profileReplyTarget.id,
         totalCommunities: profileReplyTarget.totalCommunities,
         commonCommunities: profileReplyTarget.commonCommunities,
         bio: profileReplyTarget.bio
