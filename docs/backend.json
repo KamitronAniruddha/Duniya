@@ -189,6 +189,11 @@
           "type": "string",
           "description": "Reference to the User who owns the community. (Relationship: User 1:N Community)"
         },
+        "members": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "List of user IDs who are members of this community."
+        },
         "isPublic": {
           "type": "boolean",
           "description": "Indicates if the community is public or private."
@@ -209,6 +214,7 @@
         "name",
         "ownerId",
         "isPublic",
+        "members",
         "createdAt"
       ]
     },
@@ -510,274 +516,6 @@
         "createdAt"
       ]
     },
-    "MediaAttachment": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "MediaAttachment",
-      "type": "object",
-      "description": "Represents a file or media attached to a message or story.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the MediaAttachment entity."
-        },
-        "uploaderId": {
-          "type": "string",
-          "description": "Reference to the User who uploaded the media. (Relationship: User 1:N MediaAttachment)"
-        },
-        "fileUrl": {
-          "type": "string",
-          "description": "URL to the stored media file.",
-          "format": "uri"
-        },
-        "thumbnailUrl": {
-          "type": "string",
-          "description": "URL to a thumbnail image for video or image files.",
-          "format": "uri"
-        },
-        "fileType": {
-          "type": "string",
-          "description": "Type of media (e.g., 'image', 'video', 'audio', 'document', 'gif')."
-        },
-        "fileName": {
-          "type": "string",
-          "description": "Original name of the uploaded file."
-        },
-        "fileSize": {
-          "type": "number",
-          "description": "Size of the file in bytes."
-        },
-        "duration": {
-          "type": "number",
-          "description": "Duration of the audio/video file in seconds."
-        },
-        "uploadedAt": {
-          "type": "string",
-          "description": "Timestamp when the media was uploaded.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "uploaderId",
-        "fileUrl",
-        "fileType",
-        "fileName",
-        "fileSize",
-        "uploadedAt"
-      ]
-    },
-    "Call": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Call",
-      "type": "object",
-      "description": "Represents a voice or video call session (1-to-1 or group).",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Call entity."
-        },
-        "initiatorId": {
-          "type": "string",
-          "description": "Reference to the User who initiated the call. (Relationship: User 1:N Call)"
-        },
-        "type": {
-          "type": "string",
-          "description": "Type of call (e.g., '1-to-1_voice', 'group_video', 'voice_channel')."
-        },
-        "channelId": {
-          "type": "string",
-          "description": "Reference to the Channel if this is a voice/video channel call. (Relationship: Channel 1:N Call)"
-        },
-        "participantIds": {
-          "type": "array",
-          "description": "References to Users who participated in the call. (Relationship: Call N:N User)",
-          "items": {
-            "type": "string"
-          }
-        },
-        "startedAt": {
-          "type": "string",
-          "description": "Timestamp when the call started.",
-          "format": "date-time"
-        },
-        "endedAt": {
-          "type": "string",
-          "description": "Timestamp when the call ended.",
-          "format": "date-time"
-        },
-        "recordingUrl": {
-          "type": "string",
-          "description": "URL to the call recording, if enabled.",
-          "format": "uri"
-        },
-        "screenShareEnabled": {
-          "type": "boolean",
-          "description": "Indicates if screen sharing was active during the call."
-        }
-      },
-      "required": [
-        "id",
-        "initiatorId",
-        "type",
-        "participantIds",
-        "startedAt"
-      ]
-    },
-    "Story": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Story",
-      "type": "object",
-      "description": "Represents a disappearing story or status update posted by a user.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Story entity."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to the User who posted the story. (Relationship: User 1:N Story)"
-        },
-        "mediaUrl": {
-          "type": "string",
-          "description": "URL to the image or video content of the story.",
-          "format": "uri"
-        },
-        "caption": {
-          "type": "string",
-          "description": "Optional text caption for the story."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the story was created.",
-          "format": "date-time"
-        },
-        "expiresAt": {
-          "type": "string",
-          "description": "Timestamp when the story will automatically disappear (e.g., 24 hours after creation).",
-          "format": "date-time"
-        },
-        "viewedBy": {
-          "type": "array",
-          "description": "References to Users who have viewed this story. (Relationship: Story N:N User)",
-          "items": {
-            "type": "string"
-          }
-        }
-      },
-      "required": [
-        "id",
-        "userId",
-        "mediaUrl",
-        "createdAt",
-        "expiresAt"
-      ]
-    },
-    "Notification": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Notification",
-      "type": "object",
-      "description": "Represents a notification sent to a user, alerting them of an event.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Notification entity."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to the User who is the recipient of the notification. (Relationship: User 1:N Notification)"
-        },
-        "type": {
-          "type": "string",
-          "description": "Type of notification (e.g., 'message', 'mention', 'call', 'friendRequest', 'communityInvite', 'storyUpdate')."
-        },
-        "sourceEntityId": {
-          "type": "string",
-          "description": "ID of the entity that triggered the notification (e.g., messageId, callId, friendshipId, communityId)."
-        },
-        "sourceEntityType": {
-          "type": "string",
-          "description": "Type of the entity that triggered the notification (e.g., 'Message', 'Call', 'Friendship', 'Community')."
-        },
-        "message": {
-          "type": "string",
-          "description": "The human-readable message content of the notification."
-        },
-        "isRead": {
-          "type": "boolean",
-          "description": "Indicates if the notification has been read by the user."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the notification was created.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "userId",
-        "type",
-        "sourceEntityId",
-        "sourceEntityType",
-        "message",
-        "isRead",
-        "createdAt"
-      ]
-    },
-    "Report": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Report",
-      "type": "object",
-      "description": "Represents a user-submitted report against content or another user for moderation.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Report entity."
-        },
-        "reporterId": {
-          "type": "string",
-          "description": "Reference to the User who submitted the report. (Relationship: User 1:N Report)"
-        },
-        "reportedEntityId": {
-          "type": "string",
-          "description": "ID of the entity being reported (e.g., messageId, userId, communityId)."
-        },
-        "reportedEntityType": {
-          "type": "string",
-          "description": "Type of the entity being reported (e.g., 'Message', 'User', 'Community', 'Channel')."
-        },
-        "reason": {
-          "type": "string",
-          "description": "Text describing the reason for the report."
-        },
-        "status": {
-          "type": "string",
-          "description": "Current status of the report (e.g., 'pending', 'reviewed', 'resolved', 'rejected')."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the report was submitted.",
-          "format": "date-time"
-        },
-        "resolvedByAdminId": {
-          "type": "string",
-          "description": "Reference to the Admin User who resolved the report, if applicable. (Relationship: User 1:N Report)"
-        },
-        "resolvedAt": {
-          "type": "string",
-          "description": "Timestamp when the report was resolved.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "reporterId",
-        "reportedEntityId",
-        "reportedEntityType",
-        "reason",
-        "status",
-        "createdAt"
-      ]
-    },
     "ExperiencePointActivity": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ExperiencePointActivity",
@@ -798,142 +536,6 @@
         "amount",
         "reason",
         "timestamp"
-      ]
-    },
-    "Achievement": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Achievement",
-      "type": "object",
-      "description": "Defines an achievement that users can unlock, often associated with an XP reward and special recognition.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Achievement entity."
-        },
-        "name": {
-          "type": "string",
-          "description": "The name of the achievement (e.g., 'Chat Master', 'Community Founder')."
-        },
-        "description": {
-          "type": "string",
-          "description": "A description of how to unlock the achievement and what it signifies."
-        },
-        "iconUrl": {
-          "type": "string",
-          "description": "URL to an icon or badge image representing the achievement.",
-          "format": "uri"
-        },
-        "xpReward": {
-          "type": "number",
-          "description": "The amount of experience points awarded upon unlocking this achievement."
-        },
-        "unlockCondition": {
-          "type": "string",
-          "description": "A programmatic or descriptive condition for unlocking the achievement (e.g., 'Send 1000 messages', 'Host 10 group calls')."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the achievement was defined.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "name",
-        "description",
-        "xpReward",
-        "unlockCondition",
-        "createdAt"
-      ]
-    },
-    "UserAchievement": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "UserAchievement",
-      "type": "object",
-      "description": "Junction entity recording when a specific user has unlocked an achievement.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the UserAchievement entity."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to the User who unlocked the achievement. (Relationship: User N:N Achievement)"
-        },
-        "achievementId": {
-          "type": "string",
-          "description": "Reference to the Achievement that was unlocked. (Relationship: User N:N Achievement)"
-        },
-        "unlockedAt": {
-          "type": "string",
-          "description": "Timestamp when the user unlocked the achievement.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "userId",
-        "achievementId",
-        "unlockedAt"
-      ]
-    },
-    "AIContextToolSuggestion": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "AIContextToolSuggestion",
-      "type": "object",
-      "description": "Records an AI-generated tool suggestion provided to a user based on conversation context.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the AIContextToolSuggestion entity."
-        },
-        "messageId": {
-          "type": "string",
-          "description": "Reference to the Message that triggered the AI suggestion. (Relationship: Message 1:N AIContextToolSuggestion)"
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to the User for whom the AI suggestion was generated. (Relationship: User 1:N AIContextToolSuggestion)"
-        },
-        "suggestionType": {
-          "type": "string",
-          "description": "The category or type of the suggestion (e.g., 'summarize', 'elaborate', 'knowledgeRetrieval', 'action')."
-        },
-        "suggestedToolName": {
-          "type": "string",
-          "description": "The name of the suggested tool or action (e.g., 'Summarize Response', 'Elaborate on Details')."
-        },
-        "suggestedParameters": {
-          "type": "string",
-          "description": "JSON string of parameters for the suggested tool, if any. Example: '{ \"messageCount\": 5, \"summarizeType\": \"key_points\" }'."
-        },
-        "displayContext": {
-          "type": "string",
-          "description": "Contextual information for displaying the suggestion (e.g., 'sidepanel', 'inline')."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the AI suggestion was generated.",
-          "format": "date-time"
-        },
-        "actionTaken": {
-          "type": "boolean",
-          "description": "Indicates if the user took action based on this suggestion."
-        },
-        "actionTakenAt": {
-          "type": "string",
-          "description": "Timestamp when the user took action on the suggestion.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "messageId",
-        "userId",
-        "suggestionType",
-        "suggestedToolName",
-        "createdAt",
-        "actionTaken"
       ]
     }
   },
@@ -986,26 +588,6 @@
         }
       },
       {
-        "path": "/users/{userId}/notifications/{notificationId}",
-        "definition": {
-          "entityName": "Notification",
-          "schema": {
-            "$ref": "#/backend/entities/Notification"
-          },
-          "description": "Private notifications for a specific user."
-        }
-      },
-      {
-        "path": "/users/{userId}/stories/{storyId}",
-        "definition": {
-          "entityName": "Story",
-          "schema": {
-            "$ref": "#/backend/entities/Story"
-          },
-          "description": "Disappearing stories posted by a user."
-        }
-      },
-      {
         "path": "/users/{userId}/xp_history/{xpActivityId}",
         "definition": {
           "entityName": "ExperiencePointActivity",
@@ -1013,36 +595,6 @@
             "$ref": "#/backend/entities/ExperiencePointActivity"
           },
           "description": "Detailed XP gain history."
-        }
-      },
-      {
-        "path": "/users/{userId}/achievements/{userAchievementId}",
-        "definition": {
-          "entityName": "UserAchievement",
-          "schema": {
-            "$ref": "#/backend/entities/UserAchievement"
-          },
-          "description": "Records when a user unlocks an achievement."
-        }
-      },
-      {
-        "path": "/users/{userId}/ai_suggestions/{suggestionId}",
-        "definition": {
-          "entityName": "AIContextToolSuggestion",
-          "schema": {
-            "$ref": "#/backend/entities/AIContextToolSuggestion"
-          },
-          "description": "AI-generated tool suggestions."
-        }
-      },
-      {
-        "path": "/friendships/{friendshipId}",
-        "definition": {
-          "entityName": "Friendship",
-          "schema": {
-            "$ref": "#/backend/entities/Friendship"
-          },
-          "description": "Relationships between users."
         }
       },
       {
@@ -1066,36 +618,6 @@
         }
       },
       {
-        "path": "/communities/{communityId}/roles/{roleId}",
-        "definition": {
-          "entityName": "Role",
-          "schema": {
-            "$ref": "#/backend/entities/Role"
-          },
-          "description": "Custom roles within a community."
-        }
-      },
-      {
-        "path": "/communities/{communityId}/user_roles/{userRoleId}",
-        "definition": {
-          "entityName": "UserRole",
-          "schema": {
-            "$ref": "#/backend/entities/UserRole"
-          },
-          "description": "User role assignments."
-        }
-      },
-      {
-        "path": "/communities/{communityId}/invite_links/{inviteId}",
-        "definition": {
-          "entityName": "InviteLink",
-          "schema": {
-            "$ref": "#/backend/entities/InviteLink"
-          },
-          "description": "Invite links for joining a community."
-        }
-      },
-      {
         "path": "/communities/{communityId}/channels/{channelId}/messages/{messageId}",
         "definition": {
           "entityName": "Message",
@@ -1106,53 +628,13 @@
         }
       },
       {
-        "path": "/communities/{communityId}/channels/{channelId}/messages/{messageId}/reactions/{reactionId}",
+        "path": "/communities/{communityId}/channels/{channelId}/typing/{userId}",
         "definition": {
-          "entityName": "MessageReaction",
+          "entityName": "User",
           "schema": {
-            "$ref": "#/backend/entities/MessageReaction"
+            "$ref": "#/backend/entities/User"
           },
-          "description": "User reactions to a specific message."
-        }
-      },
-      {
-        "path": "/media_attachments/{mediaId}",
-        "definition": {
-          "entityName": "MediaAttachment",
-          "schema": {
-            "$ref": "#/backend/entities/MediaAttachment"
-          },
-          "description": "Metadata for uploaded media."
-        }
-      },
-      {
-        "path": "/calls/{callId}",
-        "definition": {
-          "entityName": "Call",
-          "schema": {
-            "$ref": "#/backend/entities/Call"
-          },
-          "description": "Voice and video call records."
-        }
-      },
-      {
-        "path": "/reports/{reportId}",
-        "definition": {
-          "entityName": "Report",
-          "schema": {
-            "$ref": "#/backend/entities/Report"
-          },
-          "description": "Moderation reports."
-        }
-      },
-      {
-        "path": "/achievements/{achievementId}",
-        "definition": {
-          "entityName": "Achievement",
-          "schema": {
-            "$ref": "#/backend/entities/Achievement"
-          },
-          "description": "Global achievement definitions."
+          "description": "Real-time typing indicators."
         }
       }
     ],
