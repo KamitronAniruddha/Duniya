@@ -218,6 +218,22 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
       toast({ title: `Wiped last ${lastCountMessages.length} message(s)` });
       return true;
     }
+    if (cmd === "phide") {
+      if (user?.uid) {
+        const newState = !userData?.isProfileHidden;
+        updateDocumentNonBlocking(doc(db, "users", user.uid), { isProfileHidden: newState });
+        toast({ title: newState ? "Identity Protocol: Hidden" : "Identity Protocol: Visible", description: newState ? "Your profile popover is now encrypted." : "Others can now see your identity." });
+      }
+      return true;
+    }
+    if (cmd === "porn") {
+      if (user?.uid) {
+        const newState = !userData?.isProfileBlurred;
+        updateDocumentNonBlocking(doc(db, "users", user.uid), { isProfileBlurred: newState });
+        toast({ title: newState ? "Blur Protocol: Active" : "Blur Protocol: Disabled", description: newState ? "Profile now blurred. Others must request permission." : "Permission protocol removed." });
+      }
+      return true;
+    }
     if (cmd === "ping") {
       toast({ title: "Pong!", description: `Verse Sync Latency: ${Math.floor(Math.random() * 40) + 12}ms` });
       return true;
@@ -259,7 +275,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
     if (cmd === "help") {
       toast({ 
         title: "Verse Command Hub", 
-        description: "Available: @clr, @del, @whisper, @ping, @stats, @theme, @profile, @explore, @invite, @trace, @ghost, @font, @away, @online, @mute, @unmute, @shrug, @tableflip, @lenny, @sparkle, @logout, @id, @time, @version." 
+        description: "Available: @clr, @del, @whisper, @phide, @porn, @ping, @stats, @theme, @profile, @explore, @invite, @trace, @ghost, @font, @away, @online, @mute, @unmute, @shrug, @tableflip, @lenny, @sparkle, @logout, @id, @time, @version." 
       });
       return true;
     }

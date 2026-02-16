@@ -4,14 +4,14 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth, useFirestore, useUser, useDoc, useMemoFirebase } from "@/firebase";
 import { updateProfile, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "firebase/auth";
-import { doc } from "firebase/firestore";
+import { doc, arrayRemove, arrayUnion } from "firebase/firestore";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, User, Lock, Camera, ShieldAlert, Eye, EyeOff, Users, Palette, Check, Upload, Link, Monitor, Tablet, Smartphone, Sparkles, Trash2, Download, Heart, Maximize2 } from "lucide-react";
+import { Loader2, User, Lock, Camera, ShieldAlert, Eye, EyeOff, Users, Palette, Check, Upload, Link, Monitor, Tablet, Smartphone, Sparkles, Trash2, Download, Heart, Maximize2, Shield, UserCheck, X } from "lucide-react";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -21,6 +21,7 @@ import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { CreatorFooter } from "@/components/creator-footer";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface ProfileDialogProps {
   open: boolean;
@@ -65,6 +66,8 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
   const [allowGroupInvites, setAllowGroupInvites] = useState(true);
   const [showOnlineStatus, setShowOnlineStatus] = useState(true);
   const [interfaceMode, setInterfaceMode] = useState("laptop");
+  const [isProfileHidden, setIsProfileHidden] = useState(false);
+  const [isProfileBlurred, setIsProfileBlurred] = useState(false);
 
   useEffect(() => {
     if (userData && open) {
@@ -74,6 +77,8 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
       setAllowGroupInvites(userData.allowGroupInvites !== false);
       setShowOnlineStatus(userData.showOnlineStatus !== false);
       setInterfaceMode(userData.interfaceMode || "laptop");
+      setIsProfileHidden(!!userData.isProfileHidden);
+      setIsProfileBlurred(!!userData.isProfileBlurred);
     }
   }, [userData, open]);
 
@@ -128,6 +133,8 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
         photoURL: photoURL.trim() || null,
         bio: bio.trim() || null,
         interfaceMode: interfaceMode,
+        isProfileHidden,
+        isProfileBlurred,
         updatedAt: new Date().toISOString()
       });
 
@@ -138,6 +145,25 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleApproveRequest = (requestingUser: any) => {
+    if (!user || !db) return;
+    const userRef = doc(db, "users", user.uid);
+    updateDocumentNonBlocking(userRef, {
+      authorizedViewers: arrayUnion(requestingUser.uid),
+      pendingProfileRequests: arrayRemove(requestingUser)
+    });
+    toast({ title: "Key Granted", description: `@${requestingUser.username} can now see your identity.` });
+  };
+
+  const handleDenyRequest = (requestingUser: any) => {
+    if (!user || !db) return;
+    const userRef = doc(db, "users", user.uid);
+    updateDocumentNonBlocking(userRef, {
+      pendingProfileRequests: arrayRemove(requestingUser)
+    });
+    toast({ title: "Request Denied" });
   };
 
   return (
@@ -151,10 +177,15 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
           
           <Tabs defaultValue="profile" className="w-full">
             <TabsList className="grid w-full grid-cols-4 bg-muted/50 rounded-none h-12">
-              <TabsTrigger value="profile" className="data-[state=active]:bg-background font-bold text-[10px] uppercase tracking-widest">User</TabsTrigger>
-              <TabsTrigger value="interface" className="data-[state=active]:bg-background font-bold text-[10px] uppercase tracking-widest">UI</TabsTrigger>
-              <TabsTrigger value="privacy" className="data-[state=active]:bg-background font-bold text-[10px] uppercase tracking-widest">Privacy</TabsTrigger>
-              <TabsTrigger value="security" className="data-[state=active]:bg-background font-bold text-[10px] uppercase tracking-widest">Safety</TabsTrigger>
+              <TabsTrigger value="profile" className="data-[state=active]:bg-background font-bold text-[10px] uppercase tracking-widest text-[8px] sm:text-[10px]">User</TabsTrigger>
+              <TabsTrigger value="interface" className="data-[state=active]:bg-background font-bold text-[10px] uppercase tracking-widest text-[8px] sm:text-[10px]">UI</TabsTrigger>
+              <TabsTrigger value="privacy" className="data-[state=active]:bg-background font-bold text-[10px] uppercase tracking-widest text-[8px] sm:text-[10px]">Privacy</TabsTrigger>
+              <TabsTrigger value="requests" className="data-[state=active]:bg-background font-bold text-[10px] uppercase tracking-widest text-[8px] sm:text-[10px] relative">
+                Keys
+                {userData?.pendingProfileRequests?.length > 0 && (
+                  <span className="absolute -top-1 -right-1 h-2 w-2 bg-red-500 rounded-full animate-pulse" />
+                )}
+              </TabsTrigger>
             </TabsList>
             
             <div className="focus-visible:ring-0 custom-scrollbar max-h-[450px] overflow-y-auto">
@@ -238,6 +269,81 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
                     {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Apply Settings"}
                   </Button>
                 </div>
+              </TabsContent>
+
+              <TabsContent value="privacy" className="p-6 m-0 space-y-6">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 bg-muted/20 rounded-2xl border border-border/50">
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                        <EyeOff className="h-4 w-4 text-rose-500" />
+                        <Label className="text-sm font-black uppercase tracking-tight">Identity Hide</Label>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground font-medium italic">Others cannot open your profile.</p>
+                    </div>
+                    <Switch checked={isProfileHidden} onCheckedChange={setIsProfileHidden} />
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 bg-muted/20 rounded-2xl border border-border/50">
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                        <Lock className="h-4 w-4 text-amber-600" />
+                        <Label className="text-sm font-black uppercase tracking-tight">Blur Protocol</Label>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground font-medium italic">Request permission to view profile.</p>
+                    </div>
+                    <Switch checked={isProfileBlurred} onCheckedChange={setIsProfileBlurred} />
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 bg-muted/20 rounded-2xl border border-border/50">
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4 text-primary" />
+                        <Label className="text-sm font-black uppercase tracking-tight">Status Broadcast</Label>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground font-medium italic">Show when you are on-screen.</p>
+                    </div>
+                    <Switch checked={showOnlineStatus} onCheckedChange={setShowOnlineStatus} />
+                  </div>
+                </div>
+                <Button onClick={handleUpdateProfile} className="w-full h-12 rounded-xl font-black shadow-lg shadow-primary/20 uppercase tracking-widest" disabled={isLoading}>
+                  Save Privacy
+                </Button>
+              </TabsContent>
+
+              <TabsContent value="requests" className="p-0 m-0 h-[400px]">
+                <ScrollArea className="h-full">
+                  {userData?.pendingProfileRequests?.length > 0 ? (
+                    <div className="p-6 space-y-3">
+                      <h4 className="text-[10px] font-black uppercase tracking-widest text-primary mb-4">Pending Key Requests</h4>
+                      {userData.pendingProfileRequests.map((req: any) => (
+                        <div key={req.uid} className="flex items-center gap-3 p-3 bg-muted/20 rounded-2xl border border-border/50">
+                          <Avatar className="h-10 w-10 border shadow-sm">
+                            <AvatarImage src={req.photoURL} />
+                            <AvatarFallback className="bg-primary text-white font-black">{req.username?.[0]?.toUpperCase()}</AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <span className="text-xs font-black uppercase tracking-tight">@{req.username}</span>
+                            <p className="text-[9px] text-muted-foreground font-medium truncate italic">Wants access to your identity.</p>
+                          </div>
+                          <div className="flex gap-1">
+                            <Button size="icon" variant="ghost" className="h-8 w-8 rounded-lg text-destructive hover:bg-destructive/10" onClick={() => handleDenyRequest(req)}>
+                              <X className="h-4 w-4" />
+                            </Button>
+                            <Button size="icon" variant="ghost" className="h-8 w-8 rounded-lg text-primary hover:bg-primary/10" onClick={() => handleApproveRequest(req)}>
+                              <Check className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-full opacity-30 gap-4">
+                      <Shield className="h-12 w-12" />
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em]">No Active Requests</p>
+                    </div>
+                  )}
+                </ScrollArea>
               </TabsContent>
             </div>
           </Tabs>

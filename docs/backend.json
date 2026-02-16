@@ -26,7 +26,11 @@
         "mutedInviteCommunities": { 
           "type": "object",
           "description": "Map of communityId to ISO expiry date for muted invitations."
-        }
+        },
+        "isProfileHidden": { "type": "boolean", "description": "Whether the profile is hidden from others." },
+        "isProfileBlurred": { "type": "boolean", "description": "Whether the profile is blurred and requires permission." },
+        "authorizedViewers": { "type": "array", "items": { "type": "string" }, "description": "List of UIDs allowed to see blurred profile." },
+        "pendingProfileRequests": { "type": "array", "items": { "type": "object" }, "description": "List of pending access requests." }
       },
       "required": ["id", "displayName", "email", "createdAt"]
     },

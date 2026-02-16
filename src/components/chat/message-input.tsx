@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, SendHorizontal, Smile, History, Ghost, X, CornerDownRight, Mic, Square, Trash2, Video, Timer, Clock, Image as ImageIcon, Loader2, Paperclip, FileText, Bold, Italic, Type, TypeOutline, Eraser, Command, User as UserIcon, Reply, Camera, Globe, Users, Heart, Activity, Zap, Palette, Link, Compass, Check, BellOff, Bell, LogOut, Info, Sparkles } from "lucide-react";
+import { Plus, SendHorizontal, Smile, History, Ghost, X, CornerDownRight, Mic, Square, Trash2, Video, Timer, Clock, Image as ImageIcon, Loader2, Paperclip, FileText, Bold, Italic, Type, TypeOutline, Eraser, Command, User as UserIcon, Reply, Camera, Globe, Users, Heart, Activity, Zap, Palette, Link, Compass, Check, BellOff, Bell, LogOut, Info, Sparkles, EyeOff, Lock, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -86,6 +86,8 @@ const CHEAT_CODES = [
   { icon: <Activity className="h-4 w-4 text-emerald-500" />, label: "ping", description: "Sync check with the Verse node", usage: "@ping" },
   { icon: <Zap className="h-4 w-4 text-amber-500" />, label: "stats", description: "View your network intelligence data", usage: "@stats" },
   { icon: <Ghost className="h-4 w-4 text-indigo-400" />, label: "ghost", description: "Toggle ephemeral ghost mode", usage: "@ghost" },
+  { icon: <EyeOff className="h-4 w-4 text-rose-500" />, label: "phide", description: "Toggle profile visibility protocol", usage: "@phide" },
+  { icon: <Lock className="h-4 w-4 text-amber-600" />, label: "porn", description: "Toggle blur-to-permission protocol", usage: "@porn" },
   { icon: <Palette className="h-4 w-4 text-pink-500" />, label: "theme", description: "Cycle through Verse visual vibes", usage: "@theme" },
   { icon: <UserIcon className="h-4 w-4 text-blue-500" />, label: "profile", description: "Modify your identity signature", usage: "@profile" },
   { icon: <Link className="h-4 w-4 text-sky-500" />, label: "invite", description: "Generate a portal for new members", usage: "@invite" },
