@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -12,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { 
   Plus, Loader2, Camera, Sparkles, Globe, Shield, Users, 
   Check, ArrowRight, ChevronRight, ChevronLeft, ImagePlus, Link, 
-  Trash2, Search, X, Zap, Heart, Ghost, Timer
+  Trash2, Search, X, Zap, Heart, Ghost, Timer, ShieldCheck, ShieldAlert
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -38,6 +39,13 @@ const DISAPPEARING_OPTIONS = [
   { label: "Archive Cycle (90 Days)", value: "90d" },
 ];
 
+interface Recipient {
+  id: string;
+  username: string;
+  photoURL: string;
+  role: "member" | "admin";
+}
+
 export function CreateCommunityDialog({ open, onOpenChange, onCreated }: CreateCommunityDialogProps) {
   const db = useFirestore();
   const { user } = useUser();
@@ -55,7 +63,7 @@ export function CreateCommunityDialog({ open, onOpenChange, onCreated }: CreateC
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [selectedInvites, setSelectedInvites] = useState<any[]>([]);
+  const [selectedInvites, setSelectedInvites] = useState<Recipient[]>([]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -96,12 +104,26 @@ export function CreateCommunityDialog({ open, onOpenChange, onCreated }: CreateC
     return () => clearTimeout(timer);
   }, [searchQuery, db, user?.uid]);
 
-  const toggleInvite = (user: any) => {
+  const toggleInvite = (targetUser: any) => {
     setSelectedInvites(prev => {
-      const isSelected = prev.some(u => u.id === user.id);
-      if (isSelected) return prev.filter(u => u.id !== user.id);
-      return [...prev, user];
+      const isSelected = prev.some(u => u.id === targetUser.id);
+      if (isSelected) return prev.filter(u => u.id !== targetUser.id);
+      return [...prev, { 
+        id: targetUser.id, 
+        username: targetUser.username, 
+        photoURL: targetUser.photoURL || "", 
+        role: "member" 
+      }];
     });
+  };
+
+  const toggleRole = (userId: string) => {
+    setSelectedInvites(prev => prev.map(u => {
+      if (u.id === userId) {
+        return { ...u, role: u.role === "member" ? "admin" : "member" };
+      }
+      return u;
+    }));
   };
 
   const handleCreate = async () => {
@@ -120,7 +142,7 @@ export function CreateCommunityDialog({ open, onOpenChange, onCreated }: CreateC
         description: description.trim() || null,
         icon: iconURL || `https://picsum.photos/seed/${communityId}/400`,
         ownerId: user.uid,
-        admins: [],
+        admins: selectedInvites.filter(i => i.role === "admin").map(i => i.id),
         joinCode: joinCode,
         members: [user.uid],
         createdAt: new Date().toISOString(),
@@ -167,6 +189,7 @@ export function CreateCommunityDialog({ open, onOpenChange, onCreated }: CreateC
           communityIcon: communityData.icon,
           status: "pending",
           type: "genesis",
+          role: invitee.role, // Advanced: Different roles handled
           createdAt: new Date().toISOString()
         });
       }
@@ -214,7 +237,6 @@ export function CreateCommunityDialog({ open, onOpenChange, onCreated }: CreateC
         </button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[650px] w-[95vw] rounded-[2.5rem] p-0 overflow-hidden border-none shadow-[0_32px_128px_rgba(0,0,0,0.4)] bg-background h-[85vh] max-h-[700px] flex flex-col font-body">
-        {/* Synthesis Progress Header */}
         <header className="px-8 py-6 bg-card border-b shrink-0 flex flex-col gap-4 relative overflow-hidden">
           <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none">
             <Sparkles className="h-24 w-24 text-primary" />
@@ -273,6 +295,7 @@ export function CreateCommunityDialog({ open, onOpenChange, onCreated }: CreateC
                         </Avatar>
                         <div className="absolute -bottom-1 -right-1">
                           <button 
+                            type="button"
                             onClick={() => setIconMode(m => m === "url" ? "upload" : "url")}
                             className="p-2.5 bg-primary rounded-xl shadow-lg border-2 border-background text-white hover:scale-110 transition-all z-20"
                           >
@@ -288,7 +311,7 @@ export function CreateCommunityDialog({ open, onOpenChange, onCreated }: CreateC
                             value={name} 
                             onChange={(e) => setName(e.target.value)} 
                             placeholder="A legendary name..." 
-                            className="bg-background border-none h-12 rounded-xl font-[900] text-xl focus:ring-2 focus:ring-primary/10 shadow-lg placeholder:opacity-30"
+                            className="bg-background border-none h-12 rounded-xl font-[900] text-lg focus:ring-2 focus:ring-primary/10 shadow-lg placeholder:opacity-30"
                           />
                         </div>
                         
@@ -306,6 +329,7 @@ export function CreateCommunityDialog({ open, onOpenChange, onCreated }: CreateC
                           <motion.div variants={itemVariants} className="space-y-2">
                             <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Media Transfer</Label>
                             <button 
+                              type="button"
                               onClick={() => fileInputRef.current?.click()}
                               className="w-full h-11 rounded-xl border-2 border-dashed border-primary/20 bg-primary/5 hover:bg-primary/10 transition-all flex items-center justify-center gap-3 text-primary group/upload"
                             >
@@ -417,13 +441,14 @@ export function CreateCommunityDialog({ open, onOpenChange, onCreated }: CreateC
                       <AnimatePresence mode="popLayout">
                         {searchResults.length > 0 && (
                           <motion.div layout className="space-y-2">
-                            <h4 className="text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground/60 px-1">Results</h4>
+                            <h4 className="text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground/60 px-1">Universe Directory</h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                               {searchResults.map((u) => {
                                 const isInvited = selectedInvites.some(sel => sel.id === u.id);
                                 return (
                                   <button 
                                     key={u.id}
+                                    type="button"
                                     onClick={() => toggleInvite(u)}
                                     className={cn(
                                       "flex items-center gap-3 p-3 rounded-xl transition-all border text-left",
@@ -450,17 +475,44 @@ export function CreateCommunityDialog({ open, onOpenChange, onCreated }: CreateC
                       {selectedInvites.length > 0 && (
                         <motion.div layout className="space-y-3 pt-2">
                           <div className="h-px bg-border/20 w-full" />
-                          <h4 className="text-[9px] font-black uppercase tracking-[0.3em] text-primary px-1">Enlisted ({selectedInvites.length})</h4>
-                          <div className="flex flex-wrap gap-2">
+                          <h4 className="text-[9px] font-black uppercase tracking-[0.3em] text-primary px-1">Enlistment Queue ({selectedInvites.length})</h4>
+                          <div className="flex flex-col gap-2">
                             {selectedInvites.map(u => (
-                              <Badge key={u.id} className="pl-1 pr-2 py-1 bg-primary text-white rounded-lg border-none shadow-md flex items-center gap-2">
-                                <Avatar className="h-5 w-5 border border-white/20">
-                                  <AvatarImage src={u.photoURL} />
-                                  <AvatarFallback className="text-[8px] font-black">{u.username?.[0]}</AvatarFallback>
-                                </Avatar>
-                                <span className="text-[10px] font-bold">@{u.username}</span>
-                                <button onClick={() => toggleInvite(u)} className="hover:bg-white/20 rounded-full p-0.5"><X className="h-3 w-3" /></button>
-                              </Badge>
+                              <div key={u.id} className="flex items-center justify-between p-3 bg-primary/5 rounded-2xl border border-primary/10 group">
+                                <div className="flex items-center gap-3">
+                                  <Avatar className="h-8 w-8 border border-white/20 shadow-sm">
+                                    <AvatarImage src={u.photoURL} />
+                                    <AvatarFallback className="text-[8px] font-black">{u.username?.[0]}</AvatarFallback>
+                                  </Avatar>
+                                  <div className="flex flex-col">
+                                    <span className="text-xs font-bold text-foreground">@{u.username}</span>
+                                    <span className={cn(
+                                      "text-[8px] font-black uppercase tracking-widest",
+                                      u.role === "admin" ? "text-amber-600" : "text-primary/60"
+                                    )}>
+                                      {u.role === "admin" ? "Special Province Admin" : "Verse Citizen"}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <button 
+                                    type="button"
+                                    onClick={() => toggleRole(u.id)}
+                                    className={cn(
+                                      "px-3 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all border",
+                                      u.role === "admin" 
+                                        ? "bg-amber-500 text-white border-amber-600 shadow-lg shadow-amber-500/20" 
+                                        : "bg-background text-muted-foreground border-border hover:border-primary/20"
+                                    )}
+                                  >
+                                    {u.role === "admin" ? <ShieldCheck className="h-2.5 w-2.5 inline mr-1" /> : <Users className="h-2.5 w-2.5 inline mr-1" />}
+                                    {u.role === "admin" ? "Admin" : "Promote"}
+                                  </button>
+                                  <button onClick={() => toggleInvite(u)} className="p-2 hover:bg-destructive/10 text-destructive rounded-xl transition-colors">
+                                    <X className="h-3.5 w-3.5" />
+                                  </button>
+                                </div>
+                              </div>
                             ))}
                           </div>
                         </motion.div>
@@ -480,19 +532,19 @@ export function CreateCommunityDialog({ open, onOpenChange, onCreated }: CreateC
           </ScrollArea>
         </div>
 
-        {/* Unified Synthesis Footer */}
         <DialogFooter className="p-6 bg-card border-t shrink-0 flex flex-row items-center justify-between gap-4">
           <CreatorFooter className="hidden sm:flex opacity-40 scale-90 origin-left" />
           
           <div className="flex items-center gap-3 w-full sm:w-auto">
             {step > 0 && (
-              <Button variant="ghost" className="rounded-xl font-black uppercase tracking-widest h-11 px-6 hover:bg-muted text-[10px]" onClick={handleBack} disabled={isLoading}>
+              <Button type="button" variant="ghost" className="rounded-xl font-black uppercase tracking-widest h-11 px-6 hover:bg-muted text-[10px]" onClick={handleBack} disabled={isLoading}>
                 Back
               </Button>
             )}
             
             {step < STEPS.length - 1 ? (
               <Button 
+                type="button"
                 className="flex-1 sm:flex-none rounded-xl font-black h-11 px-8 shadow-lg shadow-primary/20 gap-2 uppercase tracking-widest text-[10px] group/next"
                 onClick={handleNext}
                 disabled={step === 0 && !name.trim()}
@@ -501,6 +553,7 @@ export function CreateCommunityDialog({ open, onOpenChange, onCreated }: CreateC
               </Button>
             ) : (
               <Button 
+                type="button"
                 className="flex-1 sm:flex-none rounded-xl font-black h-11 px-10 shadow-xl shadow-primary/30 gap-2 uppercase tracking-widest text-[10px] bg-primary hover:bg-primary/90 text-white"
                 onClick={handleCreate}
                 disabled={isLoading}
@@ -515,3 +568,5 @@ export function CreateCommunityDialog({ open, onOpenChange, onCreated }: CreateC
     </Dialog>
   );
 }
+
+const Separator = ({ className }: { className?: string }) => <div className={cn("h-px bg-border", className)} />;

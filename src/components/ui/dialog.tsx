@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -44,7 +45,8 @@ const DialogContent = React.forwardRef<
       {...props}
     >
       {children}
-      <DialogPrimitive.Close className="absolute right-5 top-5 rounded-full bg-destructive text-white hover:bg-destructive/90 p-1.5 transition-all shadow-lg hover:rotate-90 active:scale-95 group focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 z-[60]">
+      {/* High Fidelity Verse Exit Node */}
+      <DialogPrimitive.Close className="absolute right-5 top-5 rounded-full bg-destructive text-white hover:bg-destructive/90 p-1.5 transition-all shadow-[0_0_15px_rgba(var(--destructive),0.4)] hover:rotate-90 active:scale-95 group focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 z-[60] border-2 border-background">
         <X className="h-3.5 w-3.5 stroke-[3px]" />
         <span className="sr-only">Close</span>
       </DialogPrimitive.Close>
