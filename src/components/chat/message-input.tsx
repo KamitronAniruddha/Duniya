@@ -9,13 +9,14 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDoc, useFirestore, useMemoFirebase, useCollection, useUser } from "@/firebase";
-import { doc, collection, query, where, getDocs, limit } from "firebase/firestore";
+import { doc, collection, query, where, getDocs, limit, increment } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { setDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { setDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { motion, AnimatePresence } from "framer-motion";
 import { Label } from "@/components/ui/label";
+import { XP_REWARDS } from "@/lib/xp-system";
 
 interface ProfileReplyTarget {
   id: string;
@@ -202,6 +203,13 @@ export function MessageInput({
       bio: profileReplyTarget.bio,
       joinedAt: profileReplyTarget.joinedAt || new Date().toISOString()
     } : undefined;
+
+    // XP REWARD FOR MESSAGE
+    const xpReward = Math.floor(XP_REWARDS.MESSAGE_BASE + (text.length * XP_REWARDS.MESSAGE_PER_CHAR));
+    updateDocumentNonBlocking(doc(db, "users", user!.uid), {
+      xp: increment(xpReward),
+      "xpBreakdown.chatting": increment(xpReward)
+    });
 
     onSendMessage(
       text, 

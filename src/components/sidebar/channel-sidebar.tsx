@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 import { useCollection, useFirestore, useUser, useDoc, useMemoFirebase, useAuth } from "@/firebase";
 import { collection, query, doc, writeBatch, arrayRemove } from "firebase/firestore";
-import { Hash, Settings, ChevronDown, LogOut, Loader2, Plus, Timer, Globe, Mail, Info, Share2, Copy, Check, LogOut as LeaveIcon, AlertTriangle, Sparkles } from "lucide-react";
+import { Hash, Settings, ChevronDown, LogOut, Loader2, Plus, Timer, Globe, Mail, Info, Share2, Copy, Check, LogOut as LeaveIcon, AlertTriangle, Sparkles, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { CreatorFooter } from "@/components/creator-footer";
+import { XPVisualizer } from "@/components/xp/xp-visualizer";
 
 interface ChannelSidebarProps {
   serverId: string | null;
@@ -256,6 +257,9 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
       )}
 
       <div className="p-4 bg-muted/20 border-t flex flex-col gap-3 shrink-0">
+        {/* ASCENSION XP MINI VISUALIZER */}
+        <XPVisualizer xp={userData?.xp || 0} isMini className="px-1" />
+
         <Button 
           variant="outline" 
           size="sm" 
@@ -284,7 +288,10 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
               )} />
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="text-xs font-black truncate leading-none mb-1 uppercase tracking-tight">@{userData?.username || "..."}</span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-black truncate leading-none uppercase tracking-tight">@{userData?.username || "..."}</span>
+                <Badge variant="secondary" className="h-3 px-1 bg-primary/10 text-primary text-[6px] border-none font-black">L{userData?.level || 1}</Badge>
+              </div>
               <span className="text-[9px] text-muted-foreground font-black uppercase tracking-widest">{isOnline ? "online" : isIdle ? "away" : "offline"}</span>
             </div>
           </div>

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -15,7 +16,7 @@ import {
   Palette, Check, Upload, Link, Monitor, Tablet, Smartphone, 
   Sparkles, Trash2, Download, Heart, Maximize2, Shield, UserCheck, 
   X, Key, ImagePlus, Clock, Zap, Activity, Fingerprint, Globe, Waves, 
-  ShieldCheck, Milestone
+  ShieldCheck, Milestone, Trophy
 } from "lucide-react";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -29,6 +30,7 @@ import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { CreatorFooter } from "@/components/creator-footer";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { XPVisualizer } from "@/components/xp/xp-visualizer";
 
 interface ProfileDialogProps {
   open: boolean;
@@ -183,6 +185,9 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
             <TabsTrigger value="profile" className="w-full justify-start gap-3 px-4 py-3 rounded-xl font-bold text-xs uppercase tracking-tight data-[state=active]:bg-background data-[state=active]:shadow-lg transition-all text-left">
               <User className="h-4 w-4" /> Identity
             </TabsTrigger>
+            <TabsTrigger value="ascension" className="w-full justify-start gap-3 px-4 py-3 rounded-xl font-bold text-xs uppercase tracking-tight data-[state=active]:bg-background data-[state=active]:shadow-lg transition-all text-left">
+              <Trophy className="h-4 w-4" /> Ascension
+            </TabsTrigger>
             <TabsTrigger value="interface" className="w-full justify-start gap-3 px-4 py-3 rounded-xl font-bold text-xs uppercase tracking-tight data-[state=active]:bg-background data-[state=active]:shadow-lg transition-all text-left">
               <Palette className="h-4 w-4" /> Interface
             </TabsTrigger>
@@ -271,6 +276,45 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
                         placeholder="Share your thoughts with the Verse..."
                       />
                     </motion.div>
+                  </motion.div>
+                </TabsContent>
+
+                <TabsContent key="tab-ascension" value="ascension" className="p-8 m-0 outline-none">
+                  <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-8">
+                    <div className="flex items-center gap-3 px-2">
+                      <Trophy className="h-4 w-4 text-primary" />
+                      <h4 className="text-xs font-black uppercase tracking-widest text-foreground">Digital Lineage Statistics</h4>
+                    </div>
+
+                    <XPVisualizer xp={userData?.xp || 0} />
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="p-5 bg-background border border-border/50 rounded-2xl space-y-1">
+                        <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">Chatting Contributions</span>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xl font-black text-foreground">{userData?.xpBreakdown?.chatting || 0} XP</span>
+                          <MessageSquare className="h-4 w-4 text-primary/40" />
+                        </div>
+                      </div>
+                      <div className="p-5 bg-background border border-border/50 rounded-2xl space-y-1">
+                        <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">Presence & Login Sync</span>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xl font-black text-foreground">{userData?.xpBreakdown?.presence || 0} XP</span>
+                          <Activity className="h-4 w-4 text-accent/40" />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-6 bg-primary/5 rounded-3xl border border-primary/10 flex items-center gap-4 relative overflow-hidden">
+                      <div className="absolute top-0 right-0 p-6 opacity-[0.03]"><Zap className="h-12 w-12 text-primary" /></div>
+                      <div className="h-10 w-10 bg-primary/10 rounded-xl flex items-center justify-center shrink-0">
+                        <Star className="h-5 w-5 text-primary fill-primary" />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-[9px] font-black uppercase tracking-widest text-primary leading-none mb-1">Current Streak</span>
+                        <span className="text-lg font-black text-foreground">{userData?.loginStreak || 0} Days Synchronized</span>
+                      </div>
+                    </div>
                   </motion.div>
                 </TabsContent>
 

@@ -9,9 +9,9 @@ import { AuthScreen } from "@/components/auth/auth-screen";
 import { DuniyaPanel } from "@/components/duniya/duniya-panel";
 import { AdminDashboard } from "@/components/admin/admin-dashboard";
 import { useUser, useFirestore, useMemoFirebase, useAuth, useDoc, useCollection } from "@/firebase";
-import { doc, collection, query, limit, where } from "firebase/firestore";
-import { Loader2, Monitor, Tablet, Smartphone, Globe, MessageSquare, User, Compass, LayoutGrid, X, Shield, Settings, Heart } from "lucide-react";
-import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { doc, collection, query, limit, where, increment } from "firebase/firestore";
+import { Loader2, Monitor, Tablet, Smartphone, Globe, MessageSquare, User, Compass, LayoutGrid, X, Shield, Settings, Heart, Zap } from "lucide-react";
+import { setDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { Button } from "@/components/ui/button";
 import { InvitationManager } from "@/components/invitations/invitation-manager";
 import { cn } from "@/lib/utils";
@@ -19,6 +19,8 @@ import { ProfileDialog } from "@/components/profile/profile-dialog";
 import { motion, AnimatePresence } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CreatorFooter } from "@/components/creator-footer";
+import { XP_REWARDS, calculateLevel } from "@/lib/xp-system";
+import { LevelUpToast } from "@/components/xp/level-up-toast";
 
 export default function DuniyaApp() {
   const { user, isUserLoading } = useUser();
@@ -31,6 +33,7 @@ export default function DuniyaApp() {
   const [showMembers, setShowMembers] = useState(true);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isCircularMenuOpen, setIsCircularMenuOpen] = useState(false);
+  const [showLevelUp, setShowLevelUp] = useState<number | null>(null);
 
   // Active Tab for Mobile/Tablet Modes
   const [activeTab, setActiveTab] = useState<"chat" | "explore" | "profile">("chat");
@@ -47,6 +50,51 @@ export default function DuniyaApp() {
     if (!user || !server) return false;
     return server.ownerId === user.uid || server.admins?.includes(user.uid);
   }, [user?.uid, server]);
+
+  // XP & Level Logic Monitoring
+  useEffect(() => {
+    if (!userData?.xp) return;
+    const currentLevel = calculateLevel(userData.xp);
+    if (userData.level && currentLevel > userData.level) {
+      setShowLevelUp(currentLevel);
+      updateDocumentNonBlocking(doc(db, "users", user!.uid), { level: currentLevel });
+    }
+  }, [userData?.xp, userData?.level, user?.uid, db]);
+
+  // DAILY LOGIN XP Logic
+  useEffect(() => {
+    if (!user?.uid || !db || !userData) return;
+    
+    const today = new Date().toISOString().split('T')[0];
+    if (userData.lastLoginDate !== today) {
+      const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+      const isStreak = userData.lastLoginDate === yesterday;
+      const newStreak = isStreak ? (userData.loginStreak || 0) + 1 : 1;
+      
+      const xpReward = XP_REWARDS.DAILY_LOGIN_BASE + (newStreak * XP_REWARDS.STREAK_BONUS);
+      
+      updateDocumentNonBlocking(doc(db, "users", user.uid), {
+        lastLoginDate: today,
+        loginStreak: newStreak,
+        xp: increment(xpReward),
+        "xpBreakdown.presence": increment(xpReward)
+      });
+    }
+  }, [user?.uid, db, userData?.lastLoginDate]);
+
+  // PASSIVE XP HEARTBEAT (Every 5 minutes)
+  useEffect(() => {
+    if (!user?.uid || !db) return;
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        updateDocumentNonBlocking(doc(db, "users", user.uid), {
+          xp: increment(XP_REWARDS.PASSIVE_HEARTBEAT),
+          "xpBreakdown.presence": increment(XP_REWARDS.PASSIVE_HEARTBEAT)
+        });
+      }
+    }, 300000); // 5 minutes
+    return () => clearInterval(interval);
+  }, [user?.uid, db]);
 
   // Fetch communities for circular switcher
   const communitiesQuery = useMemoFirebase(() => {
@@ -425,6 +473,12 @@ export default function DuniyaApp() {
       <InvitationManager />
       <ProfileDialog open={isProfileOpen} onOpenChange={setIsProfileOpen} />
       
+      <AnimatePresence>
+        {showLevelUp && (
+          <LevelUpToast level={showLevelUp} onClose={() => setShowLevelUp(null)} />
+        )}
+      </AnimatePresence>
+
       {/* Primary Layout Wrapper - Ensures elements inside have correct stacking context */}
       <div className="relative w-full h-full flex flex-col md:flex-row overflow-hidden z-10">
         {mode === "mobile" ? renderMobileLayout() : mode === "tablet" ? renderTabletLayout() : renderLaptopLayout()}

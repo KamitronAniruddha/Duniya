@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "User": {
@@ -30,7 +31,19 @@
         "isProfileBlurred": { "type": "boolean", "description": "Whether the profile is blurred and requires permission." },
         "allowExternalAvatarEdit": { "type": "boolean", "description": "Whether others can change this user's profile picture." },
         "authorizedViewers": { "type": "array", "items": { "type": "string" }, "description": "List of UIDs allowed to see blurred profile." },
-        "pendingProfileRequests": { "type": "array", "items": { "type": "object" }, "description": "List of pending access requests." }
+        "pendingProfileRequests": { "type": "array", "items": { "type": "object" }, "description": "List of pending access requests." },
+        "xp": { "type": "number", "default": 0 },
+        "level": { "type": "number", "default": 1 },
+        "loginStreak": { "type": "number", "default": 0 },
+        "lastLoginDate": { "type": "string" },
+        "xpBreakdown": {
+          "type": "object",
+          "properties": {
+            "chatting": { "type": "number", "default": 0 },
+            "presence": { "type": "number", "default": 0 },
+            "genesis": { "type": "number", "default": 0 }
+          }
+        }
       },
       "required": ["id", "displayName", "email", "createdAt"]
     },
