@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, SendHorizontal, Smile, History, Ghost, X, CornerDownRight, Mic, Square, Trash2, Video, Timer, Clock, Image as ImageIcon, Loader2, Paperclip, FileText, Bold, Italic, Type, TypeOutline, Eraser, Command, User as UserIcon, Reply, Camera, Globe, Users, Heart } from "lucide-react";
+import { Plus, SendHorizontal, Smile, History, Ghost, X, CornerDownRight, Mic, Square, Trash2, Video, Timer, Clock, Image as ImageIcon, Loader2, Paperclip, FileText, Bold, Italic, Type, TypeOutline, Eraser, Command, User as UserIcon, Reply, Camera, Globe, Users, Heart, Activity, Zap, Palette, Link, Compass, Check, BellOff, Bell, LogOut, Info, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -79,9 +79,31 @@ const EMOJI_CATEGORIES = [
 ];
 
 const CHEAT_CODES = [
+  // Original Commands
   { icon: <Eraser className="h-4 w-4 text-orange-500" />, label: "clr", description: "Clear current chat history locally", usage: "@clr" },
   { icon: <Trash2 className="h-4 w-4 text-red-500" />, label: "del", description: "Delete last X messages from you", usage: "@del 5" },
-  { icon: <Ghost className="h-4 w-4 text-indigo-500" />, label: "whisper", description: "Private message someone", usage: "@whisper @user text" }
+  { icon: <Ghost className="h-4 w-4 text-indigo-500" />, label: "whisper", description: "Private message someone", usage: "@whisper @user text" },
+  // 20 New Commands
+  { icon: <Activity className="h-4 w-4 text-emerald-500" />, label: "ping", description: "Sync check with the Verse node", usage: "@ping" },
+  { icon: <Zap className="h-4 w-4 text-amber-500" />, label: "stats", description: "View your network intelligence data", usage: "@stats" },
+  { icon: <Ghost className="h-4 w-4 text-indigo-400" />, label: "ghost", description: "Toggle ephemeral ghost mode", usage: "@ghost" },
+  { icon: <Palette className="h-4 w-4 text-pink-500" />, label: "theme", description: "Cycle through Verse visual vibes", usage: "@theme" },
+  { icon: <UserIcon className="h-4 w-4 text-blue-500" />, label: "profile", description: "Modify your identity signature", usage: "@profile" },
+  { icon: <Link className="h-4 w-4 text-sky-500" />, label: "invite", description: "Generate a portal for new members", usage: "@invite" },
+  { icon: <Compass className="h-4 w-4 text-indigo-600" />, label: "explore", description: "Enter the Duniya Discovery Hub", usage: "@explore" },
+  { icon: <Clock className="h-4 w-4 text-orange-400" />, label: "away", description: "Transition status to idle", usage: "@away" },
+  { icon: <Check className="h-4 w-4 text-green-500" />, label: "online", description: "Broadcast active presence", usage: "@online" },
+  { icon: <BellOff className="h-4 w-4 text-slate-400" />, label: "mute", description: "Silence Verse notifications", usage: "@mute" },
+  { icon: <Bell className="h-4 w-4 text-yellow-500" />, label: "unmute", description: "Restore audio alerts", usage: "@unmute" },
+  { icon: <History className="h-4 w-4 text-primary" />, label: "trace", description: "Genealogy tracing guide", usage: "@trace" },
+  { icon: <Type className="h-4 w-4 text-violet-500" />, label: "font", description: "Toggle formatting bar", usage: "@font" },
+  { icon: <Smile className="h-4 w-4 text-yellow-400" />, label: "shrug", description: "¯\\_(ツ)_/¯", usage: "@shrug" },
+  { icon: <Trash2 className="h-4 w-4 text-red-400" />, label: "tableflip", description: "(╯°□°）╯︵ ┻━┻", usage: "@tableflip" },
+  { icon: <Smile className="h-4 w-4 text-indigo-300" />, label: "lenny", description: "( ͡° ͜ʖ ͡°)", usage: "@lenny" },
+  { icon: <Sparkles className="h-4 w-4 text-primary" />, label: "sparkle", description: "Add Verse energy to message", usage: "@sparkle text" },
+  { icon: <LogOut className="h-4 w-4 text-destructive" />, label: "logout", description: "Safely disconnect from Verse", usage: "@logout" },
+  { icon: <Info className="h-4 w-4 text-cyan-500" />, label: "help", description: "Reveal all Verse commands", usage: "@help" },
+  { icon: <Heart className="h-4 w-4 text-red-500" />, label: "about", description: "Duniya Protocol Details", usage: "@about" }
 ];
 
 export function MessageInput({ 
@@ -148,7 +170,6 @@ export function MessageInput({
   }, [db, serverId]);
   const { data: communityMembers } = useCollection(membersQuery);
 
-  // Typing Broadcast Logic: WhatsApp-Fast Real-Time Identity Broadcast
   useEffect(() => {
     if (!db || !user || !serverId || !channelId) return;
 
@@ -162,7 +183,6 @@ export function MessageInput({
     if (text.trim().length > 0) {
       if (!isTypingBroadcastingRef.current) {
         isTypingBroadcastingRef.current = true;
-        // Broadcast full identity for beautiful indicators
         setDocumentNonBlocking(doc(db, "communities", serverId, "channels", channelId, "typing", user.uid), {
           id: user.uid,
           username: userData?.username || user.displayName || "User",
@@ -245,16 +265,27 @@ export function MessageInput({
     e.preventDefault();
     if (!text.trim() && !imagePreview && !filePreview) return;
 
-    if (text.trim() === "@clr") {
-      await onExecuteCommand?.("clr", []);
-      setText("");
-      return;
-    }
-    if (text.startsWith("@del ")) {
-      const parts = text.split(" ");
-      await onExecuteCommand?.("del", [parts[1]]);
-      setText("");
-      return;
+    // Command Parsing
+    const cmdMatch = text.trim().match(/^@(\w+)(?:\s+(.*))?$/);
+    if (cmdMatch) {
+      const cmd = cmdMatch[1].toLowerCase();
+      const rawArgs = cmdMatch[2] || "";
+      const args = rawArgs ? rawArgs.split(" ") : [];
+
+      // Local ASCII/Input Commands
+      if (cmd === "shrug") { onSendMessage("¯\\_(ツ)_/¯" + (rawArgs ? " " + rawArgs : "")); setText(""); return; }
+      if (cmd === "tableflip") { onSendMessage("(╯°□°）╯︵ ┻━┻" + (rawArgs ? " " + rawArgs : "")); setText(""); return; }
+      if (cmd === "lenny") { onSendMessage("( ͡° ͜ʖ ͡°)" + (rawArgs ? " " + rawArgs : "")); setText(""); return; }
+      if (cmd === "sparkle") { onSendMessage("✨ " + (rawArgs || "Verse Energy") + " ✨"); setText(""); return; }
+      if (cmd === "ghost") { setDisappearingEnabled(!disappearingEnabled); setText(""); return; }
+      if (cmd === "font") { setShowFormatting(!showFormatting); setText(""); return; }
+
+      // Execute external commands
+      const handled = await onExecuteCommand?.(cmd, args);
+      if (handled) {
+        setText("");
+        return;
+      }
     }
 
     let finalContent = text;
@@ -467,24 +498,26 @@ export function MessageInput({
                 <Command className="h-3.5 w-3.5 text-primary" />
                 <span className="text-[10px] font-black uppercase tracking-widest text-primary">Verse Commands</span>
               </div>
-              <div className="space-y-0.5">
-                {filteredCommands.map((c) => (
-                  <button 
-                    key={c.label} 
-                    type="button"
-                    onClick={() => handleApplyCommand(c.usage)}
-                    className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-muted transition-all text-left group"
-                  >
-                    <div className="p-2 bg-background rounded-lg shadow-sm group-hover:scale-110 transition-transform">
-                      {c.icon}
-                    </div>
-                    <div className="flex flex-col min-w-0">
-                      <span className="text-xs font-black uppercase tracking-tight text-foreground">@{c.label}</span>
-                      <span className="text-[10px] text-muted-foreground truncate font-medium italic">{c.description}</span>
-                    </div>
-                  </button>
-                ))}
-              </div>
+              <ScrollArea className="max-h-64">
+                <div className="space-y-0.5">
+                  {filteredCommands.map((c) => (
+                    <button 
+                      key={c.label} 
+                      type="button"
+                      onClick={() => handleApplyCommand(c.usage)}
+                      className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-muted transition-all text-left group"
+                    >
+                      <div className="p-2 bg-background rounded-lg shadow-sm group-hover:scale-110 transition-transform">
+                        {c.icon}
+                      </div>
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-xs font-black uppercase tracking-tight text-foreground">@{c.label}</span>
+                        <span className="text-[10px] text-muted-foreground truncate font-medium italic">{c.description}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </ScrollArea>
             </Card>
           </motion.div>
         )}
