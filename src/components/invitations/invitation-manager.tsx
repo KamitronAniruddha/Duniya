@@ -63,7 +63,6 @@ export function InvitationManager() {
 
         batch.update(communityRef, { 
           members: arrayUnion(user.uid),
-          // If the invite role is admin, also add to community admins
           ...(activeInvite.role === "admin" && { admins: arrayUnion(user.uid) })
         });
         
@@ -114,7 +113,7 @@ export function InvitationManager() {
     <AnimatePresence>
       <Dialog open={!!activeInvite} onOpenChange={() => {}}>
         <DialogContent className={cn(
-          "sm:max-w-[480px] w-[92vw] rounded-[3rem] border-none shadow-[0_32px_128px_rgba(0,0,0,0.4)] p-0 overflow-hidden bg-background font-body z-[5000] max-h-[92vh] flex flex-col",
+          "sm:max-w-[480px] w-[92vw] rounded-[3rem] border-none shadow-[0_32px_128px_rgba(0,0,0,0.4)] p-0 bg-background font-body z-[5000] max-h-[92vh] flex flex-col",
           isAdminInvite ? "ring-4 ring-amber-500/20 ring-offset-8 ring-offset-background" : (isGenesis && "ring-4 ring-primary/20 ring-offset-8 ring-offset-background")
         )}>
           <DialogHeader className="sr-only">
@@ -128,32 +127,48 @@ export function InvitationManager() {
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             className="flex-1 flex flex-col min-h-0"
           >
-            {/* High Fidelity Role-Based Header */}
-            <div className={cn(
-              "h-32 shrink-0 relative flex items-center justify-center overflow-hidden",
-              isAdminInvite 
-                ? "bg-gradient-to-br from-slate-900 via-amber-900 to-slate-900" 
-                : (isGenesis ? "bg-gradient-to-br from-primary via-indigo-600 to-accent" : "bg-gradient-to-br from-primary to-accent")
-            )}>
-              {/* Background Effects */}
-              <div className="absolute inset-0">
-                <motion.div 
-                  animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.6, 0.3] }} 
-                  transition={{ duration: 4, repeat: Infinity }}
-                  className={cn("absolute top-0 right-0 p-12", isAdminInvite ? "text-amber-500/10" : "text-white/10")}
-                >
-                  {isAdminInvite ? <Crown className="h-32 w-32" /> : <Sparkles className="h-32 w-32" />}
-                </motion.div>
-                <motion.div 
-                  animate={{ rotate: 360 }} 
-                  transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                  className={cn("absolute -bottom-10 -left-10 p-12", isAdminInvite ? "text-amber-500/5" : "text-white/5")}
-                >
-                  <Zap className="h-40 w-40" />
-                </motion.div>
+            {/* High Fidelity Role-Based Header - overflow removed to allow avatar to stick out */}
+            <div className="h-32 shrink-0 relative flex items-center justify-center">
+              {/* Background Layer with Clipping */}
+              <div className={cn(
+                "absolute inset-0 overflow-hidden rounded-t-[3rem]",
+                isAdminInvite 
+                  ? "bg-gradient-to-br from-slate-900 via-amber-900 to-slate-900" 
+                  : (isGenesis ? "bg-gradient-to-br from-primary via-indigo-600 to-accent" : "bg-gradient-to-br from-primary to-accent")
+              )}>
+                {/* Background Effects */}
+                <div className="absolute inset-0">
+                  <motion.div 
+                    animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.6, 0.3] }} 
+                    transition={{ duration: 4, repeat: Infinity }}
+                    className={cn("absolute top-0 right-0 p-12", isAdminInvite ? "text-amber-500/10" : "text-white/10")}
+                  >
+                    {isAdminInvite ? <Crown className="h-32 w-32" /> : <Sparkles className="h-32 w-32" />}
+                  </motion.div>
+                  <motion.div 
+                    animate={{ rotate: 360 }} 
+                    transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                    className={cn("absolute -bottom-10 -left-10 p-12", isAdminInvite ? "text-amber-500/5" : "text-white/5")}
+                  >
+                    <Zap className="h-40 w-40" />
+                  </motion.div>
+                </div>
+
+                <div className="absolute top-4 left-6">
+                  <div className={cn(
+                    "backdrop-blur-md px-3 py-1 rounded-full border flex items-center gap-2 shadow-lg",
+                    isAdminInvite ? "bg-amber-500/20 border-amber-500/30" : "bg-white/20 border-white/30"
+                  )}>
+                    <div className={cn("h-1.5 w-1.5 rounded-full animate-pulse", isAdminInvite ? "bg-amber-500" : "bg-white")} />
+                    <span className={cn("text-[8px] font-black uppercase tracking-[0.2em]", isAdminInvite ? "text-amber-500" : "text-white")}>
+                      {isAdminInvite ? "Special Province Promotion" : (isGenesis ? "Genesis Broadcast" : "Direct Invite")}
+                    </span>
+                  </div>
+                </div>
               </div>
 
-              <div className="absolute -bottom-8">
+              {/* Avatar stays outside the clipped background */}
+              <div className="absolute -bottom-8 z-20">
                 <motion.div 
                   initial={{ scale: 0 }} 
                   animate={{ scale: 1 }} 
@@ -175,18 +190,6 @@ export function InvitationManager() {
                     </div>
                   )}
                 </motion.div>
-              </div>
-
-              <div className="absolute top-4 left-6">
-                <div className={cn(
-                  "backdrop-blur-md px-3 py-1 rounded-full border flex items-center gap-2 shadow-lg",
-                  isAdminInvite ? "bg-amber-500/20 border-amber-500/30" : "bg-white/20 border-white/30"
-                )}>
-                  <div className={cn("h-1.5 w-1.5 rounded-full animate-pulse", isAdminInvite ? "bg-amber-500" : "bg-white")} />
-                  <span className={cn("text-[8px] font-black uppercase tracking-[0.2em]", isAdminInvite ? "text-amber-500" : "text-white")}>
-                    {isAdminInvite ? "Special Province Promotion" : (isGenesis ? "Genesis Broadcast" : "Direct Invite")}
-                  </span>
-                </div>
               </div>
             </div>
 
