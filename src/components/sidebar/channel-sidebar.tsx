@@ -8,6 +8,7 @@ import { Hash, Settings, ChevronDown, LogOut, Loader2, Plus, Timer, Globe, Mail,
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { ProfileDialog } from "@/components/profile/profile-dialog";
 import { ServerSettingsDialog } from "@/components/servers/server-settings-dialog";
@@ -257,7 +258,6 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
       )}
 
       <div className="p-4 bg-muted/20 border-t flex flex-col gap-3 shrink-0">
-        {/* ASCENSION XP MINI VISUALIZER */}
         <XPVisualizer xp={userData?.xp || 0} isMini className="px-1" />
 
         <Button 
