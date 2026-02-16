@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
@@ -61,12 +62,10 @@ export default function DuniyaApp() {
   const { data: channels } = useCollection(channelsQuery);
 
   // AUTOMATIC CHANNEL ROUTING:
-  // When a community is selected, automatically select the first channel as soon as it's available.
+  // WhatsApp-Fast transition: Auto-select the first channel when entering a community.
   useEffect(() => {
     if (activeCommunityId && channels && channels.length > 0) {
       const firstChannelId = channels[0].id;
-      // If no channel is selected, or the current selected channel isn't in this community's list,
-      // force the selection of the first one.
       if (!activeChannelId || !channels.some(c => c.id === activeChannelId)) {
         setActiveChannelId(firstChannelId);
       }
@@ -123,7 +122,7 @@ export default function DuniyaApp() {
     } else {
       setView("chat");
       setActiveCommunityId(id);
-      setActiveChannelId(null); // Reset channel to trigger automatic routing in useEffect
+      setActiveChannelId(null); // Reset triggers the automatic routing useEffect
       setIsCircularMenuOpen(false);
     }
   }, []);

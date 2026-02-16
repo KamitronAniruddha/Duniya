@@ -23,7 +23,7 @@ interface MembersPanelProps {
   serverId: string;
   onWhisper?: (userId: string, username: string) => void;
   onReply?: (userId: string, username: string) => void;
-  onReplyProfile?: (userId: string, username: string, photoURL: string) => void;
+  onReplyProfile?: (userId: string, username: string, photoURL: string, bio?: string, totalCommunities?: number, commonCommunities?: number) => void;
 }
 
 export function MembersPanel({ serverId, onWhisper, onReply, onReplyProfile }: MembersPanelProps) {
@@ -42,6 +42,9 @@ export function MembersPanel({ serverId, onWhisper, onReply, onReplyProfile }: M
   const serverRef = useMemoFirebase(() => (serverId && currentUser ? doc(db, "communities", serverId) : null), [db, serverId, currentUser?.uid]);
   const { data: server } = useDoc(serverRef);
 
+  const userDocRef = useMemoFirebase(() => (currentUser ? doc(db, "users", currentUser.uid) : null), [db, currentUser?.uid]);
+  const { data: currentUserData } = useDoc(userDocRef);
+
   const membersQuery = useMemoFirebase(() => {
     if (!db || !serverId || !currentUser) return null;
     return query(collection(db, "users"), where("serverIds", "array-contains", serverId));
@@ -51,7 +54,7 @@ export function MembersPanel({ serverId, onWhisper, onReply, onReplyProfile }: M
 
   const isOwner = server?.ownerId === currentUser?.uid;
   const serverAdmins = server?.admins || [];
-  const isAdmin = isOwner || serverAdmins.push === undefined ? false : serverAdmins.includes(currentUser?.uid || "");
+  const isAdmin = isOwner || (Array.isArray(serverAdmins) && serverAdmins.includes(currentUser?.uid || ""));
 
   const pendingInvitesQuery = useMemoFirebase(() => {
     if (!db || !serverId || !isAdmin) return null;
@@ -145,7 +148,7 @@ export function MembersPanel({ serverId, onWhisper, onReply, onReplyProfile }: M
           targetUsername: target.username || "User",
           targetUserPhoto: target.photoURL || null,
           senderId: currentUser?.uid,
-          senderName: currentUser?.displayName || "Admin",
+          senderName: currentUserData?.username || currentUser?.displayName || "Admin",
           communityId: serverId,
           communityName: server.name,
           communityIcon: server.icon || null,
@@ -208,6 +211,14 @@ export function MembersPanel({ serverId, onWhisper, onReply, onReplyProfile }: M
     }
   };
 
+  const triggerReply = (member: any) => {
+    if (!onReplyProfile || !currentUserData) return;
+    const targetServers = member.serverIds || [];
+    const myServers = currentUserData.serverIds || [];
+    const common = targetServers.filter((id: string) => myServers.includes(id)).length;
+    onReplyProfile(member.id, member.username || member.displayName || "User", member.photoURL || "", member.bio, targetServers.length, common);
+  };
+
   return (
     <aside className="w-64 bg-background border-l border-border flex flex-col h-full overflow-hidden shrink-0">
       <header className="h-14 px-4 border-b flex items-center justify-between bg-background shrink-0">
@@ -215,7 +226,7 @@ export function MembersPanel({ serverId, onWhisper, onReply, onReplyProfile }: M
           <h3 className="font-bold text-sm text-foreground">Members</h3>
           {members && <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded-full text-muted-foreground font-mono">{members.length}</span>}
         </div>
-        {(isOwner || serverAdmins.includes(currentUser?.uid || "")) && (
+        {isAdmin && (
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setIsInviteOpen(true)}>
             <UserPlus className="h-4 w-4 text-muted-foreground" />
           </Button>
@@ -288,12 +299,11 @@ export function MembersPanel({ serverId, onWhisper, onReply, onReplyProfile }: M
                         member={member} 
                         isOwner={member.id === server.ownerId}
                         isAdmin={serverAdmins.includes(member.id)}
-                        canManage={(isOwner || serverAdmins.includes(currentUser?.uid || "")) && member.id !== currentUser?.uid}
+                        canManage={isAdmin && member.id !== currentUser?.uid}
                         onRemove={() => handleRemoveMember(member.id, member.username)}
                         onToggleAdmin={() => handleToggleAdmin(member.id, serverAdmins.includes(member.id))}
                         onWhisper={onWhisper}
-                        onReply={onReply}
-                        onReplyProfile={onReplyProfile}
+                        onReply={triggerReply}
                         now={now}
                       />
                     ))}
@@ -314,12 +324,11 @@ export function MembersPanel({ serverId, onWhisper, onReply, onReplyProfile }: M
                         member={member} 
                         isOwner={member.id === server.ownerId}
                         isAdmin={serverAdmins.includes(member.id)}
-                        canManage={(isOwner || serverAdmins.includes(currentUser?.uid || "")) && member.id !== currentUser?.uid}
+                        canManage={isAdmin && member.id !== currentUser?.uid}
                         onRemove={() => handleRemoveMember(member.id, member.username)}
                         onToggleAdmin={() => handleToggleAdmin(member.id, serverAdmins.includes(member.id))}
                         onWhisper={onWhisper}
-                        onReply={onReply}
-                        onReplyProfile={onReplyProfile}
+                        onReply={triggerReply}
                         now={now}
                       />
                     ))}
@@ -337,12 +346,11 @@ export function MembersPanel({ serverId, onWhisper, onReply, onReplyProfile }: M
                         member={member} 
                         isOwner={member.id === server.ownerId}
                         isAdmin={serverAdmins.includes(member.id)}
-                        canManage={(isOwner || serverAdmins.includes(currentUser?.uid || "")) && member.id !== currentUser?.uid}
+                        canManage={isAdmin && member.id !== currentUser?.uid}
                         onRemove={() => handleRemoveMember(member.id, member.username)}
                         onToggleAdmin={() => handleToggleAdmin(member.id, serverAdmins.includes(member.id))}
                         onWhisper={onWhisper}
-                        onReply={onReply}
-                        onReplyProfile={onReplyProfile}
+                        onReply={triggerReply}
                         now={now}
                       />
                     ))}
@@ -366,7 +374,10 @@ export function MembersPanel({ serverId, onWhisper, onReply, onReplyProfile }: M
                 <div className="flex flex-wrap gap-1 mb-2">
                   {selectedUsers.map(u => (
                     <Badge key={u.id} variant="secondary" className="pl-1 pr-1 py-1 flex items-center gap-1 bg-primary/10 text-primary border-primary/20">
-                      <Avatar className="h-4 w-4"><AvatarImage src={u.photoURL} /><AvatarFallback className="text-[6px]">{u.username?.[0]}</AvatarFallback></Avatar>
+                      <Avatar className="h-4 w-4">
+                        <AvatarImage src={u.photoURL} />
+                        <AvatarFallback className="text-[6px]">{u.username?.[0]}</AvatarFallback>
+                      </Avatar>
                       <span className="text-[10px] font-bold">@{u.username}</span>
                       <button onClick={() => toggleUserSelection(u)} className="hover:bg-primary/20 rounded-full p-0.5 transition-colors"><X className="h-2 w-2" /></button>
                     </Badge>
@@ -405,7 +416,6 @@ function MemberItem({
   onToggleAdmin,
   onWhisper,
   onReply,
-  onReplyProfile,
   now
 }: { 
   member: any; 
@@ -415,8 +425,7 @@ function MemberItem({
   onRemove: () => void;
   onToggleAdmin: () => void;
   onWhisper?: (userId: string, username: string) => void;
-  onReply?: (userId: string, username: string) => void;
-  onReplyProfile?: (userId: string, username: string, photoURL: string) => void;
+  onReply?: (member: any) => void;
   now: number;
 }) {
   const lastSeen = member.lastOnlineAt ? new Date(member.lastOnlineAt).getTime() : 0;
@@ -434,7 +443,7 @@ function MemberItem({
       <UserProfilePopover 
         userId={member.id} 
         onWhisper={onWhisper} 
-        onReply={onReplyProfile}
+        onReply={(id, name, photo, bio, total, common) => onReply?.(member)}
         side="left"
       >
         <button className="relative transition-transform hover:scale-110">
@@ -456,7 +465,7 @@ function MemberItem({
         <UserProfilePopover 
           userId={member.id} 
           onWhisper={onWhisper} 
-          onReply={onReplyProfile}
+          onReply={(id, name, photo, bio, total, common) => onReply?.(member)}
           side="left"
         >
           <button className="flex items-center gap-1 min-w-0 w-full text-left">
@@ -481,8 +490,8 @@ function MemberItem({
       </div>
 
       <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-        {onReplyProfile && member.id !== currentUser?.uid && (
-          <Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:text-primary/80 hover:bg-primary/10" onClick={() => onReplyProfile(member.id, cleanUsername, member.photoURL || "")}>
+        {onReply && member.id !== currentUser?.uid && (
+          <Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:text-primary/80 hover:bg-primary/10" onClick={() => onReply(member)}>
             <Camera className="h-3.5 w-3.5" />
           </Button>
         )}

@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, SendHorizontal, Smile, History, Ghost, X, CornerDownRight, Mic, Square, Trash2, Video, Timer, Clock, Image as ImageIcon, Loader2, Paperclip, FileText, Bold, Italic, Type, TypeOutline, Eraser, Command, User as UserIcon, Reply, Camera } from "lucide-react";
+import { Plus, SendHorizontal, Smile, History, Ghost, X, CornerDownRight, Mic, Square, Trash2, Video, Timer, Clock, Image as ImageIcon, Loader2, Paperclip, FileText, Bold, Italic, Type, TypeOutline, Eraser, Command, User as UserIcon, Reply, Camera, Globe, Users, Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -19,6 +19,15 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
+interface ProfileReplyTarget {
+  id: string;
+  username: string;
+  photoURL: string;
+  bio?: string;
+  totalCommunities: number;
+  commonCommunities: number;
+}
+
 interface MessageInputProps {
   onSendMessage: (
     content: string, 
@@ -30,13 +39,14 @@ interface MessageInputProps {
     file?: { url: string; name: string; type: string },
     whisperTarget?: { id: string; username: string } | null,
     replySenderPhotoURL?: string,
-    isProfileReply?: boolean
+    isProfileReply?: boolean,
+    profileContext?: any
   ) => void;
   onExecuteCommand?: (cmd: string, args: string[]) => Promise<boolean>;
   inputRef?: React.RefObject<HTMLInputElement>;
   replyingTo?: any | null;
   onCancelReply?: () => void;
-  profileReplyTarget?: { id: string; username: string; photoURL: string } | null;
+  profileReplyTarget?: ProfileReplyTarget | null;
   onCancelProfileReply?: () => void;
   whisperingTo?: { id: string; username: string } | null;
   onCancelWhisper?: () => void;
@@ -239,8 +249,9 @@ export function MessageInput({
 
     const duration = disappearDuration === -1 ? (parseInt(customSeconds) || 10) * 1000 : disappearDuration;
     
-    const finalTargetName = replyUser?.username || replyingTo?.senderName || profileReplyTarget?.username || "User";
-    const finalTargetPhoto = replyUser?.photoURL || replyingTo?.senderPhotoURL || profileReplyTarget?.photoURL || "";
+    // Normalizing identity to fix "js js"
+    const finalTargetName = profileReplyTarget?.username || replyUser?.username || replyingTo?.senderName || "User";
+    const finalTargetPhoto = profileReplyTarget?.photoURL || replyUser?.photoURL || replyingTo?.senderPhotoURL || "";
 
     onSendMessage(
       finalContent, 
@@ -252,7 +263,12 @@ export function MessageInput({
       filePreview || undefined, 
       finalWhisperTo,
       finalTargetPhoto,
-      !!profileReplyTarget
+      !!profileReplyTarget,
+      profileReplyTarget ? {
+        totalCommunities: profileReplyTarget.totalCommunities,
+        commonCommunities: profileReplyTarget.commonCommunities,
+        bio: profileReplyTarget.bio
+      } : undefined
     );
     
     setText("");
@@ -320,7 +336,9 @@ export function MessageInput({
         reader.readAsDataURL(blob);
         reader.onloadend = () => {
           const duration = disappearDuration === -1 ? (parseInt(customSeconds) || 10) * 1000 : disappearDuration;
-          onSendMessage("", reader.result as string, undefined, replyUser?.username || replyingTo?.senderName || profileReplyTarget?.username, { enabled: disappearingEnabled, duration: duration }, undefined, undefined, whisperingTo, replyUser?.photoURL || replyingTo?.senderPhotoURL || profileReplyTarget?.photoURL, !!profileReplyTarget);
+          const finalTargetName = profileReplyTarget?.username || replyUser?.username || replyingTo?.senderName || "User";
+          const finalTargetPhoto = profileReplyTarget?.photoURL || replyUser?.photoURL || replyingTo?.senderPhotoURL || "";
+          onSendMessage("", reader.result as string, undefined, finalTargetName, { enabled: disappearingEnabled, duration: duration }, undefined, undefined, whisperingTo, finalTargetPhoto, !!profileReplyTarget);
         };
         stream.getTracks().forEach(track => track.stop());
       };
@@ -348,7 +366,9 @@ export function MessageInput({
         reader.readAsDataURL(blob);
         reader.onloadend = () => {
           const duration = disappearDuration === -1 ? (parseInt(customSeconds) || 10) * 1000 : disappearDuration;
-          onSendMessage("", undefined, reader.result as string, replyUser?.username || replyingTo?.senderName || profileReplyTarget?.username, { enabled: disappearingEnabled, duration: duration }, undefined, undefined, whisperingTo, replyUser?.photoURL || replyingTo?.senderPhotoURL || profileReplyTarget?.photoURL, !!profileReplyTarget);
+          const finalTargetName = profileReplyTarget?.username || replyUser?.username || replyingTo?.senderName || "User";
+          const finalTargetPhoto = profileReplyTarget?.photoURL || replyUser?.photoURL || replyingTo?.senderPhotoURL || "";
+          onSendMessage("", undefined, reader.result as string, finalTargetName, { enabled: disappearingEnabled, duration: duration }, undefined, undefined, whisperingTo, finalTargetPhoto, !!profileReplyTarget);
         };
         stream.getTracks().forEach(track => track.stop());
       };
@@ -470,29 +490,48 @@ export function MessageInput({
       </AnimatePresence>
 
       {(replyingTo || profileReplyTarget) && (
-        <div className="px-4 py-2 bg-muted/30 border-t flex items-center gap-3 animate-in slide-in-from-bottom-2 duration-150">
-          <div className="relative shrink-0">
-            <Avatar className="h-10 w-10 border-2 border-primary/20 shadow-md">
-              <AvatarImage src={replyUser?.photoURL || replyingTo?.senderPhotoURL || profileReplyTarget?.photoURL} className="object-cover" />
-              <AvatarFallback className="bg-primary text-white text-xs font-black">
-                {String(replyUser?.username || replyingTo?.senderName || profileReplyTarget?.username || "?")[0].toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <div className="absolute -bottom-1 -right-1 p-1 bg-primary rounded-full shadow-lg border-2 border-background">
-              {profileReplyTarget ? <Camera className="h-2.5 w-2.5 text-white" /> : <Reply className="h-2.5 w-2.5 text-white" />}
+        <div className="px-4 py-2 bg-muted/30 border-t flex flex-col gap-2 animate-in slide-in-from-bottom-2 duration-150">
+          <div className="flex items-center gap-3">
+            <div className="relative shrink-0">
+              <Avatar className="h-12 w-12 border-2 border-primary/20 shadow-md">
+                <AvatarImage src={profileReplyTarget?.photoURL || replyUser?.photoURL || replyingTo?.senderPhotoURL} className="object-cover" />
+                <AvatarFallback className="bg-primary text-white text-xs font-black">
+                  {String(profileReplyTarget?.username || replyUser?.username || replyingTo?.senderName || "?")[0].toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div className="absolute -bottom-1 -right-1 p-1 bg-primary rounded-full shadow-lg border-2 border-background">
+                {profileReplyTarget ? <Camera className="h-3 w-3 text-white" /> : <Reply className="h-3 w-3 text-white" />}
+              </div>
             </div>
+            <div className="flex-1 min-w-0 flex flex-col">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-[10px] font-black text-primary uppercase tracking-widest leading-none">
+                  {profileReplyTarget ? `Commenting on @${profileReplyTarget.username}'s identity` : `Replying to @${replyUser?.username || replyingTo?.senderName || "User"}`}
+                </span>
+                {profileReplyTarget && <Heart className="h-2 w-2 text-red-500 fill-red-500 animate-pulse" />}
+              </div>
+              <p className="text-xs text-muted-foreground truncate italic font-medium">
+                {profileReplyTarget ? (profileReplyTarget.bio || "Sharing thoughts on this identity picture.") : (replyingTo.content || replyingTo.text || "Media message")}
+              </p>
+              
+              {profileReplyTarget && (
+                <div className="flex items-center gap-4 mt-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <Globe className="h-3 w-3 text-primary/60" />
+                    <span className="text-[9px] font-black uppercase tracking-tighter text-muted-foreground">Connected: {profileReplyTarget.totalCommunities} Communities</span>
+                  </div>
+                  <div className="w-[1px] h-3 bg-border" />
+                  <div className="flex items-center gap-1.5">
+                    <Users className="h-3 w-3 text-primary/60" />
+                    <span className="text-[9px] font-black uppercase tracking-tighter text-muted-foreground">Mutual Verse: {profileReplyTarget.commonCommunities} Shared</span>
+                  </div>
+                </div>
+              )}
+            </div>
+            <button type="button" onClick={profileReplyTarget ? onCancelProfileReply : onCancelReply} className="h-8 w-8 rounded-full hover:bg-muted flex items-center justify-center transition-colors shadow-sm bg-background/50">
+              <X className="h-4 w-4" />
+            </button>
           </div>
-          <div className="flex-1 min-w-0 flex flex-col">
-            <span className="text-[10px] font-black text-primary uppercase tracking-widest leading-none mb-1">
-              {profileReplyTarget ? `Commenting on @${profileReplyTarget.username}'s profile` : `Replying to @${replyUser?.username || replyingTo?.senderName || "User"}`}
-            </span>
-            <p className="text-xs text-muted-foreground truncate italic font-medium">
-              {profileReplyTarget ? "Sharing thoughts on this identity picture." : (replyingTo.content || replyingTo.text || "Media message")}
-            </p>
-          </div>
-          <button type="button" onClick={profileReplyTarget ? onCancelProfileReply : onCancelReply} className="h-8 w-8 rounded-full hover:bg-muted flex items-center justify-center transition-colors shadow-sm bg-background/50">
-            <X className="h-4 w-4" />
-          </button>
         </div>
       )}
 

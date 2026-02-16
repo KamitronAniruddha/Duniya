@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useDoc, useFirestore, useMemoFirebase, useUser } from "@/firebase";
 import { doc } from "firebase/firestore";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -19,45 +19,126 @@ interface UserProfilePopoverProps {
   userId: string;
   children: React.ReactNode;
   onWhisper?: (userId: string, username: string) => void;
-  onReply?: (userId: string, username: string, photoURL: string) => void;
+  onReply?: (userId: string, username: string, photoURL: string, bio?: string, totalCommunities?: number, commonCommunities?: number) => void;
   side?: "left" | "right" | "top" | "bottom";
 }
 
 export function UserProfilePopover({ userId, children, onWhisper, onReply, side = "right" }: UserProfilePopoverProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isZoomOpen, setIsZoomOpen] = useState(false);
+  const { toast } = useToast();
+  const db = useFirestore();
+  
+  const userRef = useMemoFirebase(() => doc(db, "users", userId), [db, userId]);
+  const { data: userData } = useDoc(userRef);
+
+  const handleDownload = () => {
+    if (!userData?.photoURL) return;
+    const link = document.createElement("a");
+    link.href = userData.photoURL;
+    link.download = `${userData.username || 'user'}_avatar.jpg`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast({ title: "Avatar Saved", description: "Identity exported." });
+  };
+
+  const cleanUsername = userData?.username || userData?.displayName || "User";
 
   return (
-    <Popover open={isOpen} onOpenChange={setIsOpen}>
-      <PopoverTrigger asChild>
-        {children}
-      </PopoverTrigger>
-      {isOpen && (
-        <PopoverContent 
-          className="w-80 p-0 overflow-hidden border-none shadow-[0_32px_64px_rgba(0,0,0,0.3)] rounded-[2rem] z-[1000] animate-in zoom-in-95 duration-200" 
-          side={side} 
-          align="start" 
-          sideOffset={10}
-          collisionPadding={20}
-        >
-          <UserProfileContent 
-            userId={userId} 
-            onWhisper={(id, name) => { onWhisper?.(id, name); setIsOpen(false); }}
-            onReply={(id, name, photo) => { onReply?.(id, name, photo); setIsOpen(false); }}
-          />
-        </PopoverContent>
-      )}
-    </Popover>
+    <>
+      <Popover open={isOpen} onOpenChange={setIsOpen}>
+        <PopoverTrigger asChild>
+          {children}
+        </PopoverTrigger>
+        {isOpen && (
+          <PopoverContent 
+            className="w-80 p-0 overflow-hidden border-none shadow-[0_32px_64px_rgba(0,0,0,0.3)] rounded-[2rem] z-[1000] animate-in zoom-in-95 duration-200" 
+            side={side} 
+            align="start" 
+            sideOffset={10}
+            collisionPadding={20}
+          >
+            <UserProfileContent 
+              userId={userId} 
+              onWhisper={(id, name) => { onWhisper?.(id, name); setIsOpen(false); }}
+              onReply={(id, name, photo, bio, total, common) => { onReply?.(id, name, photo, bio, total, common); setIsOpen(false); }}
+              onOpenZoom={() => setIsZoomOpen(true)}
+            />
+          </PopoverContent>
+        )}
+      </Popover>
+
+      {/* Lifted Dialog Fixes "Window on Window" layout issues */}
+      <Dialog open={isZoomOpen} onOpenChange={setIsZoomOpen}>
+        <DialogContent className="max-w-[90vw] max-h-[90vh] p-0 border-none bg-transparent shadow-none flex items-center justify-center z-[2000]">
+          <DialogHeader className="sr-only">
+            <DialogTitle>@{cleanUsername} Profile Picture</DialogTitle>
+            <DialogDescription>Full-sized profile picture view.</DialogDescription>
+          </DialogHeader>
+          <div className="relative w-full h-full flex flex-col items-center justify-center group">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.2, ease: "easeOut" }} className="relative">
+              {userData?.photoURL ? (
+                <img 
+                  src={userData.photoURL} 
+                  alt={cleanUsername} 
+                  className="max-w-full max-h-[80vh] rounded-[3rem] shadow-2xl object-contain animate-in zoom-in-95 duration-200"
+                />
+              ) : (
+                <div className="w-64 h-64 bg-primary rounded-[3rem] flex items-center justify-center text-white text-8xl font-black shadow-2xl">
+                  {String(cleanUsername)[0]?.toUpperCase()}
+                </div>
+              )}
+              
+              <div className="absolute -bottom-16 left-1/2 -translate-x-1/2 flex items-center gap-4 px-6 py-3 bg-background/80 backdrop-blur-md rounded-full border border-border shadow-2xl whitespace-nowrap">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-black uppercase tracking-widest text-primary">Verse Identity</span>
+                  <Heart className="h-3 w-3 text-red-500 fill-red-500 animate-pulse" />
+                </div>
+                <div className="w-[1px] h-4 bg-border" />
+                {onReply && userData && (
+                  <>
+                    <button 
+                      onClick={() => { onReply(userData.id, cleanUsername, userData.photoURL || "", userData.bio); setIsZoomOpen(false); }}
+                      className="flex items-center gap-2 text-[10px] font-black uppercase text-foreground hover:text-primary transition-colors"
+                    >
+                      <Camera className="h-3.5 w-3.5" /> Reply
+                    </button>
+                    <div className="w-[1px] h-4 bg-border" />
+                  </>
+                )}
+                {userData?.photoURL && (
+                  <button onClick={handleDownload} className="flex items-center gap-2 text-[10px] font-black uppercase text-foreground hover:text-primary transition-colors">
+                    <Download className="h-3.5 w-3.5" /> Save
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
-function UserProfileContent({ userId, onWhisper, onReply }: { userId: string; onWhisper?: (userId: string, username: string) => void; onReply?: (userId: string, username: string, photoURL: string) => void }) {
+function UserProfileContent({ userId, onWhisper, onReply, onOpenZoom }: { userId: string; onWhisper?: (userId: string, username: string) => void; onReply?: (userId: string, username: string, photoURL: string, bio?: string, totalCommunities?: number, commonCommunities?: number) => void; onOpenZoom: () => void }) {
   const db = useFirestore();
   const { user: currentUser } = useUser();
-  const { toast } = useToast();
-  const [isZoomOpen, setIsZoomOpen] = useState(false);
   const [now, setNow] = useState(Date.now());
+  
   const userRef = useMemoFirebase(() => doc(db, "users", userId), [db, userId]);
   const { data: userData } = useDoc(userRef);
+
+  const currentUserRef = useMemoFirebase(() => (currentUser ? doc(db, "users", currentUser.uid) : null), [db, currentUser?.uid]);
+  const { data: currentUserData } = useDoc(currentUserRef);
+
+  const stats = useMemo(() => {
+    if (!userData || !currentUserData) return { total: 0, common: 0 };
+    const targetServers = userData.serverIds || [];
+    const myServers = currentUserData.serverIds || [];
+    const common = targetServers.filter((id: string) => myServers.includes(id)).length;
+    return { total: targetServers.length, common };
+  }, [userData, currentUserData]);
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 30000);
@@ -85,17 +166,6 @@ function UserProfileContent({ userId, onWhisper, onReply }: { userId: string; on
   const isOnline = isFresh && isPublic && userData?.onlineStatus === "online";
   const isIdle = isFresh && isPublic && userData?.onlineStatus === "idle";
 
-  const handleDownload = () => {
-    if (!userData?.photoURL) return;
-    const link = document.createElement("a");
-    link.href = userData.photoURL;
-    link.download = `${userData.username || 'user'}_avatar.jpg`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast({ title: "Avatar Saved", description: `@${userData.username}'s identity exported.` });
-  };
-
   const cleanUsername = userData?.username || userData?.displayName || "User";
 
   return (
@@ -112,7 +182,7 @@ function UserProfileContent({ userId, onWhisper, onReply }: { userId: string; on
       <div className="px-5 pb-6 bg-card">
         <div className="relative -mt-10 mb-4 flex items-end justify-between">
           <button 
-            onClick={() => setIsZoomOpen(true)}
+            onClick={onOpenZoom}
             className="group relative h-24 w-24 rounded-[2rem] border-4 border-card shadow-xl overflow-hidden transition-transform hover:scale-105 active:scale-95 bg-muted shrink-0"
           >
             <Avatar className="h-full w-full rounded-none aspect-square">
@@ -131,7 +201,7 @@ function UserProfileContent({ userId, onWhisper, onReply }: { userId: string; on
               <Button 
                 size="sm" 
                 className="rounded-xl h-8 px-4 gap-2 bg-primary text-primary-foreground font-black uppercase text-[9px] tracking-widest shadow-lg shadow-primary/20"
-                onClick={() => onReply(userData.id, cleanUsername, userData.photoURL || "")}
+                onClick={() => onReply(userData.id, cleanUsername, userData.photoURL || "", userData.bio, stats.total, stats.common)}
               >
                 <Camera className="h-3 w-3" /> Reply
               </Button>
@@ -187,9 +257,9 @@ function UserProfileContent({ userId, onWhisper, onReply }: { userId: string; on
               <UserIcon className="h-4 w-4" />
             </div>
             <div className="flex flex-col">
-              <span className="text-[10px] font-black uppercase tracking-widest leading-none">Invite Policy</span>
+              <span className="text-[10px] font-black uppercase tracking-widest leading-none">Connected Verse</span>
               <span className="text-xs font-bold text-foreground mt-0.5">
-                {userData?.allowGroupInvites === false ? "Restricted" : "Open to All"}
+                {stats.total} Communities ({stats.common} Mutual)
               </span>
             </div>
           </div>
@@ -202,54 +272,6 @@ function UserProfileContent({ userId, onWhisper, onReply }: { userId: string; on
           <span>Aniruddha ❤️</span>
         </div>
       </div>
-
-      <Dialog open={isZoomOpen} onOpenChange={setIsZoomOpen}>
-        <DialogContent className="max-w-[90vw] max-h-[90vh] p-0 border-none bg-transparent shadow-none flex items-center justify-center z-[2000]">
-          <DialogHeader className="sr-only">
-            <DialogTitle>@{cleanUsername} Profile Picture</DialogTitle>
-            <DialogDescription>Full-sized profile picture view for the Verse user in high fidelity.</DialogDescription>
-          </DialogHeader>
-          <div className="relative w-full h-full flex flex-col items-center justify-center group">
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.2, ease: "easeOut" }} className="relative">
-              {userData?.photoURL ? (
-                <img 
-                  src={userData.photoURL} 
-                  alt={cleanUsername} 
-                  className="max-w-full max-h-[80vh] rounded-[3rem] shadow-2xl object-contain animate-in zoom-in-95 duration-200"
-                />
-              ) : (
-                <div className="w-64 h-64 bg-primary rounded-[3rem] flex items-center justify-center text-white text-8xl font-black shadow-2xl">
-                  {String(cleanUsername)[0]?.toUpperCase()}
-                </div>
-              )}
-              
-              <div className="absolute -bottom-16 left-1/2 -translate-x-1/2 flex items-center gap-4 px-6 py-3 bg-background/80 backdrop-blur-md rounded-full border border-border shadow-2xl whitespace-nowrap">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-black uppercase tracking-widest text-primary">Verse Identity</span>
-                  <Heart className="h-3 w-3 text-red-500 fill-red-500 animate-pulse" />
-                </div>
-                <div className="w-[1px] h-4 bg-border" />
-                {onReply && userData && userData.id !== currentUser?.uid && (
-                  <>
-                    <button 
-                      onClick={() => { onReply(userData.id, cleanUsername, userData.photoURL || ""); setIsZoomOpen(false); }}
-                      className="flex items-center gap-2 text-[10px] font-black uppercase text-foreground hover:text-primary transition-colors"
-                    >
-                      <Camera className="h-3.5 w-3.5" /> Reply
-                    </button>
-                    <div className="w-[1px] h-4 bg-border" />
-                  </>
-                )}
-                {userData?.photoURL && (
-                  <button onClick={handleDownload} className="flex items-center gap-2 text-[10px] font-black uppercase text-foreground hover:text-primary transition-colors">
-                    <Download className="h-3.5 w-3.5" /> Save
-                  </button>
-                )}
-              </div>
-            </motion.div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </>
   );
 }

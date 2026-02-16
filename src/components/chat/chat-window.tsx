@@ -20,6 +20,15 @@ import { ForwardDialog } from "./forward-dialog";
 import { ChannelSettingsDialog } from "@/components/channels/channel-settings-dialog";
 import { AnimatePresence, motion } from "framer-motion";
 
+interface ProfileReplyTarget {
+  id: string;
+  username: string;
+  photoURL: string;
+  bio?: string;
+  totalCommunities: number;
+  commonCommunities: number;
+}
+
 interface ChatWindowProps {
   channelId?: string | null;
   serverId?: string | null;
@@ -35,7 +44,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [replyingTo, setReplyingTo] = useState<any | null>(null);
-  const [profileReplyTarget, setProfileReplyTarget] = useState<{ id: string; username: string; photoURL: string } | null>(null);
+  const [profileReplyTarget, setProfileReplyTarget] = useState<ProfileReplyTarget | null>(null);
   const [whisperingTo, setWhisperingTo] = useState<{ id: string; username: string } | null>(null);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -103,7 +112,8 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
     file?: { url: string; name: string; type: string },
     whisperTarget?: { id: string; username: string } | null,
     replySenderPhotoURL?: string,
-    isProfileReply?: boolean
+    isProfileReply?: boolean,
+    profileContext?: any
   ) => {
     if (!db || !basePath || !user) return;
     const messageRef = doc(collection(db, basePath, "messages"));
@@ -115,11 +125,14 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
 
     const finalWhisper = whisperTarget !== undefined ? whisperTarget : whisperingTo;
 
+    // Normalizing identity string to fix "js js"
+    const cleanReplyName = replySenderName ? replySenderName.replace(/^@/, '') : "";
+
     const data: any = {
       id: messageRef.id,
       channelId: channelId || null,
       senderId: user.uid,
-      senderName: userData?.displayName || user.displayName || "User",
+      senderName: userData?.username || userData?.displayName || user.displayName || "User",
       senderPhotoURL: userData?.photoURL || user.photoURL || "",
       content: text || "",
       type: messageType,
@@ -145,19 +158,20 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
       data.senderExpireAt = new Date(sentAt.getTime() + (disappearing.duration || 10000)).toISOString();
     }
 
-    if (replyingTo) {
-      data.replyTo = { 
-        messageId: replyingTo.id || "", 
-        senderName: replySenderName || replyingTo.senderName || "User", 
-        senderPhotoURL: replySenderPhotoURL || replyingTo.senderPhotoURL || "",
-        text: replyingTo.content || replyingTo.text || 'Media Message' 
-      };
-    } else if (isProfileReply && profileReplyTarget) {
+    if (isProfileReply && profileReplyTarget) {
       data.replyTo = {
         messageId: "profile",
         senderName: profileReplyTarget.username,
         senderPhotoURL: profileReplyTarget.photoURL,
-        text: `Shared thoughts on @${profileReplyTarget.username}'s profile picture.`
+        text: `Shared thoughts on @${profileReplyTarget.username}'s identity picture.`,
+        profileContext: profileContext || {}
+      };
+    } else if (replyingTo) {
+      data.replyTo = { 
+        messageId: replyingTo.id || "", 
+        senderName: cleanReplyName || replyingTo.senderName || "User", 
+        senderPhotoURL: replySenderPhotoURL || replyingTo.senderPhotoURL || "",
+        text: replyingTo.content || replyingTo.text || 'Media Message' 
       };
     }
     
@@ -266,8 +280,15 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
     setProfileReplyTarget(null);
   }, []);
 
-  const handleReplyToProfile = useCallback((id: string, username: string, photoURL: string) => {
-    setProfileReplyTarget({ id, username, photoURL });
+  const handleReplyToProfile = useCallback((id: string, username: string, photoURL: string, bio?: string, totalCommunities?: number, commonCommunities?: number) => {
+    setProfileReplyTarget({ 
+      id, 
+      username: username.replace(/^@/, ''), 
+      photoURL, 
+      bio, 
+      totalCommunities: totalCommunities || 0, 
+      commonCommunities: commonCommunities || 0 
+    });
     setReplyingTo(null);
     setWhisperingTo(null);
     if (inputRef.current) inputRef.current.focus();

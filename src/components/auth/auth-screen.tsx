@@ -104,11 +104,11 @@ export function AuthScreen() {
   };
 
   const renderLoggedOut = () => (
-    <div className="w-full flex items-center justify-center h-full">
+    <div className="w-full h-full flex items-center justify-center p-4">
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="w-full max-w-md my-auto flex flex-col items-center justify-center"
+        className="w-full max-w-md flex flex-col items-center justify-center"
       >
         <Card className="border-none shadow-2xl bg-card overflow-hidden rounded-[2.5rem] w-full">
           <CardHeader className="text-center pt-10 pb-6 bg-gradient-to-b from-primary/5 to-transparent">
@@ -154,185 +154,93 @@ export function AuthScreen() {
     </div>
   );
 
-  if (view === "loggedOut") {
-    return (
-      <div className="fixed inset-0 w-full flex flex-col items-center justify-center bg-background overflow-hidden p-4 selection:bg-primary/30">
-        {renderLoggedOut()}
-      </div>
-    );
-  }
-
   return (
     <div className="fixed inset-0 w-full flex flex-col bg-background overflow-y-auto custom-scrollbar selection:bg-primary/30">
-      <div className="min-h-svh w-full flex flex-col items-center justify-center p-4 py-4 md:py-8">
-        <Card className="w-full max-w-md shadow-2xl border-none bg-card animate-in fade-in zoom-in-95 duration-500 my-auto">
-          <CardHeader className="space-y-0.5 text-center pb-1 pt-4">
-            <div className="flex flex-col items-center mb-1">
-              <div className="p-2 bg-primary/10 rounded-[1.25rem] shadow-inner animate-bounce [animation-duration:4s]">
-                <Logo size={32} />
-              </div>
-              
-              <button 
-                type="button"
-                onClick={() => setSignatureType(prev => prev === "ani" ? "sanu" : "ani")}
-                className="h-10 w-32 flex items-center justify-center outline-none group cursor-pointer"
-              >
-                <AnimatePresence mode="wait">
-                  {signatureType === "ani" ? (
-                    <motion.svg
-                      key="ani-sig"
-                      width="80"
-                      height="36"
-                      viewBox="0 0 80 36"
-                      fill="none"
-                      className="text-primary transition-transform group-hover:scale-110"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0, scale: 0.9 }}
-                    >
-                      <motion.path
-                        d="M15,25 L25,5 L40,25 M18,18 H32 M50,25 V12 C50,8 60,8 60,12 V25 M70,12 V25 M70,5 V8"
-                        stroke="currentColor"
-                        strokeWidth="3"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        initial={{ pathLength: 0 }}
-                        animate={{ pathLength: 1 }}
-                        transition={{ duration: 1.5, ease: "easeInOut" }}
-                      />
-                    </motion.svg>
-                  ) : (
-                    <motion.svg
-                      key="sanu-sig"
-                      width="100"
-                      height="36"
-                      viewBox="0 0 100 36"
-                      fill="none"
-                      className="text-primary transition-transform group-hover:scale-110"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0, scale: 0.9 }}
-                    >
-                      <motion.path
-                        d="M15,25 C15,15 30,5 30,15 C30,25 15,30 25,30 C35,30 40,20 40,15 M45,25 V12 C45,8 55,8 55,12 V25 M60,25 V12 C60,8 70,8 70,12 V25 M75,12 V20 C75,25 90,25 90,12"
-                        stroke="currentColor"
-                        strokeWidth="3"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        initial={{ pathLength: 0 }}
-                        animate={{ pathLength: 1 }}
-                        transition={{ duration: 1.8, ease: "easeInOut" }}
-                      />
-                    </motion.svg>
-                  )}
-                </AnimatePresence>
-              </button>
-            </div>
-            
-            <CardTitle className="text-xl font-black tracking-tighter text-foreground uppercase">Duniya</CardTitle>
-            <CardDescription className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/60">
-              {view === "login" ? "Welcome back to the Verse" : "Join the modern community platform"}
-            </CardDescription>
-          </CardHeader>
-          <form onSubmit={handleSubmit}>
-            <CardContent className="space-y-2 px-6 md:px-8 pt-2">
-              {view === "signup" && (
-                <div className="space-y-0.5">
-                  <Label htmlFor="username" className="text-[8px] font-black uppercase tracking-wider text-muted-foreground/80 ml-1">Unique Username</Label>
-                  <Input 
-                    id="username" 
-                    placeholder="johndoe" 
-                    required 
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    disabled={isLoading}
-                    className="bg-muted/50 border-none h-9 rounded-xl focus:ring-2 focus:ring-primary/20 transition-all text-sm"
-                  />
-                </div>
-              )}
-              <div className="space-y-0.5">
-                <Label htmlFor="email" className="text-[8px] font-black uppercase tracking-wider text-muted-foreground/80 ml-1">Email Address</Label>
-                <Input 
-                  id="email" 
-                  type="email" 
-                  placeholder="name@example.com" 
-                  required 
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={isLoading}
-                  className="bg-muted/50 border-none h-9 rounded-xl focus:ring-2 focus:ring-primary/20 transition-all text-sm"
-                />
-              </div>
-              <div className="space-y-0.5">
-                <Label htmlFor="password" className="text-[8px] font-black uppercase tracking-wider text-muted-foreground/80 ml-1">Password</Label>
-                <div className="relative">
-                  <Input 
-                    id="password" 
-                    type={showPassword ? "text" : "password"} 
-                    required 
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    disabled={isLoading}
-                    className="bg-muted/50 border-none h-9 rounded-xl focus:ring-2 focus:ring-primary/20 transition-all text-sm pr-10"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors focus:outline-none"
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-              </div>
-              {view === "signup" && (
-                <div className="space-y-0.5">
-                  <Label htmlFor="confirmPassword" className="text-[8px] font-black uppercase tracking-wider text-muted-foreground/80 ml-1">Confirm Password</Label>
-                  <div className="relative">
-                    <Input 
-                      id="confirmPassword" 
-                      type={showPassword ? "text" : "password"} 
-                      required 
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      disabled={isLoading}
-                      className="bg-muted/50 border-none h-9 rounded-xl focus:ring-2 focus:ring-primary/20 transition-all text-sm pr-10"
-                    />
-                    <button
+      <div className="min-h-svh w-full flex flex-col items-center justify-center p-4">
+        <AnimatePresence mode="wait">
+          {view === "loggedOut" ? (
+            <motion.div key="logged-out" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="w-full max-w-md h-full">
+              {renderLoggedOut()}
+            </motion.div>
+          ) : (
+            <motion.div key="auth-form" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="w-full max-w-md flex flex-col items-center">
+              <Card className="w-full shadow-2xl border-none bg-card animate-in fade-in zoom-in-95 duration-500">
+                <CardHeader className="space-y-0.5 text-center pb-1 pt-4">
+                  <div className="flex flex-col items-center mb-1">
+                    <div className="p-2 bg-primary/10 rounded-[1.25rem] shadow-inner animate-bounce [animation-duration:4s]">
+                      <Logo size={32} />
+                    </div>
+                    
+                    <button 
                       type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors focus:outline-none"
+                      onClick={() => setSignatureType(prev => prev === "ani" ? "sanu" : "ani")}
+                      className="h-10 w-32 flex items-center justify-center outline-none group cursor-pointer"
                     >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      <AnimatePresence mode="wait">
+                        {signatureType === "ani" ? (
+                          <motion.svg key="ani-sig" width="80" height="36" viewBox="0 0 80 36" fill="none" className="text-primary" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                            <motion.path d="M15,25 L25,5 L40,25 M18,18 H32 M50,25 V12 C50,8 60,8 60,12 V25 M70,12 V25 M70,5 V8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.5 }} />
+                          </motion.svg>
+                        ) : (
+                          <motion.svg key="sanu-sig" width="100" height="36" viewBox="0 0 100 36" fill="none" className="text-primary" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                            <motion.path d="M15,25 C15,10 30,5 30,15 C30,25 15,30 25,30 C35,30 40,20 40,15 M45,25 V12 C45,8 55,8 55,12 V25 M60,25 V12 C60,8 70,8 70,12 V25 M75,12 V20 C75,25 90,25 90,12" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.8 }} />
+                          </motion.svg>
+                        )}
+                      </AnimatePresence>
                     </button>
                   </div>
+                  
+                  <CardTitle className="text-xl font-black tracking-tighter text-foreground uppercase">Duniya</CardTitle>
+                  <CardDescription className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/60">
+                    {view === "login" ? "Welcome back to the Verse" : "Join the modern community platform"}
+                  </CardDescription>
+                </CardHeader>
+                <form onSubmit={handleSubmit}>
+                  <CardContent className="space-y-2 px-6 md:px-8 pt-2">
+                    {view === "signup" && (
+                      <div className="space-y-0.5">
+                        <Label htmlFor="username" className="text-[8px] font-black uppercase tracking-wider text-muted-foreground ml-1">Unique Username</Label>
+                        <Input id="username" placeholder="johndoe" required value={username} onChange={(e) => setUsername(e.target.value)} disabled={isLoading} className="bg-muted/50 border-none h-9 rounded-xl focus:ring-2 focus:ring-primary/20 transition-all text-sm" />
+                      </div>
+                    )}
+                    <div className="space-y-0.5">
+                      <Label htmlFor="email" className="text-[8px] font-black uppercase tracking-wider text-muted-foreground ml-1">Email Address</Label>
+                      <Input id="email" type="email" placeholder="name@example.com" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={isLoading} className="bg-muted/50 border-none h-9 rounded-xl focus:ring-2 focus:ring-primary/20 transition-all text-sm" />
+                    </div>
+                    <div className="space-y-0.5">
+                      <Label htmlFor="password" className="text-[8px] font-black uppercase tracking-wider text-muted-foreground ml-1">Password</Label>
+                      <div className="relative">
+                        <Input id="password" type={showPassword ? "text" : "password"} required value={password} onChange={(e) => setPassword(e.target.value)} disabled={isLoading} className="bg-muted/50 border-none h-9 rounded-xl focus:ring-2 focus:ring-primary/20 transition-all text-sm pr-10" />
+                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors focus:outline-none">{showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
+                      </div>
+                    </div>
+                    {view === "signup" && (
+                      <div className="space-y-0.5">
+                        <Label htmlFor="confirmPassword" className="text-[8px] font-black uppercase tracking-wider text-muted-foreground ml-1">Confirm Password</Label>
+                        <Input id="confirmPassword" type={showPassword ? "text" : "password"} required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} disabled={isLoading} className="bg-muted/50 border-none h-9 rounded-xl focus:ring-2 focus:ring-primary/20 transition-all text-sm" />
+                      </div>
+                    )}
+                  </CardContent>
+                  <CardFooter className="flex flex-col space-y-3 px-6 md:px-8 pb-4 pt-1">
+                    <Button type="submit" className="w-full h-10 text-sm font-black rounded-xl shadow-xl shadow-primary/20 uppercase tracking-widest" disabled={isLoading}>
+                      {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (view === "login" ? "Sign In" : "Create Account")}
+                    </Button>
+                    <button type="button" className="text-[9px] text-primary hover:text-primary/80 font-black tracking-widest transition-colors uppercase" onClick={() => { setView(view === "login" ? "signup" : "login"); setShowPassword(false); }} disabled={isLoading}>
+                      {view === "login" ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
+                    </button>
+                  </CardFooter>
+                </form>
+              </Card>
+              
+              <div className="flex flex-col items-center gap-2 mt-4 mb-2">
+                <div className="flex items-center gap-2 px-4 py-1 bg-muted/40 backdrop-blur-md rounded-full border border-border shadow-sm">
+                  <span className="text-[7px] font-black uppercase tracking-[0.3em] text-muted-foreground/70">Made by Aniruddha with love</span>
+                  <Heart className="h-2 w-2 text-red-500 fill-red-500 animate-pulse" />
                 </div>
-              )}
-            </CardContent>
-            <CardFooter className="flex flex-col space-y-3 px-6 md:px-8 pb-4 pt-1">
-              <Button type="submit" className="w-full h-10 text-sm font-black rounded-xl shadow-xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98] uppercase tracking-widest" disabled={isLoading}>
-                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (view === "login" ? "Sign In" : "Create Account")}
-              </Button>
-              <button 
-                type="button"
-                className="text-[9px] text-primary hover:text-primary/80 font-black tracking-widest transition-colors uppercase"
-                onClick={() => {
-                  setView(view === "login" ? "signup" : "login");
-                  setShowPassword(false);
-                }}
-                disabled={isLoading}
-              >
-                {view === "login" ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
-              </button>
-            </CardFooter>
-          </form>
-        </Card>
-        
-        <div className="flex flex-col items-center gap-2 mt-4 mb-2 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-300">
-          <div className="flex items-center gap-2 px-4 py-1 bg-muted/40 backdrop-blur-md rounded-full border border-border shadow-sm">
-            <span className="text-[7px] font-black uppercase tracking-[0.3em] text-muted-foreground/70">Made by Aniruddha with love</span>
-            <Heart className="h-2 w-2 text-red-500 fill-red-500 animate-pulse" />
-          </div>
-        </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
