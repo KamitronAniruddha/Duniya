@@ -119,7 +119,8 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
     whisperTarget?: { id: string; username: string } | null,
     replySenderPhotoURL?: string,
     isProfileReply?: boolean,
-    profileContext?: any
+    profileContext?: any,
+    isSensitive?: boolean
   ) => {
     if (!db || !basePath || !user) return;
     const messageRef = doc(collection(db, basePath, "messages"));
@@ -155,7 +156,8 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
       viewerExpireAt: {},
       whisperTo: finalWhisper?.id || null,
       whisperToUsername: finalWhisper?.username || null,
-      visibleTo: finalWhisper?.id ? [user.uid, finalWhisper.id] : ["all"]
+      visibleTo: finalWhisper?.id ? [user.uid, finalWhisper.id] : ["all"],
+      isSensitive: !!isSensitive
     };
 
     if (disappearing?.enabled) {
