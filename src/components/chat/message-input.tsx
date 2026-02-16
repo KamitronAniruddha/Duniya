@@ -79,11 +79,9 @@ const EMOJI_CATEGORIES = [
 ];
 
 const CHEAT_CODES = [
-  // Original Commands
   { icon: <Eraser className="h-4 w-4 text-orange-500" />, label: "clr", description: "Clear current chat history locally", usage: "@clr" },
   { icon: <Trash2 className="h-4 w-4 text-red-500" />, label: "del", description: "Delete last X messages from you", usage: "@del 5" },
   { icon: <Ghost className="h-4 w-4 text-indigo-500" />, label: "whisper", description: "Private message someone", usage: "@whisper @user text" },
-  // 20 New Commands
   { icon: <Activity className="h-4 w-4 text-emerald-500" />, label: "ping", description: "Sync check with the Verse node", usage: "@ping" },
   { icon: <Zap className="h-4 w-4 text-amber-500" />, label: "stats", description: "View your network intelligence data", usage: "@stats" },
   { icon: <Ghost className="h-4 w-4 text-indigo-400" />, label: "ghost", description: "Toggle ephemeral ghost mode", usage: "@ghost" },
@@ -265,14 +263,12 @@ export function MessageInput({
     e.preventDefault();
     if (!text.trim() && !imagePreview && !filePreview) return;
 
-    // Command Parsing
     const cmdMatch = text.trim().match(/^@(\w+)(?:\s+(.*))?$/);
     if (cmdMatch) {
       const cmd = cmdMatch[1].toLowerCase();
       const rawArgs = cmdMatch[2] || "";
       const args = rawArgs ? rawArgs.split(" ") : [];
 
-      // Local ASCII/Input Commands
       if (cmd === "shrug") { onSendMessage("¯\\_(ツ)_/¯" + (rawArgs ? " " + rawArgs : "")); setText(""); return; }
       if (cmd === "tableflip") { onSendMessage("(╯°□°）╯︵ ┻━┻" + (rawArgs ? " " + rawArgs : "")); setText(""); return; }
       if (cmd === "lenny") { onSendMessage("( ͡° ͜ʖ ͡°)" + (rawArgs ? " " + rawArgs : "")); setText(""); return; }
@@ -280,7 +276,6 @@ export function MessageInput({
       if (cmd === "ghost") { setDisappearingEnabled(!disappearingEnabled); setText(""); return; }
       if (cmd === "font") { setShowFormatting(!showFormatting); setText(""); return; }
 
-      // Execute external commands
       const handled = await onExecuteCommand?.(cmd, args);
       if (handled) {
         setText("");
@@ -498,7 +493,7 @@ export function MessageInput({
                 <Command className="h-3.5 w-3.5 text-primary" />
                 <span className="text-[10px] font-black uppercase tracking-widest text-primary">Verse Commands</span>
               </div>
-              <ScrollArea className="max-h-64">
+              <ScrollArea className="h-72">
                 <div className="space-y-0.5">
                   {filteredCommands.map((c) => (
                     <button 
@@ -534,7 +529,7 @@ export function MessageInput({
                 <Ghost className="h-3.5 w-3.5 text-indigo-500" />
                 <span className="text-[10px] font-black uppercase tracking-widest text-indigo-500">Whisper Target</span>
               </div>
-              <ScrollArea className="max-h-64">
+              <ScrollArea className="h-72">
                 <div className="space-y-0.5">
                   {filteredMembers.length === 0 ? (
                     <div className="p-8 text-center opacity-30 text-[10px] font-black uppercase tracking-widest">No Members Found</div>
