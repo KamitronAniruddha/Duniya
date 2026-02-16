@@ -91,11 +91,7 @@ export function MessageTraceDialog({ open, onOpenChange, chain }: MessageTraceDi
         </div>
 
         <div className="p-4 bg-muted/20 border-t flex items-center justify-center shrink-0">
-           <div className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.3em] text-muted-foreground/40">
-            <span>Trace Verified by Duniya</span>
-            <div className="h-1 w-1 rounded-full bg-primary/40" />
-            <span>Aniruddha ❤️</span>
-          </div>
+          <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/40 text-center">Made by Aniruddha with love ❤️</span>
         </div>
       </DialogContent>
     </Dialog>

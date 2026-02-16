@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -237,11 +236,7 @@ export function FeatureShowcaseDialog({ open, onOpenChange }: { open: boolean; o
         </div>
 
         <div className="p-6 bg-muted/30 border-t flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-3 px-6 py-3 bg-background/50 backdrop-blur-md rounded-full border border-border shadow-sm">
-            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">The Verse Intelligence by Aniruddha</span>
-            <div className="w-[1px] h-4 bg-border" />
-            <Heart className="h-3.5 w-3.5 text-red-500 fill-red-500 animate-pulse" />
-          </div>
+          <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/40 text-center">Made by Aniruddha with love ❤️</span>
           <Button variant="ghost" className="rounded-2xl font-black uppercase tracking-widest h-14 px-10 hover:bg-primary hover:text-white transition-all shadow-xl hover:shadow-primary/20" onClick={() => onOpenChange(false)}>
             Close Guide
           </Button>

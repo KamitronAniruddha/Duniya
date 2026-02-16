@@ -1,11 +1,10 @@
-
 "use client";
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { ServerSidebar } from "@/components/sidebar/server-sidebar";
 import { ChannelSidebar } from "@/components/sidebar/channel-sidebar";
 import { ChatWindow } from "@/components/chat/chat-window";
-import { AuthScreen, SignatureSVG } from "@/components/auth/auth-screen";
+import { AuthScreen } from "@/components/auth/auth-screen";
 import { DuniyaPanel } from "@/components/duniya/duniya-panel";
 import { AdminDashboard } from "@/components/admin/admin-dashboard";
 import { useUser, useFirestore, useMemoFirebase, useAuth, useDoc, useCollection } from "@/firebase";
@@ -61,8 +60,7 @@ export default function DuniyaApp() {
 
   const { data: channels } = useCollection(channelsQuery);
 
-  // AUTOMATIC CHANNEL ROUTING:
-  // WhatsApp-Fast transition: Auto-select the first channel when entering a community.
+  // AUTOMATIC CHANNEL ROUTING: Instantly jump into the first channel when switching communities
   useEffect(() => {
     if (activeCommunityId && channels && channels.length > 0) {
       const firstChannelId = channels[0].id;
@@ -421,10 +419,8 @@ export default function DuniyaApp() {
       
       {mode === "mobile" ? renderMobileLayout() : mode === "tablet" ? renderTabletLayout() : renderLaptopLayout()}
       
-      <div className="hidden md:flex fixed bottom-1 right-4 items-center gap-3 pointer-events-none z-50">
-        <span className="text-[8px] font-black uppercase tracking-[0.3em] text-muted-foreground/40">Made by</span>
-        <SignatureSVG type="ani" size={60} className="text-primary/30" />
-        <Heart className="h-2 w-2 text-red-500 fill-red-500 animate-pulse" />
+      <div className="hidden md:flex fixed bottom-4 right-6 items-center gap-2 pointer-events-none z-50">
+        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/40">Made by Aniruddha with love ❤️</span>
       </div>
     </div>
   );

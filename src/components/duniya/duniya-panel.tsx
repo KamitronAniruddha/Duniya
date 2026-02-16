@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo } from "react";
@@ -192,11 +191,7 @@ export function DuniyaPanel({ onJoinSuccess }: { onJoinSuccess: (serverId: strin
       </ScrollArea>
 
       <div className="p-4 bg-muted/20 border-t flex items-center justify-center shrink-0">
-        <div className="flex items-center gap-2 px-4 py-2 bg-background/50 backdrop-blur-md rounded-full border border-border shadow-sm">
-          <Sparkles className="h-3 w-3 text-primary animate-pulse" />
-          <span className="text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground">Made by Aniruddha with love</span>
-          <Heart className="h-2.5 w-2.5 text-red-500 fill-red-500" />
-        </div>
+        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/40 text-center">Made by Aniruddha with love ❤️</span>
       </div>
     </div>
   );

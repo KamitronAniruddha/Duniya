@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo } from "react";
@@ -32,7 +31,6 @@ export function InvitationManager() {
   const { data: invites } = useCollection(invitesQuery);
 
   // BUG FIX: Show only the most recent invitation that isn't from a muted community.
-  // This prevents dialog stacking if multiple invitations arrive at once.
   const activeInvite = useMemo(() => {
     if (!invites || invites.length === 0 || !userData) return null;
     
@@ -44,7 +42,6 @@ export function InvitationManager() {
     });
 
     if (filteredInvites.length === 0) return null;
-    // Show only the latest one
     return filteredInvites[filteredInvites.length - 1];
   }, [invites, userData]);
 
@@ -173,10 +170,7 @@ export function InvitationManager() {
               </DialogFooter>
 
               <div className="p-4 bg-muted/20 border-t flex items-center justify-center">
-                <div className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.3em] text-muted-foreground/40">
-                  <span>Verified Invitation by Duniya</span>
-                  <Heart className="h-3 w-3 text-red-500 fill-red-500 animate-pulse" />
-                </div>
+                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/40 text-center">Made by Aniruddha with love ❤️</span>
               </div>
             </motion.div>
           </DialogContent>

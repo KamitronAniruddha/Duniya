@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -142,11 +141,8 @@ export function AuthScreen() {
               Create New Account
             </Button>
           </CardContent>
-          <div className="p-4 bg-muted/20 border-t flex flex-col items-center justify-center gap-2">
-            <div className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.3em] text-muted-foreground/40">
-              <span>Duniya Messenger Verified</span>
-            </div>
-            <SignatureSVG type="ani" size={60} className="text-primary/40" />
+          <div className="p-4 bg-muted/20 border-t flex items-center justify-center">
+            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/40 text-center">Made by Aniruddha with love ❤️</span>
           </div>
         </Card>
       </motion.div>
@@ -221,11 +217,8 @@ export function AuthScreen() {
                 </form>
               </Card>
               
-              <div className="flex flex-col items-center gap-2 mt-4 mb-2">
-                <div className="flex flex-col items-center gap-1 px-6 py-2 bg-muted/40 backdrop-blur-md rounded-3xl border border-border shadow-sm">
-                  <span className="text-[7px] font-black uppercase tracking-[0.3em] text-muted-foreground/70">Signature Verified</span>
-                  <SignatureSVG type="ani" size={50} className="text-primary/60" />
-                </div>
+              <div className="mt-8 flex flex-col items-center gap-2">
+                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/40 text-center">Made by Aniruddha with love ❤️</span>
               </div>
             </motion.div>
           )}
@@ -236,7 +229,7 @@ export function AuthScreen() {
 }
 
 export function SignatureSVG({ type, size = 80, className }: { type: "ani" | "sanu", size?: number, className?: string }) {
-  // Simpler earlier paths for Ani and Sanu
+  // Simple cursive paths for Ani and Sanu
   const aniPath = "M15,35 C5,25 15,5 25,5 C35,5 30,35 30,35 M18,22 H35 M45,35 V22 C45,15 55,15 55,22 V35 C55,15 65,15 65,22 V35 M75,22 V35 M75,10 A1.5,1.5 0 1,1 75,13 A1.5,1.5 0 1,1 75,10";
   const sanuPath = "M20,15 C10,15 10,35 25,35 C40,35 40,5 25,5 C10,5 10,25 25,25 C40,25 50,35 60,35 M65,35 V25 C65,20 75,20 75,25 V35 M85,35 V25 C85,20 95,20 95,25 V35 M105,25 V30 C105,35 115,35 115,30 V25";
 

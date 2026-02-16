@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -135,13 +134,13 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive }
 
   const copyJoinCode = (code: string) => {
     navigator.clipboard.writeText(code);
-    toast({ title: "Code Copied", description: "Invite code copied to clipboard." });
+    toast({ title: "Code Copied" });
   };
 
   const copyInviteLink = (id: string) => {
     const link = `${window.location.origin}/invite/${id}`;
     navigator.clipboard.writeText(link);
-    toast({ title: "Invite Link Copied", description: "Share this link to invite others." });
+    toast({ title: "Invite Link Copied" });
   };
 
   return (
@@ -199,24 +198,12 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive }
                   </Tooltip>
                 </ContextMenuTrigger>
                 <ContextMenuContent className="w-56 font-black uppercase text-[10px] tracking-widest p-1 border-none shadow-2xl bg-popover/95 backdrop-blur-md">
-                  <ContextMenuItem onClick={() => onSelectServer(s.id)} className="gap-2 p-3 rounded-xl transition-all hover:bg-primary/10">
-                    <Globe className="h-4 w-4" /> Open Community
-                  </ContextMenuItem>
-                  <ContextMenuItem onClick={() => setViewingProfileId(s.id)} className="gap-2 p-3 rounded-xl transition-all hover:bg-primary/10">
-                    <Info className="h-4 w-4" /> View Profile
-                  </ContextMenuItem>
-                  <ContextMenuItem onClick={() => copyInviteLink(s.id)} className="gap-2 p-3 rounded-xl transition-all hover:bg-primary/10">
-                    <Share2 className="h-4 w-4" /> Copy Invite Link
-                  </ContextMenuItem>
-                  {isAdmin && (
-                    <ContextMenuItem onClick={() => setEditingServerId(s.id)} className="gap-2 p-3 rounded-xl transition-all hover:bg-primary/10">
-                      <Settings className="h-4 w-4" /> Edit Community Info
-                    </ContextMenuItem>
-                  )}
+                  <ContextMenuItem onClick={() => onSelectServer(s.id)} className="gap-2 p-3 rounded-xl hover:bg-primary/10"><Globe className="h-4 w-4" /> Open Community</ContextMenuItem>
+                  <ContextMenuItem onClick={() => setViewingProfileId(s.id)} className="gap-2 p-3 rounded-xl hover:bg-primary/10"><Info className="h-4 w-4" /> View Profile</ContextMenuItem>
+                  <ContextMenuItem onClick={() => copyInviteLink(s.id)} className="gap-2 p-3 rounded-xl hover:bg-primary/10"><Share2 className="h-4 w-4" /> Copy Invite Link</ContextMenuItem>
+                  {isAdmin && <ContextMenuItem onClick={() => setEditingServerId(s.id)} className="gap-2 p-3 rounded-xl hover:bg-primary/10"><Settings className="h-4 w-4" /> Community Settings</ContextMenuItem>}
                   <ContextMenuSeparator />
-                  <ContextMenuItem onClick={() => copyJoinCode(s.joinCode)} className="gap-2 p-3 rounded-xl transition-all hover:bg-primary/10">
-                    <Copy className="h-4 w-4" /> Copy Join Code
-                  </ContextMenuItem>
+                  <ContextMenuItem onClick={() => copyJoinCode(s.joinCode)} className="gap-2 p-3 rounded-xl hover:bg-primary/10"><Copy className="h-4 w-4" /> Copy Join Code</ContextMenuItem>
                 </ContextMenuContent>
               </ContextMenu>
             );
@@ -232,19 +219,8 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive }
             </DialogTrigger>
             <DialogContent className="rounded-[2.5rem] border-none shadow-2xl">
               <DialogHeader><DialogTitle className="text-xl font-black uppercase tracking-tighter">NEW COMMUNITY</DialogTitle></DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Community Name</Label>
-                  <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="My Awesome Group" disabled={isLoading} className="bg-muted/40 border-none rounded-2xl h-12 font-bold" />
-                </div>
-              </div>
-              <DialogFooter className="gap-2">
-                <Button variant="ghost" className="rounded-xl font-bold" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-                <Button onClick={handleCreateServer} className="rounded-xl font-black shadow-lg shadow-primary/20" disabled={isLoading || !name.trim()}>
-                   {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
-                   Create
-                </Button>
-              </DialogFooter>
+              <div className="space-y-4 py-4"><div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Community Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="My Awesome Group" disabled={isLoading} className="bg-muted/40 border-none rounded-2xl h-12 font-bold" /></div></div>
+              <DialogFooter className="gap-2"><Button variant="ghost" className="rounded-xl font-bold" onClick={() => setIsModalOpen(false)}>Cancel</Button><Button onClick={handleCreateServer} className="rounded-xl font-black shadow-lg shadow-primary/20" disabled={isLoading || !name.trim()}>{isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}Create</Button></DialogFooter>
             </DialogContent>
           </Dialog>
 
@@ -256,44 +232,20 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive }
             </DialogTrigger>
             <DialogContent className="rounded-[2.5rem] border-none shadow-2xl">
               <DialogHeader><DialogTitle className="text-xl font-black uppercase tracking-tighter">JOIN THE VERSE</DialogTitle></DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">5-Digit Join Code</Label>
-                  <Input value={joinId} onChange={(e) => setJoinId(e.target.value)} placeholder="e.g. 12345" className="bg-muted/40 border-none rounded-2xl h-12 font-bold text-center tracking-[0.5em]" maxLength={5} />
-                </div>
-              </div>
-              <DialogFooter className="gap-2">
-                <Button variant="ghost" className="rounded-xl font-bold" onClick={() => setIsJoinModalOpen(false)}>Cancel</Button>
-                <Button onClick={handleJoinServer} className="rounded-xl font-black shadow-lg shadow-primary/20" disabled={isLoading || !joinId.trim()}>
-                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Compass className="h-4 w-4 mr-2" />}
-                  Join
-                </Button>
-              </DialogFooter>
+              <div className="space-y-4 py-4"><div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">5-Digit Join Code</Label><Input value={joinId} onChange={(e) => setJoinId(e.target.value)} placeholder="e.g. 12345" className="bg-muted/40 border-none rounded-2xl h-12 font-bold text-center tracking-[0.5em]" maxLength={5} /></div></div>
+              <DialogFooter className="gap-2"><Button variant="ghost" className="rounded-xl font-bold" onClick={() => setIsJoinModalOpen(false)}>Cancel</Button><Button onClick={handleJoinServer} className="rounded-xl font-black shadow-lg shadow-primary/20" disabled={isLoading || !joinId.trim()}>{isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Compass className="h-4 w-4 mr-2" />}Join</Button></DialogFooter>
             </DialogContent>
           </Dialog>
           
-          <div className="flex flex-col items-center gap-1 opacity-40 hover:opacity-100 transition-all mt-2 group">
+          <div className="flex flex-col items-center gap-1 opacity-40 hover:opacity-100 transition-all mt-2">
             <Heart className="h-3 w-3 text-red-500 fill-red-500 animate-pulse" />
-            <span className="text-[7px] font-black uppercase text-white/50 group-hover:text-white text-center leading-[1.2] tracking-tighter">Aniruddha</span>
+            <span className="text-[7px] font-black uppercase text-white/50 text-center leading-[1.2] tracking-tighter">Aniruddha</span>
           </div>
         </div>
       </TooltipProvider>
 
-      {editingServerId && (
-        <ServerSettingsDialog 
-          open={!!editingServerId} 
-          onOpenChange={(open) => !open && setEditingServerId(null)} 
-          serverId={editingServerId} 
-        />
-      )}
-
-      {viewingProfileId && (
-        <CommunityProfileDialog
-          open={!!viewingProfileId}
-          onOpenChange={(open) => !open && setViewingProfileId(null)}
-          serverId={viewingProfileId}
-        />
-      )}
+      {editingServerId && <ServerSettingsDialog open={!!editingServerId} onOpenChange={(open) => !open && setEditingServerId(null)} serverId={editingServerId} />}
+      {viewingProfileId && <CommunityProfileDialog open={!!viewingProfileId} onOpenChange={(open) => !open && setViewingProfileId(null)} serverId={viewingProfileId} />}
     </aside>
   );
 }
