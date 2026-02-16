@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -62,6 +63,10 @@ export function UserProfilePopover({ userId, children, onWhisper, onReply, side 
 
       <Dialog open={isZoomOpen} onOpenChange={setIsZoomOpen}>
         <DialogContent className="max-w-[90vw] max-h-[90vh] p-0 border-none bg-transparent shadow-none flex items-center justify-center z-[2000]">
+          <DialogHeader className="sr-only">
+            <DialogTitle>{cleanUsername} Identity Zoom</DialogTitle>
+            <DialogDescription>Full-sized profile avatar view in original proportions.</DialogDescription>
+          </DialogHeader>
           <div className="relative w-full h-full flex flex-col items-center justify-center group">
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.2, ease: "easeOut" }} className="relative">
               {userData?.photoURL ? <img src={userData.photoURL} alt={cleanUsername} className="max-w-full max-h-[80vh] rounded-[3rem] shadow-2xl object-contain" /> : <div className="w-64 h-64 bg-primary rounded-[3rem] flex items-center justify-center text-white text-8xl font-black shadow-2xl">{String(cleanUsername)[0]?.toUpperCase()}</div>}

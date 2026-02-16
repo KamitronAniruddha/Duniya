@@ -146,6 +146,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
         <DialogContent className="sm:max-w-[425px] rounded-[2rem] overflow-hidden p-0 border-none shadow-2xl bg-background">
           <DialogHeader className="p-6 bg-gradient-to-b from-primary/10 to-transparent">
             <DialogTitle className="text-2xl font-black tracking-tight uppercase">Settings Suite</DialogTitle>
+            <DialogDescription className="sr-only">Update your profile, interface preferences, and privacy settings.</DialogDescription>
           </DialogHeader>
           
           <Tabs defaultValue="profile" className="w-full">
@@ -249,6 +250,10 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
 
       <Dialog open={isZoomOpen} onOpenChange={setIsZoomOpen}>
         <DialogContent className="max-w-[90vw] max-h-[90vh] p-0 border-none bg-transparent shadow-none flex items-center justify-center z-[2000]">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Your Identity Zoom</DialogTitle>
+            <DialogDescription>Full-sized preview of your profile avatar.</DialogDescription>
+          </DialogHeader>
           <div className="relative w-full h-full flex flex-col items-center justify-center">
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.2, ease: "easeOut" }} className="relative group">
               {photoURL ? <img src={photoURL} className="max-w-full max-h-[80vh] rounded-[3rem] shadow-2xl object-contain" alt="Zoomed view" /> : <div className="w-64 h-64 bg-primary rounded-[3rem] flex items-center justify-center text-white text-8xl font-black shadow-2xl">{username?.[0]?.toUpperCase() || "?"}</div>}
