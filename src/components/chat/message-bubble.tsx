@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { memo, useState, useRef, useEffect, useMemo, useCallback } from "react";
@@ -7,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useFirestore, useUser, useDoc, useMemoFirebase, useCollection } from "@/firebase";
 import { doc, arrayUnion, arrayRemove, deleteField, collection, query, where, documentId, getDocs } from "firebase/firestore";
 import { UserProfilePopover } from "@/components/profile/user-profile-popover";
-import { Reply, CornerDownRight, Play, Pause, MoreHorizontal, Trash2, Ban, Copy, Timer, Check, CheckCheck, Forward, Landmark, Mic, Maximize2, Heart, Download, FileText, File, Eye, Ghost, Lock, Smile, Plus, Users, Camera, Info, Sparkles } from "lucide-react";
+import { Reply, CornerDownRight, Play, Pause, MoreHorizontal, Trash2, Ban, Copy, Timer, Check, CheckCheck, Forward, Landmark, Mic, Maximize2, Heart, Download, FileText, File, Eye, Ghost, Lock, Smile, Plus, Users, Camera, Info, Sparkles, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
@@ -702,10 +701,10 @@ export const MessageBubble = memo(function MessageBubble({
       </Dialog>
 
       <Dialog open={isProfileThoughtOpen} onOpenChange={setIsProfileThoughtOpen}>
-        <DialogContent className="sm:max-w-[400px] rounded-[2.5rem] border-none shadow-2xl p-0 overflow-hidden bg-background z-[2000]">
-          <DialogHeader className="p-8 pb-4 bg-gradient-to-b from-primary/10 to-transparent">
+        <DialogContent className="sm:max-w-[400px] rounded-[2.5rem] border-none shadow-2xl p-0 overflow-hidden bg-background z-[2000] animate-in fade-in zoom-in-95 duration-300">
+          <DialogHeader className="p-8 pb-4 bg-gradient-to-b from-primary/10 to-transparent shrink-0">
             <DialogTitle className="text-2xl font-black tracking-tight uppercase flex items-center gap-3">
-              <Sparkles className="h-6 w-6 text-primary" />
+              <Sparkles className="h-6 w-6 text-primary animate-pulse" />
               Shared Context
             </DialogTitle>
             <DialogDescription className="font-medium text-muted-foreground">
@@ -713,35 +712,89 @@ export const MessageBubble = memo(function MessageBubble({
             </DialogDescription>
           </DialogHeader>
           <div className="p-8 pt-2 space-y-6">
-            <div className="flex items-center gap-4">
-              <Avatar className="h-20 w-20 border-4 border-background shadow-xl rounded-[1.5rem]">
-                <AvatarImage src={message.replyTo?.senderPhotoURL} className="object-cover" />
-                <AvatarFallback className="bg-primary text-white text-2xl font-black uppercase">
-                  {message.replyTo?.senderName?.[0]}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex flex-col">
-                <h3 className="text-xl font-black uppercase tracking-tighter">@{message.replyTo?.senderName}</h3>
-                <span className="text-[9px] font-black uppercase tracking-widest text-primary/60">Verse Identified Member</span>
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
+              className="flex items-center gap-4"
+            >
+              <div className="relative">
+                <Avatar className="h-20 w-20 border-4 border-background shadow-xl rounded-[1.5rem] ring-1 ring-primary/10">
+                  <AvatarImage src={message.replyTo?.senderPhotoURL} className="object-cover" />
+                  <AvatarFallback className="bg-primary text-white text-2xl font-black uppercase">
+                    {message.replyTo?.senderName?.[0]}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="absolute -bottom-1 -right-1 p-1.5 bg-primary rounded-lg shadow-lg border-2 border-background animate-in zoom-in duration-500 delay-200">
+                  <Camera className="h-3.5 w-3.5 text-white" />
+                </div>
               </div>
-            </div>
+              <div className="flex flex-col">
+                <h3 className="text-xl font-black uppercase tracking-tighter text-foreground">@{message.replyTo?.senderName}</h3>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <div className="h-1.5 w-1.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)] animate-pulse" />
+                  <span className="text-[9px] font-black uppercase tracking-widest text-primary">Verse Identified Member</span>
+                </div>
+              </div>
+            </motion.div>
             
-            <div className="p-4 bg-muted/30 rounded-2xl border border-transparent italic text-sm font-medium leading-relaxed">
-              "{message.replyTo?.profileContext?.bio || "A legendary member of the Duniya Verse."}"
-            </div>
+            <motion.div 
+              initial={{ y: 10, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.2, duration: 0.4 }}
+              className="p-5 bg-muted/30 rounded-[1.5rem] border border-border/50 relative overflow-hidden group"
+            >
+              <div className="absolute top-0 right-0 p-3 opacity-5 group-hover:opacity-10 transition-opacity">
+                <Info className="h-12 w-12 text-primary" />
+              </div>
+              <p className="text-sm text-foreground/80 leading-relaxed font-medium italic relative z-10">
+                "{message.replyTo?.profileContext?.bio || "A legendary member of the Duniya Verse."}"
+              </p>
+            </motion.div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10 flex flex-col gap-1">
-                <span className="text-[9px] font-black uppercase tracking-widest text-primary">Connected</span>
-                <span className="text-xl font-black tracking-tighter">{message.replyTo?.profileContext?.totalCommunities || 0} Communities</span>
-              </div>
-              <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10 flex flex-col gap-1">
-                <span className="text-[9px] font-black uppercase tracking-widest text-primary">Mutual Verse</span>
-                <span className="text-xl font-black tracking-tighter">{message.replyTo?.profileContext?.commonCommunities || 0} Shared</span>
-              </div>
+              <motion.div 
+                initial={{ x: -20, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ delay: 0.3, duration: 0.5, type: "spring" }}
+                className="p-4 bg-primary/5 rounded-[1.5rem] border border-primary/10 flex flex-col gap-2 group hover:bg-primary/10 transition-all hover:scale-[1.02] active:scale-95 cursor-default shadow-sm"
+              >
+                <div className="flex items-center gap-2 text-primary">
+                  <div className="p-1.5 bg-primary/10 rounded-lg group-hover:scale-110 transition-transform">
+                    <Globe className="h-4 w-4" />
+                  </div>
+                  <span className="text-[9px] font-black uppercase tracking-widest">Connected</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-2xl font-black tracking-tighter text-foreground leading-none">
+                    {message.replyTo?.profileContext?.totalCommunities || 0}
+                  </span>
+                  <span className="text-[8px] font-black uppercase tracking-tighter text-muted-foreground mt-1">Communities</span>
+                </div>
+              </motion.div>
+              
+              <motion.div 
+                initial={{ x: 20, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ delay: 0.4, duration: 0.5, type: "spring" }}
+                className="p-4 bg-accent/5 rounded-[1.5rem] border border-accent/10 flex flex-col gap-2 group hover:bg-accent/10 transition-all hover:scale-[1.02] active:scale-95 cursor-default shadow-sm"
+              >
+                <div className="flex items-center gap-2 text-accent">
+                  <div className="p-1.5 bg-accent/10 rounded-lg group-hover:scale-110 transition-transform">
+                    <Users className="h-4 w-4" />
+                  </div>
+                  <span className="text-[9px] font-black uppercase tracking-widest">Mutual Verse</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-2xl font-black tracking-tighter text-foreground leading-none">
+                    {message.replyTo?.profileContext?.commonCommunities || 0}
+                  </span>
+                  <span className="text-[8px] font-black uppercase tracking-tighter text-muted-foreground mt-1">Shared Connections</span>
+                </div>
+              </motion.div>
             </div>
           </div>
-          <div className="p-4 bg-muted/20 border-t flex items-center justify-center">
+          <div className="p-4 bg-muted/20 border-t flex items-center justify-center shrink-0">
             <CreatorFooter />
           </div>
         </DialogContent>
