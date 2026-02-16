@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "User": {
@@ -70,6 +71,60 @@
         "totalExperiencePoints",
         "createdAt"
       ]
+    },
+    "Invitation": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Invitation",
+      "type": "object",
+      "description": "Represents a direct invitation for a user to join a community.",
+      "properties": {
+        "id": { "type": "string" },
+        "targetUserId": { "type": "string" },
+        "targetUsername": { "type": "string" },
+        "targetUserPhoto": { "type": "string", "format": "uri" },
+        "senderId": { "type": "string" },
+        "senderName": { "type": "string" },
+        "communityId": { "type": "string" },
+        "communityName": { "type": "string" },
+        "communityIcon": { "type": "string", "format": "uri" },
+        "status": { "type": "string", "enum": ["pending", "accepted", "declined"] },
+        "type": { "type": "string" },
+        "role": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "targetUserId", "senderId", "communityId", "status", "createdAt"]
+    },
+    "ContactFormSubmission": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ContactFormSubmission",
+      "type": "object",
+      "description": "Represents a message sent to the admin team via the contact form.",
+      "properties": {
+        "id": { "type": "string" },
+        "submitterId": { "type": "string" },
+        "senderName": { "type": "string" },
+        "senderEmail": { "type": "string" },
+        "subject": { "type": "string" },
+        "message": { "type": "string" },
+        "submittedAt": { "type": "string", "format": "date-time" },
+        "status": { "type": "string" },
+        "resolvedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "senderName", "senderEmail", "subject", "message", "submittedAt", "status"]
+    },
+    "Conversation": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Conversation",
+      "type": "object",
+      "description": "Represents a private direct message conversation between users.",
+      "properties": {
+        "id": { "type": "string" },
+        "participantIds": { "type": "array", "items": { "type": "string" } },
+        "lastMessage": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "participantIds", "updatedAt", "createdAt"]
     },
     "Friendship": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -729,41 +784,19 @@
       "type": "object",
       "description": "Records individual instances of a user gaining experience points, serving as an XP history.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the ExperiencePointActivity entity."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to the User who gained the experience points. (Relationship: User 1:N ExperiencePointActivity)"
-        },
-        "activityType": {
-          "type": "string",
-          "description": "The type of action that granted the XP (e.g., 'sendMessage', 'participateInCall', 'reactToMessage', 'createChannel', 'storyPosted')."
-        },
-        "pointsGained": {
-          "type": "number",
-          "description": "The amount of experience points gained in this activity."
-        },
-        "relatedEntityId": {
-          "type": "string",
-          "description": "Optional: ID of the entity related to the activity (e.g., messageId, callId, channelId)."
-        },
-        "relatedEntityType": {
-          "type": "string",
-          "description": "Optional: Type of the entity related to the activity (e.g., 'Message', 'Call', 'Channel')."
-        },
-        "timestamp": {
-          "type": "string",
-          "description": "Timestamp when the experience points were gained, recorded down to the second.",
-          "format": "date-time"
-        }
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "type": { "type": "string" },
+        "amount": { "type": "number" },
+        "reason": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
       },
       "required": [
         "id",
         "userId",
-        "activityType",
-        "pointsGained",
+        "type",
+        "amount",
+        "reason",
         "timestamp"
       ]
     },
@@ -919,7 +952,37 @@
           "schema": {
             "$ref": "#/backend/entities/User"
           },
-          "description": "Root collection for user profiles. The document ID corresponds to the Firebase Authentication UID. Contains denormalized 'totalExperiencePoints' for leaderboard ranking. Some fields are publicly readable (displayName, profilePictureUrl), while others are private (blockedUserIds)."
+          "description": "Root collection for user profiles."
+        }
+      },
+      {
+        "path": "/invitations/{inviteId}",
+        "definition": {
+          "entityName": "Invitation",
+          "schema": {
+            "$ref": "#/backend/entities/Invitation"
+          },
+          "description": "Root collection for community invitations."
+        }
+      },
+      {
+        "path": "/contact_form_submissions/{submissionId}",
+        "definition": {
+          "entityName": "ContactFormSubmission",
+          "schema": {
+            "$ref": "#/backend/entities/ContactFormSubmission"
+          },
+          "description": "Root collection for support messages."
+        }
+      },
+      {
+        "path": "/conversations/{conversationId}",
+        "definition": {
+          "entityName": "Conversation",
+          "schema": {
+            "$ref": "#/backend/entities/Conversation"
+          },
+          "description": "Root collection for DM conversations."
         }
       },
       {
@@ -929,7 +992,7 @@
           "schema": {
             "$ref": "#/backend/entities/Notification"
           },
-          "description": "Private notifications for a specific user. Authorization is strictly path-based: only the user matching '{userId}' can read/write their notifications."
+          "description": "Private notifications for a specific user."
         }
       },
       {
@@ -939,7 +1002,7 @@
           "schema": {
             "$ref": "#/backend/entities/Story"
           },
-          "description": "Disappearing stories posted by a user. Includes denormalized 'userId' (owner) and 'viewableByFriendIds' map for authorization, allowing friends to list and view stories without needing to query parent data or other collections for each story. 'expiresAt' handles visibility duration."
+          "description": "Disappearing stories posted by a user."
         }
       },
       {
@@ -949,7 +1012,7 @@
           "schema": {
             "$ref": "#/backend/entities/ExperiencePointActivity"
           },
-          "description": "Records individual instances of a user gaining experience points, providing a detailed, timestamped history for XP boards. Authorization is path-based to the owning user."
+          "description": "Detailed XP gain history."
         }
       },
       {
@@ -959,7 +1022,7 @@
           "schema": {
             "$ref": "#/backend/entities/UserAchievement"
           },
-          "description": "Records when a specific user has unlocked an achievement. Authorization is path-based to the owning user. Links to global achievement definitions."
+          "description": "Records when a user unlocks an achievement."
         }
       },
       {
@@ -969,7 +1032,7 @@
           "schema": {
             "$ref": "#/backend/entities/AIContextToolSuggestion"
           },
-          "description": "Stores AI-generated tool suggestions specific to a user's conversation context. Authorization is strictly path-based to the owning user."
+          "description": "AI-generated tool suggestions."
         }
       },
       {
@@ -979,7 +1042,7 @@
           "schema": {
             "$ref": "#/backend/entities/Friendship"
           },
-          "description": "Represents a friendship or follow relationship between two users. Documents include 'requesterId' and 'addresseeId' for authorization checks by either participating user. Supports efficient querying for a user's friendships by either ID."
+          "description": "Relationships between users."
         }
       },
       {
@@ -989,7 +1052,7 @@
           "schema": {
             "$ref": "#/backend/entities/Community"
           },
-          "description": "Main community document. Includes 'ownerId' for primary control and 'isPublic' for general visibility. Crucially, includes denormalized 'memberRoles: { [userId]: string[] }' mapping user IDs to an array of their role IDs within the community, enabling atomic authorization checks for members and administrators."
+          "description": "Main community document."
         }
       },
       {
@@ -999,7 +1062,7 @@
           "schema": {
             "$ref": "#/backend/entities/Channel"
           },
-          "description": "Communication channels within a community. Includes denormalized 'communityOwnerId', 'communityIsPublic', and 'communityMemberRoles' from the parent community for authorization independence. If 'isPrivate', also includes 'allowedMemberIds: { [userId]: true }' for explicit channel access control."
+          "description": "Communication channels within a community."
         }
       },
       {
@@ -1009,7 +1072,7 @@
           "schema": {
             "$ref": "#/backend/entities/Role"
           },
-          "description": "Defines custom roles and their permissions within a specific community. Access is controlled by the denormalized 'communityOwnerId' or appropriate 'communityMemberRoles' permissions inherited from the parent community document."
+          "description": "Custom roles within a community."
         }
       },
       {
@@ -1019,7 +1082,7 @@
           "schema": {
             "$ref": "#/backend/entities/UserRole"
           },
-          "description": "Junction entity assigning a user a specific role(s) within a community. This acts as the source of truth for the 'memberRoles' denormalized field on the parent Community document."
+          "description": "User role assignments."
         }
       },
       {
@@ -1029,7 +1092,7 @@
           "schema": {
             "$ref": "#/backend/entities/InviteLink"
           },
-          "description": "Invite links for joining a community. Includes denormalized 'communityOwnerId' and 'communityMemberRoles' to authorize link creation and management without 'get()' operations on the parent community."
+          "description": "Invite links for joining a community."
         }
       },
       {
@@ -1039,7 +1102,7 @@
           "schema": {
             "$ref": "#/backend/entities/Message"
           },
-          "description": "Individual messages sent within a channel. Includes denormalized 'communityOwnerId', 'communityMemberRoles', 'channelIsPrivate', and 'channelAllowedMemberIds' (if private) from parent Community and Channel documents for authorization independence. 'senderId' identifies the message author."
+          "description": "Messages sent within a channel."
         }
       },
       {
@@ -1049,7 +1112,7 @@
           "schema": {
             "$ref": "#/backend/entities/MessageReaction"
           },
-          "description": "User reactions to a specific message. Includes denormalized authorization context from parent Message, Channel, and Community documents ('communityOwnerId', 'communityMemberRoles', 'channelIsPrivate', 'channelAllowedMemberIds') to ensure authorization independence."
+          "description": "User reactions to a specific message."
         }
       },
       {
@@ -1059,7 +1122,7 @@
           "schema": {
             "$ref": "#/backend/entities/MediaAttachment"
           },
-          "description": "Metadata for all uploaded media files. 'uploaderId' ensures the uploader can manage their media. Read access to media data is controlled primarily by Firebase Storage rules, with Firestore rules potentially referencing parent message/story documents via app logic."
+          "description": "Metadata for uploaded media."
         }
       },
       {
@@ -1069,7 +1132,7 @@
           "schema": {
             "$ref": "#/backend/entities/Call"
           },
-          "description": "Records details of voice and video call sessions. 'initiatorId' and 'participantIds' are key for authorization, ensuring only call participants can access call details."
+          "description": "Voice and video call records."
         }
       },
       {
@@ -1079,7 +1142,7 @@
           "schema": {
             "$ref": "#/backend/entities/Report"
           },
-          "description": "User-submitted reports for moderation. 'reporterId' allows reporters to view their own reports. Access for moderation is restricted to designated administrators (e.g., via a separate '/app_admins' collection or a global admin list)."
+          "description": "Moderation reports."
         }
       },
       {
@@ -1089,10 +1152,10 @@
           "schema": {
             "$ref": "#/backend/entities/Achievement"
           },
-          "description": "Global definitions of achievements. Publicly readable for all authenticated users to discover achievements, with write access restricted to administrative users."
+          "description": "Global achievement definitions."
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed to be highly secure, scalable, and debuggable, strictly adhering to the core design principles. Authorization Independence is achieved through strategic denormalization. For collaborative data like Communities and Channels, critical authorization context such as 'ownerId', 'isPublic', and 'memberRoles' is denormalized directly into child documents (Channels, Messages, MessageReactions, InviteLinks). This eliminates the need for expensive and rule-breaking 'get()' operations on parent documents, allowing security rules to evaluate access atomically based on the document itself. For user-specific data (e.g., Notifications, Stories, XP History, Achievements, AI Suggestions), a path-based ownership model (`/users/{userId}/...`) is employed, ensuring that only the owner can access their private data. The 'Friendship' collection allows users to query their own friendships efficiently using query predicates (`requesterId` or `addresseeId`). Stories, which are shared with friends, denormalize a `viewableByFriendIds` map to support QAPs (Queryable Access Patterns), ensuring friends can list relevant stories without complex server-side filtering or violating authorization independence. Global entities like 'Achievements' and 'MediaAttachments' have simplified access models appropriate for their purpose. The 'ExperiencePointActivity' collection under `/users/{userId}/xp_history` provides a detailed, timestamped record of XP gains, enabling advanced XP board features and user-specific history views, while the 'totalExperiencePoints' on the 'User' document facilitates efficient global leaderboard ranking. Structural segregation is maintained by using distinct collections for data with different security postures, such as private user data versus community-shared content. All wildcards are descriptive, and fields like 'status' are used for explicit state modeling, enhancing data clarity and predictability for easier rule management and debugging."
+    "reasoning": "Standardizing root collections and sub-collections for high-fidelity social features."
   }
 }
