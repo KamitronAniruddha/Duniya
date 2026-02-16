@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, memo } from "react";
@@ -15,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { CreatorFooter } from "@/components/creator-footer";
 
 interface ServerSettingsDialogProps {
   open: boolean;
@@ -325,6 +327,7 @@ export const ServerSettingsDialog = memo(function ServerSettingsDialog({ open, o
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <div className="sr-only"><CreatorFooter /></div>
     </>
   );
 });

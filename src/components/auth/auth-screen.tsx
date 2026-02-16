@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -13,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Logo } from "@/components/logo";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { CreatorFooter } from "@/components/creator-footer";
 
 export function AuthScreen() {
   const auth = useAuth();
@@ -142,7 +144,7 @@ export function AuthScreen() {
             </Button>
           </CardContent>
           <div className="p-4 bg-muted/20 border-t flex items-center justify-center">
-            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/40 text-center">Made by Aniruddha with love ❤️</span>
+            <CreatorFooter />
           </div>
         </Card>
       </motion.div>
@@ -218,7 +220,7 @@ export function AuthScreen() {
               </Card>
               
               <div className="mt-8 flex flex-col items-center gap-2">
-                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/40 text-center">Made by Aniruddha with love ❤️</span>
+                <CreatorFooter />
               </div>
             </motion.div>
           )}

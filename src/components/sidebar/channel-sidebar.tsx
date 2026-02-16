@@ -21,6 +21,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { CreatorFooter } from "@/components/creator-footer";
 
 interface ChannelSidebarProps {
   serverId: string | null;
@@ -291,6 +292,7 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
             <LogOut className="h-4 w-4" />
           </Button>
         </div>
+        <CreatorFooter className="mt-2" />
       </div>
 
       <ProfileDialog open={profileOpen} onOpenChange={setProfileOpen} />

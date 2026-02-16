@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo } from "react";
@@ -9,6 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Loader2, Check, X, Bell, Clock, User, Heart } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
+import { CreatorFooter } from "@/components/creator-footer";
 
 export function InvitationManager() {
   const db = useFirestore();
@@ -170,7 +172,7 @@ export function InvitationManager() {
               </DialogFooter>
 
               <div className="p-4 bg-muted/20 border-t flex items-center justify-center">
-                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/40 text-center">Made by Aniruddha with love ❤️</span>
+                <CreatorFooter />
               </div>
             </motion.div>
           </DialogContent>

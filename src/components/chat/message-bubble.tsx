@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { memo, useState, useRef, useEffect, useMemo, useCallback } from "react";
@@ -19,6 +20,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CreatorFooter } from "@/components/creator-footer";
 
 export interface ForwardHop {
   communityName: string;
@@ -740,7 +742,7 @@ export const MessageBubble = memo(function MessageBubble({
             </div>
           </div>
           <div className="p-4 bg-muted/20 border-t flex items-center justify-center">
-            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/40 text-center">Made by Aniruddha with love ❤️</span>
+            <CreatorFooter />
           </div>
         </DialogContent>
       </Dialog>
@@ -826,7 +828,7 @@ function ReactionDetailsDialog({ open, onOpenChange, emoji, uids }: { open: bool
         </ScrollArea>
 
         <div className="p-4 bg-muted/20 border-t flex items-center justify-center shrink-0">
-          <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/40 text-center">Made by Aniruddha with love ❤️</span>
+          <CreatorFooter />
         </div>
       </DialogContent>
     </Dialog>

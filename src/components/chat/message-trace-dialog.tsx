@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -5,6 +6,7 @@ import { History, Landmark, ArrowDown, User, Clock, CheckCircle2, Hash } from "l
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { type ForwardHop } from "./message-bubble";
+import { CreatorFooter } from "@/components/creator-footer";
 
 interface MessageTraceDialogProps {
   open: boolean;
@@ -91,7 +93,7 @@ export function MessageTraceDialog({ open, onOpenChange, chain }: MessageTraceDi
         </div>
 
         <div className="p-4 bg-muted/20 border-t flex items-center justify-center shrink-0">
-          <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/40 text-center">Made by Aniruddha with love ❤️</span>
+          <CreatorFooter />
         </div>
       </DialogContent>
     </Dialog>

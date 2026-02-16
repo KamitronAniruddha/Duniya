@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo } from "react";
@@ -11,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { CreatorFooter } from "@/components/creator-footer";
 
 export function DuniyaPanel({ onJoinSuccess }: { onJoinSuccess: (serverId: string) => void }) {
   const db = useFirestore();
@@ -191,7 +193,7 @@ export function DuniyaPanel({ onJoinSuccess }: { onJoinSuccess: (serverId: strin
       </ScrollArea>
 
       <div className="p-4 bg-muted/20 border-t flex items-center justify-center shrink-0">
-        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/40 text-center">Made by Aniruddha with love ❤️</span>
+        <CreatorFooter />
       </div>
     </div>
   );

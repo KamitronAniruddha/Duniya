@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
@@ -17,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { ProfileDialog } from "@/components/profile/profile-dialog";
 import { motion, AnimatePresence } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { CreatorFooter } from "@/components/creator-footer";
 
 export default function DuniyaApp() {
   const { user, isUserLoading } = useUser();
@@ -419,8 +421,8 @@ export default function DuniyaApp() {
       
       {mode === "mobile" ? renderMobileLayout() : mode === "tablet" ? renderTabletLayout() : renderLaptopLayout()}
       
-      <div className="hidden md:flex fixed bottom-4 right-6 items-center gap-2 pointer-events-none z-50">
-        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/40">Made by Aniruddha with love ❤️</span>
+      <div className="hidden md:flex fixed bottom-4 right-6 items-center pointer-events-none z-50">
+        <CreatorFooter />
       </div>
     </div>
   );

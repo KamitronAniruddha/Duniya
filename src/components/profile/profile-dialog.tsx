@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -19,6 +20,7 @@ import { Separator } from "@/components/ui/separator";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { CreatorFooter } from "@/components/creator-footer";
 
 interface ProfileDialogProps {
   open: boolean;
@@ -240,7 +242,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
           </Tabs>
 
           <div className="p-4 bg-muted/30 border-t flex items-center justify-center">
-            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/40 text-center">Made by Aniruddha with love ❤️</span>
+            <CreatorFooter />
           </div>
         </DialogContent>
       </Dialog>

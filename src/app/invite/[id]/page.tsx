@@ -13,6 +13,7 @@ import { AuthScreen } from "@/components/auth/auth-screen";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { CreatorFooter } from "@/components/creator-footer";
 
 export default function InviteLandingPage() {
   const { id } = useParams();
@@ -233,7 +234,7 @@ export default function InviteLandingPage() {
             <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/70">Verified Invitation by Duniya</span>
             <Heart className="h-3 w-3 text-red-500 fill-red-500 animate-pulse" />
           </div>
-          <p className="text-[8px] font-black uppercase tracking-[0.5em] text-muted-foreground/40">Made by Aniruddha with love</p>
+          <CreatorFooter />
         </div>
       </motion.div>
     </div>

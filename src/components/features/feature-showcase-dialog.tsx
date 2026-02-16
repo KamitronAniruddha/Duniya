@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -8,6 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, Ghost, Timer, Landmark, Globe, Shield, MessageSquare, Zap, Heart, Camera, Users, Lock, Share2, Activity, Fingerprint } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
+import { CreatorFooter } from "@/components/creator-footer";
 
 interface Feature {
   id: string;
@@ -236,7 +238,7 @@ export function FeatureShowcaseDialog({ open, onOpenChange }: { open: boolean; o
         </div>
 
         <div className="p-6 bg-muted/30 border-t flex items-center justify-between shrink-0">
-          <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/40 text-center">Made by Aniruddha with love ❤️</span>
+          <CreatorFooter />
           <Button variant="ghost" className="rounded-2xl font-black uppercase tracking-widest h-14 px-10 hover:bg-primary hover:text-white transition-all shadow-xl hover:shadow-primary/20" onClick={() => onOpenChange(false)}>
             Close Guide
           </Button>

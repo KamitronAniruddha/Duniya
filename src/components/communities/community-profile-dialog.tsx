@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -12,6 +13,7 @@ import { Users, CalendarDays, Globe, Maximize2, Shield, Heart, Download } from "
 import { motion, AnimatePresence } from "framer-motion";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
+import { CreatorFooter } from "@/components/creator-footer";
 
 interface CommunityProfileDialogProps {
   open: boolean;
@@ -120,7 +122,7 @@ export function CommunityProfileDialog({ open, onOpenChange, serverId }: Communi
           </ScrollArea>
 
           <div className="p-4 bg-muted/30 border-t flex items-center justify-center shrink-0">
-            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/40 text-center">Made by Aniruddha with love ❤️</span>
+            <CreatorFooter />
           </div>
         </DialogContent>
       </Dialog>

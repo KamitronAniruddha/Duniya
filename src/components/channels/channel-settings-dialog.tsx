@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -11,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Hash, Check, X } from "lucide-react";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { CreatorFooter } from "@/components/creator-footer";
 
 interface ChannelSettingsDialogProps {
   open: boolean;
@@ -100,7 +102,7 @@ export function ChannelSettingsDialog({ open, onOpenChange, serverId, channelId 
         </form>
 
         <div className="p-4 bg-muted/20 border-t flex items-center justify-center shrink-0">
-          <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/40 text-center">Made by Aniruddha with love ❤️</span>
+          <CreatorFooter />
         </div>
       </DialogContent>
     </Dialog>
