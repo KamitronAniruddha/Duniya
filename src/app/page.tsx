@@ -60,14 +60,18 @@ export default function DuniyaApp() {
 
   const { data: channels } = useCollection(channelsQuery);
 
+  // AUTOMATIC CHANNEL ROUTING:
+  // When a community is selected, automatically select the first channel as soon as it's available.
   useEffect(() => {
     if (activeCommunityId && channels && channels.length > 0) {
       const firstChannelId = channels[0].id;
+      // If no channel is selected, or the current selected channel isn't in this community's list,
+      // force the selection of the first one.
       if (!activeChannelId || !channels.some(c => c.id === activeChannelId)) {
         setActiveChannelId(firstChannelId);
       }
     }
-  }, [activeCommunityId, channels?.length]);
+  }, [activeCommunityId, channels, activeChannelId]);
 
   const lastSentStatusRef = useRef<string | null>(null);
 
@@ -119,7 +123,7 @@ export default function DuniyaApp() {
     } else {
       setView("chat");
       setActiveCommunityId(id);
-      setActiveChannelId(null);
+      setActiveChannelId(null); // Reset channel to trigger automatic routing in useEffect
       setIsCircularMenuOpen(false);
     }
   }, []);
