@@ -138,7 +138,7 @@ export default function DuniyaApp() {
   if (!user) return <AuthScreen />;
 
   const renderLaptopLayout = () => (
-    <div className="flex h-full w-full overflow-hidden bg-background">
+    <div className="flex h-full w-full overflow-hidden bg-background relative z-10">
       <div className="flex shrink-0 h-full overflow-hidden border-r border-border shadow-2xl z-30">
         <ServerSidebar 
           activeServerId={view === "chat" ? activeCommunityId : view} 
@@ -187,6 +187,8 @@ export default function DuniyaApp() {
                 serverId={activeCommunityId}
                 showMembers={showMembers}
                 onToggleMembers={() => setShowMembers(!showMembers)}
+                onOpenProfile={() => setIsProfileOpen(true)}
+                onOpenExplore={() => setView("duniya")}
               />
             </motion.div>
           )}
@@ -196,7 +198,7 @@ export default function DuniyaApp() {
   );
 
   const renderTabletLayout = () => (
-    <div className="flex h-full w-full overflow-hidden bg-muted/5">
+    <div className="flex h-full w-full overflow-hidden bg-muted/5 relative z-10">
       <aside className="w-[72px] bg-sidebar border-r flex flex-col items-center py-6 gap-8 z-30 shrink-0 shadow-xl">
         <div className="p-3 bg-primary/10 rounded-2xl animate-float">
           <Logo size={24} />
@@ -261,6 +263,8 @@ export default function DuniyaApp() {
                   serverId={activeCommunityId}
                   showMembers={showMembers}
                   onToggleMembers={() => setShowMembers(!showMembers)}
+                  onOpenProfile={() => setIsProfileOpen(true)}
+                  onOpenExplore={() => setActiveTab("explore")}
                 />
               </div>
             </motion.div>
@@ -286,7 +290,7 @@ export default function DuniyaApp() {
   );
 
   const renderMobileLayout = () => (
-    <div className="flex h-full w-full flex-col overflow-hidden bg-background">
+    <div className="flex h-full w-full flex-col overflow-hidden bg-background relative z-10">
       <main className="flex-1 relative overflow-hidden">
         <AnimatePresence mode="wait">
           {activeTab === "chat" ? (
@@ -318,6 +322,8 @@ export default function DuniyaApp() {
                     channelId={activeChannelId}
                     serverId={activeCommunityId}
                     showMembers={false}
+                    onOpenProfile={() => setIsProfileOpen(true)}
+                    onOpenExplore={() => setActiveTab("explore")}
                   />
                   
                   {/* Advanced Circular Community Switcher */}
@@ -420,7 +426,7 @@ export default function DuniyaApp() {
       <ProfileDialog open={isProfileOpen} onOpenChange={setIsProfileOpen} />
       
       {/* Primary Layout Wrapper - Ensures elements inside have correct stacking context */}
-      <div className="relative z-10 w-full h-full flex flex-col md:flex-row overflow-hidden">
+      <div className="relative w-full h-full flex flex-col md:flex-row overflow-hidden">
         {mode === "mobile" ? renderMobileLayout() : mode === "tablet" ? renderTabletLayout() : renderLaptopLayout()}
       </div>
       

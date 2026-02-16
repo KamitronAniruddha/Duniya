@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useRef, useEffect, useState, useMemo, useCallback } from "react";
@@ -19,6 +20,7 @@ import { DeleteOptionsDialog } from "./delete-options-dialog";
 import { ForwardDialog } from "./forward-dialog";
 import { ChannelSettingsDialog } from "@/components/channels/channel-settings-dialog";
 import { AnimatePresence, motion } from "framer-motion";
+import { useTheme } from "next-themes";
 
 interface ProfileReplyTarget {
   id: string;
@@ -34,13 +36,16 @@ interface ChatWindowProps {
   serverId?: string | null;
   showMembers?: boolean;
   onToggleMembers?: () => void;
+  onOpenProfile?: () => void;
+  onOpenExplore?: () => void;
 }
 
-export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }: ChatWindowProps) {
+export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, onOpenProfile, onOpenExplore }: ChatWindowProps) {
   const db = useFirestore();
   const { user } = useUser();
   const auth = useAuth();
   const { toast } = useToast();
+  const { theme, setTheme, themes } = useTheme();
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -222,7 +227,10 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
       return true;
     }
     if (cmd === "id") {
-      toast({ title: "Identity Signature", description: `UID: ${user?.uid}` });
+      if (user?.uid) {
+        navigator.clipboard.writeText(user.uid);
+        toast({ title: "Identity Signature", description: "UID copied to clipboard." });
+      }
       return true;
     }
     if (cmd === "time") {
@@ -233,8 +241,26 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
       toast({ title: "Verse Build", description: "Duniya Protocol v2.4.0 (High-Fidelity Stable)" });
       return true;
     }
+    if (cmd === "theme") {
+      const currentIndex = themes.indexOf(theme || "light");
+      const nextIndex = (currentIndex + 1) % themes.length;
+      setTheme(themes[nextIndex]);
+      toast({ title: "Vibe Updated", description: `Switched to ${themes[nextIndex]} mode.` });
+      return true;
+    }
+    if (cmd === "profile") {
+      onOpenProfile?.();
+      return true;
+    }
+    if (cmd === "explore") {
+      onOpenExplore?.();
+      return true;
+    }
     if (cmd === "help") {
-      toast({ title: "Verse Guide", description: "Type @ followed by letters to see all 20+ available commands." });
+      toast({ 
+        title: "Verse Command Hub", 
+        description: "Available: @clr, @del, @whisper, @ping, @stats, @theme, @profile, @explore, @invite, @trace, @ghost, @font, @away, @online, @mute, @unmute, @shrug, @tableflip, @lenny, @sparkle, @logout, @id, @time, @version." 
+      });
       return true;
     }
     if (cmd === "about") {
@@ -256,7 +282,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
       return true;
     }
     if (cmd === "trace") {
-      toast({ title: "Tracing Guide", description: "Long-press any message and select 'Trace' to see its digital genealogy." });
+      toast({ title: "Tracing Guide", description: "To trace a message, long-press it and select 'Trace' to see its journey through the Verse." });
       return true;
     }
     if (cmd === "invite") {
@@ -267,7 +293,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
       return true;
     }
     return false;
-  }, [db, basePath, user, messages, handleClearChat, toast, userData, serverId, auth]);
+  }, [db, basePath, user, messages, handleClearChat, toast, userData, serverId, auth, themes, theme, setTheme, onOpenProfile, onOpenExplore]);
 
   const handleBatchDelete = useCallback(async (type: "everyone" | "me") => {
     if (!db || !basePath || !user || selectedIds.size === 0) return;
