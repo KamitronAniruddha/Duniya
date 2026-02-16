@@ -9,9 +9,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Users, CalendarDays, Globe, Maximize2, Shield, Heart } from "lucide-react";
+import { Users, CalendarDays, Globe, Maximize2, Shield, Heart, Download } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useToast } from "@/hooks/use-toast";
 
 interface CommunityProfileDialogProps {
   open: boolean;
@@ -21,6 +22,7 @@ interface CommunityProfileDialogProps {
 
 export function CommunityProfileDialog({ open, onOpenChange, serverId }: CommunityProfileDialogProps) {
   const db = useFirestore();
+  const { toast } = useToast();
   const [isZoomOpen, setIsZoomOpen] = useState(false);
   const serverRef = useMemoFirebase(() => (serverId ? doc(db, "communities", serverId) : null), [db, serverId]);
   const { data: server } = useDoc(serverRef);
@@ -30,6 +32,17 @@ export function CommunityProfileDialog({ open, onOpenChange, serverId }: Communi
   const joinDate = server.createdAt 
     ? new Date(server.createdAt).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
     : "Origin Date";
+
+  const handleDownload = () => {
+    if (!server.icon) return;
+    const link = document.createElement("a");
+    link.href = server.icon;
+    link.download = `${server.name.replace(/\s+/g, '_')}_icon.jpg`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast({ title: "Icon Saved", description: "Community mark exported to device." });
+  };
 
   return (
     <>
@@ -123,7 +136,7 @@ export function CommunityProfileDialog({ open, onOpenChange, serverId }: Communi
             <DialogTitle>{server.name} Icon Zoom</DialogTitle>
             <DialogDescription>Full-sized community icon view in original proportions.</DialogDescription>
           </DialogHeader>
-          <div className="relative w-full h-full flex items-center justify-center">
+          <div className="relative w-full h-full flex flex-col items-center justify-center">
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }} 
               animate={{ scale: 1, opacity: 1 }}
@@ -134,16 +147,26 @@ export function CommunityProfileDialog({ open, onOpenChange, serverId }: Communi
                 <img 
                   src={server.icon} 
                   alt={server.name} 
-                  className="max-w-full max-h-[85vh] rounded-[3rem] shadow-2xl object-contain"
+                  className="max-w-full max-h-[80vh] rounded-[3rem] shadow-2xl object-contain"
                 />
               ) : (
                 <div className="w-64 h-64 bg-primary rounded-[3rem] flex items-center justify-center text-white text-8xl font-black shadow-2xl">
                   {server.name?.[0]?.toUpperCase() || "?"}
                 </div>
               )}
-              <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-2 bg-background/80 backdrop-blur-md rounded-full border border-border shadow-xl">
-                <span className="text-xs font-black uppercase tracking-widest">{server.name}</span>
-                <Heart className="h-3 w-3 text-red-500 fill-red-500 animate-pulse" />
+              <div className="absolute -bottom-16 left-1/2 -translate-x-1/2 flex items-center gap-4 px-6 py-3 bg-background/80 backdrop-blur-md rounded-full border border-border shadow-2xl">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-black uppercase tracking-widest">{server.name} Mark</span>
+                  <Heart className="h-3 w-3 text-red-500 fill-red-500 animate-pulse" />
+                </div>
+                {server.icon && (
+                  <>
+                    <div className="w-[1px] h-4 bg-border" />
+                    <button onClick={handleDownload} className="flex items-center gap-2 text-[10px] font-black uppercase text-foreground hover:text-primary transition-colors">
+                      <Download className="h-3.5 w-3.5" /> Save to Device
+                    </button>
+                  </>
+                )}
               </div>
             </motion.div>
           </div>

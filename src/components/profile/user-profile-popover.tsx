@@ -9,9 +9,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { CalendarDays, User as UserIcon, Maximize2, EyeOff, Ghost, Clock } from "lucide-react";
+import { CalendarDays, User as UserIcon, Maximize2, EyeOff, Ghost, Clock, Download, Heart } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { motion } from "framer-motion";
+import { useToast } from "@/hooks/use-toast";
 
 interface UserProfilePopoverProps {
   userId: string;
@@ -46,6 +48,7 @@ export function UserProfilePopover({ userId, children, onWhisper, side = "right"
 function UserProfileContent({ userId, onWhisper }: { userId: string; onWhisper?: (userId: string, username: string) => void }) {
   const db = useFirestore();
   const { user: currentUser } = useUser();
+  const { toast } = useToast();
   const [isZoomOpen, setIsZoomOpen] = useState(false);
   const [now, setNow] = useState(Date.now());
   const userRef = useMemoFirebase(() => doc(db, "users", userId), [db, userId]);
@@ -66,6 +69,17 @@ function UserProfileContent({ userId, onWhisper }: { userId: string; onWhisper?:
 
   const isOnline = isFresh && isPublic && userData?.onlineStatus === "online";
   const isIdle = isFresh && isPublic && userData?.onlineStatus === "idle";
+
+  const handleDownload = () => {
+    if (!userData?.photoURL) return;
+    const link = document.createElement("a");
+    link.href = userData.photoURL;
+    link.download = `${userData.username || 'user'}_avatar.jpg`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast({ title: "Avatar Saved", description: `@${userData.username}'s identity exported.` });
+  };
 
   return (
     <>
@@ -166,18 +180,35 @@ function UserProfileContent({ userId, onWhisper }: { userId: string; onWhisper?:
             <DialogTitle>@{userData?.username || 'User'} Profile Picture</DialogTitle>
             <DialogDescription>Full-sized profile picture view for the Verse user in high fidelity.</DialogDescription>
           </DialogHeader>
-          <div className="relative w-full h-full flex items-center justify-center group">
-            {userData?.photoURL ? (
-              <img 
-                src={userData.photoURL} 
-                alt={userData.username} 
-                className="max-w-full max-h-[85vh] rounded-[3rem] shadow-2xl object-contain animate-in zoom-in-95 duration-200"
-              />
-            ) : (
-              <div className="w-64 h-64 bg-primary rounded-[3rem] flex items-center justify-center text-white text-8xl font-black shadow-2xl">
-                {userData?.username?.[0]?.toUpperCase() || "?"}
+          <div className="relative w-full h-full flex flex-col items-center justify-center group">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.2, ease: "easeOut" }} className="relative">
+              {userData?.photoURL ? (
+                <img 
+                  src={userData.photoURL} 
+                  alt={userData.username} 
+                  className="max-w-full max-h-[80vh] rounded-[3rem] shadow-2xl object-contain animate-in zoom-in-95 duration-200"
+                />
+              ) : (
+                <div className="w-64 h-64 bg-primary rounded-[3rem] flex items-center justify-center text-white text-8xl font-black shadow-2xl">
+                  {userData?.username?.[0]?.toUpperCase() || "?"}
+                </div>
+              )}
+              
+              <div className="absolute -bottom-16 left-1/2 -translate-x-1/2 flex items-center gap-4 px-6 py-3 bg-background/80 backdrop-blur-md rounded-full border border-border shadow-2xl">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-black uppercase tracking-widest text-primary">Verse Identity</span>
+                  <Heart className="h-3 w-3 text-red-500 fill-red-500 animate-pulse" />
+                </div>
+                {userData?.photoURL && (
+                  <>
+                    <div className="w-[1px] h-4 bg-border" />
+                    <button onClick={handleDownload} className="flex items-center gap-2 text-[10px] font-black uppercase text-foreground hover:text-primary transition-colors">
+                      <Download className="h-3.5 w-3.5" /> Save to Device
+                    </button>
+                  </>
+                )}
               </div>
-            )}
+            </motion.div>
           </div>
         </DialogContent>
       </Dialog>
