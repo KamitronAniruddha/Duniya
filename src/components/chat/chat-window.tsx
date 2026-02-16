@@ -35,6 +35,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [replyingTo, setReplyingTo] = useState<any | null>(null);
+  const [profileReplyTarget, setProfileReplyTarget] = useState<{ id: string; username: string; photoURL: string } | null>(null);
   const [whisperingTo, setWhisperingTo] = useState<{ id: string; username: string } | null>(null);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -53,6 +54,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
     setSelectedIds(new Set());
     setReplyingTo(null);
     setWhisperingTo(null);
+    setProfileReplyTarget(null);
   }, [basePath]);
 
   const contextRef = useMemoFirebase(() => (basePath ? doc(db, basePath) : null), [db, basePath]);
@@ -100,7 +102,8 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
     imageUrl?: string,
     file?: { url: string; name: string; type: string },
     whisperTarget?: { id: string; username: string } | null,
-    replySenderPhotoURL?: string
+    replySenderPhotoURL?: string,
+    isProfileReply?: boolean
   ) => {
     if (!db || !basePath || !user) return;
     const messageRef = doc(collection(db, basePath, "messages"));
@@ -149,12 +152,20 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
         senderPhotoURL: replySenderPhotoURL || replyingTo.senderPhotoURL || "",
         text: replyingTo.content || replyingTo.text || 'Media Message' 
       };
+    } else if (isProfileReply && profileReplyTarget) {
+      data.replyTo = {
+        messageId: "profile",
+        senderName: profileReplyTarget.username,
+        senderPhotoURL: profileReplyTarget.photoURL,
+        text: `Shared thoughts on @${profileReplyTarget.username}'s profile picture.`
+      };
     }
     
     setDocumentNonBlocking(messageRef, data, { merge: true });
     setReplyingTo(null);
     setWhisperingTo(null);
-  }, [db, basePath, user, replyingTo, whisperingTo, channelId, userData]);
+    setProfileReplyTarget(null);
+  }, [db, basePath, user, replyingTo, whisperingTo, profileReplyTarget, channelId, userData]);
 
   const handleClearChat = useCallback(async () => {
     if (!db || !basePath || !user || !messages.length) return;
@@ -246,11 +257,20 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
   }, []);
 
   const handleCancelReply = useCallback(() => setReplyingTo(null), []);
+  const handleCancelProfileReply = useCallback(() => setProfileReplyTarget(null), []);
   const handleCancelWhisper = useCallback(() => setWhisperingTo(null), []);
 
   const handleWhisper = useCallback((id: string, username: string) => {
     setWhisperingTo({ id, username });
     setReplyingTo(null);
+    setProfileReplyTarget(null);
+  }, []);
+
+  const handleReplyToProfile = useCallback((id: string, username: string, photoURL: string) => {
+    setProfileReplyTarget({ id, username, photoURL });
+    setReplyingTo(null);
+    setWhisperingTo(null);
+    if (inputRef.current) inputRef.current.focus();
   }, []);
 
   const handleReplyToUser = useCallback((id: string, username: string) => {
@@ -370,6 +390,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
                     onSelect={toggleMessageSelection} 
                     onReply={() => setReplyingTo(msg)} 
                     onWhisper={handleWhisper}
+                    onReplyToProfile={handleReplyToProfile}
                   />
                 ))}
               </div>
@@ -381,16 +402,19 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
               onExecuteCommand={handleCommand}
               replyingTo={replyingTo} 
               onCancelReply={handleCancelReply} 
+              profileReplyTarget={profileReplyTarget}
+              onCancelProfileReply={handleCancelProfileReply}
               whisperingTo={whisperingTo}
               onCancelWhisper={handleCancelWhisper}
               onTriggerWhisper={handleWhisper}
               onTriggerReplyUser={handleReplyToUser}
+              onTriggerReplyProfile={handleReplyToProfile}
               serverId={serverId}
               inputRef={inputRef}
             />
           </div>
         </div>
-        {showMembers && serverId && <div className="hidden lg:block border-l z-10 bg-background overflow-hidden"><MembersPanel serverId={serverId} onWhisper={handleWhisper} onReply={handleReplyToUser} /></div>}
+        {showMembers && serverId && <div className="hidden lg:block border-l z-10 bg-background overflow-hidden"><MembersPanel serverId={serverId} onWhisper={handleWhisper} onReply={handleReplyToUser} onReplyProfile={handleReplyToProfile} /></div>}
       </div>
       
       <DeleteOptionsDialog 

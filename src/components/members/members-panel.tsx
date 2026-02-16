@@ -6,7 +6,7 @@ import { useCollection, useFirestore, useDoc, useMemoFirebase, useUser } from "@
 import { collection, query, where, doc, getDocs, arrayUnion, arrayRemove, limit } from "firebase/firestore";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ShieldCheck, Loader2, UserPlus, Check, AlertCircle, UserMinus, Shield, Search, X, EyeOff, Ghost, Send, Bell, Reply } from "lucide-react";
+import { ShieldCheck, Loader2, UserPlus, Check, AlertCircle, UserMinus, Shield, Search, X, EyeOff, Ghost, Send, Bell, Reply, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -23,9 +23,10 @@ interface MembersPanelProps {
   serverId: string;
   onWhisper?: (userId: string, username: string) => void;
   onReply?: (userId: string, username: string) => void;
+  onReplyProfile?: (userId: string, username: string, photoURL: string) => void;
 }
 
-export function MembersPanel({ serverId, onWhisper, onReply }: MembersPanelProps) {
+export function MembersPanel({ serverId, onWhisper, onReply, onReplyProfile }: MembersPanelProps) {
   const db = useFirestore();
   const { user: currentUser } = useUser();
   const { toast } = useToast();
@@ -242,7 +243,7 @@ export function MembersPanel({ serverId, onWhisper, onReply }: MembersPanelProps
                         <Avatar className="h-8 w-8 border border-border shadow-sm opacity-60">
                           <AvatarImage src={invite.targetUserPhoto} />
                           <AvatarFallback className="bg-muted text-muted-foreground text-[10px] font-bold">
-                            {invite.targetUsername?.[0]?.toUpperCase()}
+                            {String(invite.targetUsername || "U")[0]?.toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex flex-col min-w-0 flex-1">
@@ -292,6 +293,7 @@ export function MembersPanel({ serverId, onWhisper, onReply }: MembersPanelProps
                         onToggleAdmin={() => handleToggleAdmin(member.id, serverAdmins.includes(member.id))}
                         onWhisper={onWhisper}
                         onReply={onReply}
+                        onReplyProfile={onReplyProfile}
                         now={now}
                       />
                     ))}
@@ -317,6 +319,7 @@ export function MembersPanel({ serverId, onWhisper, onReply }: MembersPanelProps
                         onToggleAdmin={() => handleToggleAdmin(member.id, serverAdmins.includes(member.id))}
                         onWhisper={onWhisper}
                         onReply={onReply}
+                        onReplyProfile={onReplyProfile}
                         now={now}
                       />
                     ))}
@@ -339,6 +342,7 @@ export function MembersPanel({ serverId, onWhisper, onReply }: MembersPanelProps
                         onToggleAdmin={() => handleToggleAdmin(member.id, serverAdmins.includes(member.id))}
                         onWhisper={onWhisper}
                         onReply={onReply}
+                        onReplyProfile={onReplyProfile}
                         now={now}
                       />
                     ))}
@@ -401,6 +405,7 @@ function MemberItem({
   onToggleAdmin,
   onWhisper,
   onReply,
+  onReplyProfile,
   now
 }: { 
   member: any; 
@@ -411,6 +416,7 @@ function MemberItem({
   onToggleAdmin: () => void;
   onWhisper?: (userId: string, username: string) => void;
   onReply?: (userId: string, username: string) => void;
+  onReplyProfile?: (userId: string, username: string, photoURL: string) => void;
   now: number;
 }) {
   const lastSeen = member.lastOnlineAt ? new Date(member.lastOnlineAt).getTime() : 0;
@@ -421,20 +427,21 @@ function MemberItem({
   const isIdle = isFresh && isPublic && member.onlineStatus === "idle";
   
   const { user: currentUser } = useUser();
+  const cleanUsername = member.username || member.displayName || "User";
 
   return (
     <div className="flex items-center gap-2 p-2 rounded-md hover:bg-muted transition-colors group cursor-default relative">
       <UserProfilePopover 
         userId={member.id} 
         onWhisper={onWhisper} 
-        onReply={onReply}
+        onReply={onReplyProfile}
         side="left"
       >
         <button className="relative transition-transform hover:scale-110">
           <Avatar className="h-8 w-8 border border-border shadow-sm aspect-square">
             <AvatarImage src={member.photoURL || undefined} className="aspect-square object-cover" />
             <AvatarFallback className="bg-primary text-primary-foreground text-[10px] font-bold">
-              {member.username?.[0]?.toUpperCase() || "?"}
+              {String(cleanUsername)[0]?.toUpperCase()}
             </AvatarFallback>
           </Avatar>
           {isOnline ? (
@@ -449,7 +456,7 @@ function MemberItem({
         <UserProfilePopover 
           userId={member.id} 
           onWhisper={onWhisper} 
-          onReply={onReply}
+          onReply={onReplyProfile}
           side="left"
         >
           <button className="flex items-center gap-1 min-w-0 w-full text-left">
@@ -457,7 +464,7 @@ function MemberItem({
               "text-xs font-bold truncate leading-none hover:text-primary transition-colors",
               (isOnline || isIdle) ? "text-foreground" : "text-muted-foreground"
             )}>
-              @{member.username}
+              @{cleanUsername}
             </span>
             {isOwner ? (
               <ShieldCheck className="h-3 w-3 text-orange-500 shrink-0" title="Server Owner" />
@@ -474,13 +481,13 @@ function MemberItem({
       </div>
 
       <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-        {onReply && member.id !== currentUser?.uid && (
-          <Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:text-primary/80 hover:bg-primary/10" onClick={() => onReply(member.id, member.username)}>
-            <Reply className="h-3.5 w-3.5" />
+        {onReplyProfile && member.id !== currentUser?.uid && (
+          <Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:text-primary/80 hover:bg-primary/10" onClick={() => onReplyProfile(member.id, cleanUsername, member.photoURL || "")}>
+            <Camera className="h-3.5 w-3.5" />
           </Button>
         )}
         {onWhisper && member.id !== currentUser?.uid && (
-          <Button variant="ghost" size="icon" className="h-7 w-7 text-indigo-500 hover:text-indigo-600 hover:bg-indigo-500/10" onClick={() => onWhisper(member.id, member.username)}>
+          <Button variant="ghost" size="icon" className="h-7 w-7 text-indigo-500 hover:text-indigo-600 hover:bg-indigo-500/10" onClick={() => onWhisper(member.id, cleanUsername)}>
             <Ghost className="h-3.5 w-3.5" />
           </Button>
         )}
@@ -499,7 +506,7 @@ function MemberItem({
                 <AlertDialog>
                   <button className="w-full flex items-center gap-2 px-2 py-1.5 text-left" onClick={(e) => {
                     e.stopPropagation();
-                    if (confirm(`Remove @${member.username} from community?`)) onRemove();
+                    if (confirm(`Remove @${cleanUsername} from community?`)) onRemove();
                   }}>
                     <UserMinus className="h-4 w-4" />
                     Remove Member

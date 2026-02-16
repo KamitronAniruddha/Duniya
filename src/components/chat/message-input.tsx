@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, SendHorizontal, Smile, History, Ghost, X, CornerDownRight, Mic, Square, Trash2, Video, Timer, Clock, Image as ImageIcon, Loader2, Paperclip, FileText, Bold, Italic, Type, TypeOutline, Eraser, Command, User as UserIcon, Reply } from "lucide-react";
+import { Plus, SendHorizontal, Smile, History, Ghost, X, CornerDownRight, Mic, Square, Trash2, Video, Timer, Clock, Image as ImageIcon, Loader2, Paperclip, FileText, Bold, Italic, Type, TypeOutline, Eraser, Command, User as UserIcon, Reply, Camera } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -29,16 +29,20 @@ interface MessageInputProps {
     imageUrl?: string,
     file?: { url: string; name: string; type: string },
     whisperTarget?: { id: string; username: string } | null,
-    replySenderPhotoURL?: string
+    replySenderPhotoURL?: string,
+    isProfileReply?: boolean
   ) => void;
   onExecuteCommand?: (cmd: string, args: string[]) => Promise<boolean>;
   inputRef?: React.RefObject<HTMLInputElement>;
   replyingTo?: any | null;
   onCancelReply?: () => void;
+  profileReplyTarget?: { id: string; username: string; photoURL: string } | null;
+  onCancelProfileReply?: () => void;
   whisperingTo?: { id: string; username: string } | null;
   onCancelWhisper?: () => void;
   onTriggerWhisper?: (userId: string, username: string) => void;
   onTriggerReplyUser?: (userId: string, username: string) => void;
+  onTriggerReplyProfile?: (userId: string, username: string, photoURL: string) => void;
   serverId?: string | null;
 }
 
@@ -75,10 +79,13 @@ export function MessageInput({
   inputRef: externalInputRef, 
   replyingTo, 
   onCancelReply, 
+  profileReplyTarget,
+  onCancelProfileReply,
   whisperingTo, 
   onCancelWhisper, 
   onTriggerWhisper, 
   onTriggerReplyUser,
+  onTriggerReplyProfile,
   serverId 
 }: MessageInputProps) {
   const db = useFirestore();
@@ -232,9 +239,8 @@ export function MessageInput({
 
     const duration = disappearDuration === -1 ? (parseInt(customSeconds) || 10) * 1000 : disappearDuration;
     
-    // CRITICAL IDENTITY FIX: Ensure target name is a clean string, avoiding [object Object] leaks
-    const finalTargetName = replyUser?.username || replyingTo?.senderName || "User";
-    const finalTargetPhoto = replyUser?.photoURL || replyingTo?.senderPhotoURL || "";
+    const finalTargetName = replyUser?.username || replyingTo?.senderName || profileReplyTarget?.username || "User";
+    const finalTargetPhoto = replyUser?.photoURL || replyingTo?.senderPhotoURL || profileReplyTarget?.photoURL || "";
 
     onSendMessage(
       finalContent, 
@@ -245,7 +251,8 @@ export function MessageInput({
       imagePreview || undefined, 
       filePreview || undefined, 
       finalWhisperTo,
-      finalTargetPhoto
+      finalTargetPhoto,
+      !!profileReplyTarget
     );
     
     setText("");
@@ -313,7 +320,7 @@ export function MessageInput({
         reader.readAsDataURL(blob);
         reader.onloadend = () => {
           const duration = disappearDuration === -1 ? (parseInt(customSeconds) || 10) * 1000 : disappearDuration;
-          onSendMessage("", reader.result as string, undefined, replyUser?.username || replyingTo?.senderName, { enabled: disappearingEnabled, duration: duration }, undefined, undefined, whisperingTo, replyUser?.photoURL || replyingTo?.senderPhotoURL);
+          onSendMessage("", reader.result as string, undefined, replyUser?.username || replyingTo?.senderName || profileReplyTarget?.username, { enabled: disappearingEnabled, duration: duration }, undefined, undefined, whisperingTo, replyUser?.photoURL || replyingTo?.senderPhotoURL || profileReplyTarget?.photoURL, !!profileReplyTarget);
         };
         stream.getTracks().forEach(track => track.stop());
       };
@@ -341,7 +348,7 @@ export function MessageInput({
         reader.readAsDataURL(blob);
         reader.onloadend = () => {
           const duration = disappearDuration === -1 ? (parseInt(customSeconds) || 10) * 1000 : disappearDuration;
-          onSendMessage("", undefined, reader.result as string, replyUser?.username || replyingTo?.senderName, { enabled: disappearingEnabled, duration: duration }, undefined, undefined, whisperingTo, replyUser?.photoURL || replyingTo?.senderPhotoURL);
+          onSendMessage("", undefined, reader.result as string, replyUser?.username || replyingTo?.senderName || profileReplyTarget?.username, { enabled: disappearingEnabled, duration: duration }, undefined, undefined, whisperingTo, replyUser?.photoURL || replyingTo?.senderPhotoURL || profileReplyTarget?.photoURL, !!profileReplyTarget);
         };
         stream.getTracks().forEach(track => track.stop());
       };
@@ -462,24 +469,28 @@ export function MessageInput({
         )}
       </AnimatePresence>
 
-      {replyingTo && (
+      {(replyingTo || profileReplyTarget) && (
         <div className="px-4 py-2 bg-muted/30 border-t flex items-center gap-3 animate-in slide-in-from-bottom-2 duration-150">
           <div className="relative shrink-0">
             <Avatar className="h-10 w-10 border-2 border-primary/20 shadow-md">
-              <AvatarImage src={replyUser?.photoURL || replyingTo?.senderPhotoURL} className="object-cover" />
+              <AvatarImage src={replyUser?.photoURL || replyingTo?.senderPhotoURL || profileReplyTarget?.photoURL} className="object-cover" />
               <AvatarFallback className="bg-primary text-white text-xs font-black">
-                {String(replyUser?.username || replyingTo?.senderName || "?")[0].toUpperCase()}
+                {String(replyUser?.username || replyingTo?.senderName || profileReplyTarget?.username || "?")[0].toUpperCase()}
               </AvatarFallback>
             </Avatar>
             <div className="absolute -bottom-1 -right-1 p-1 bg-primary rounded-full shadow-lg border-2 border-background">
-              <Reply className="h-2.5 w-2.5 text-white" />
+              {profileReplyTarget ? <Camera className="h-2.5 w-2.5 text-white" /> : <Reply className="h-2.5 w-2.5 text-white" />}
             </div>
           </div>
           <div className="flex-1 min-w-0 flex flex-col">
-            <span className="text-[10px] font-black text-primary uppercase tracking-widest leading-none mb-1">Replying to @{replyUser?.username || replyingTo?.senderName || "User" }</span>
-            <p className="text-xs text-muted-foreground truncate italic font-medium">{replyingTo.content || replyingTo.text || "Media message"}</p>
+            <span className="text-[10px] font-black text-primary uppercase tracking-widest leading-none mb-1">
+              {profileReplyTarget ? `Commenting on @${profileReplyTarget.username}'s profile` : `Replying to @${replyUser?.username || replyingTo?.senderName || "User"}`}
+            </span>
+            <p className="text-xs text-muted-foreground truncate italic font-medium">
+              {profileReplyTarget ? "Sharing thoughts on this identity picture." : (replyingTo.content || replyingTo.text || "Media message")}
+            </p>
           </div>
-          <button type="button" onClick={onCancelReply} className="h-8 w-8 rounded-full hover:bg-muted flex items-center justify-center transition-colors shadow-sm bg-background/50">
+          <button type="button" onClick={profileReplyTarget ? onCancelProfileReply : onCancelReply} className="h-8 w-8 rounded-full hover:bg-muted flex items-center justify-center transition-colors shadow-sm bg-background/50">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -649,7 +660,7 @@ export function MessageInput({
                 <div className="flex-1 relative">
                   <input 
                     ref={inputRef}
-                    placeholder={replyingTo ? `Replying...` : (whisperingTo ? `Whisper to @${whisperingTo.username}...` : "Karo Chutiyapaa...")}
+                    placeholder={profileReplyTarget ? `Commenting on @${profileReplyTarget.username}'s profile...` : (replyingTo ? `Replying...` : (whisperingTo ? `Whisper to @${whisperingTo.username}...` : "Karo Chutiyapaa..."))}
                     value={text}
                     onChange={(e) => setText(e.target.value)}
                     disabled={isProcessing}

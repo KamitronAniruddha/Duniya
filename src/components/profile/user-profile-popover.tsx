@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { CalendarDays, User as UserIcon, Maximize2, EyeOff, Ghost, Clock, Download, Heart, Reply } from "lucide-react";
+import { CalendarDays, User as UserIcon, Maximize2, EyeOff, Ghost, Clock, Download, Heart, Reply, Camera } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
@@ -19,7 +19,7 @@ interface UserProfilePopoverProps {
   userId: string;
   children: React.ReactNode;
   onWhisper?: (userId: string, username: string) => void;
-  onReply?: (userId: string, username: string) => void;
+  onReply?: (userId: string, username: string, photoURL: string) => void;
   side?: "left" | "right" | "top" | "bottom";
 }
 
@@ -42,7 +42,7 @@ export function UserProfilePopover({ userId, children, onWhisper, onReply, side 
           <UserProfileContent 
             userId={userId} 
             onWhisper={(id, name) => { onWhisper?.(id, name); setIsOpen(false); }}
-            onReply={(id, name) => { onReply?.(id, name); setIsOpen(false); }}
+            onReply={(id, name, photo) => { onReply?.(id, name, photo); setIsOpen(false); }}
           />
         </PopoverContent>
       )}
@@ -50,7 +50,7 @@ export function UserProfilePopover({ userId, children, onWhisper, onReply, side 
   );
 }
 
-function UserProfileContent({ userId, onWhisper, onReply }: { userId: string; onWhisper?: (userId: string, username: string) => void; onReply?: (userId: string, username: string) => void }) {
+function UserProfileContent({ userId, onWhisper, onReply }: { userId: string; onWhisper?: (userId: string, username: string) => void; onReply?: (userId: string, username: string, photoURL: string) => void }) {
   const db = useFirestore();
   const { user: currentUser } = useUser();
   const { toast } = useToast();
@@ -67,7 +67,6 @@ function UserProfileContent({ userId, onWhisper, onReply }: { userId: string; on
   const getJoinDate = () => {
     if (!userData?.createdAt) return "Origin Member";
     try {
-      // Handle both string ISO and Firestore Timestamp
       const date = typeof userData.createdAt === 'string' 
         ? new Date(userData.createdAt) 
         : (userData.createdAt.toDate ? userData.createdAt.toDate() : new Date(userData.createdAt));
@@ -97,6 +96,8 @@ function UserProfileContent({ userId, onWhisper, onReply }: { userId: string; on
     toast({ title: "Avatar Saved", description: `@${userData.username}'s identity exported.` });
   };
 
+  const cleanUsername = userData?.username || userData?.displayName || "User";
+
   return (
     <>
       <div className="h-20 bg-primary w-full relative">
@@ -117,7 +118,7 @@ function UserProfileContent({ userId, onWhisper, onReply }: { userId: string; on
             <Avatar className="h-full w-full rounded-none aspect-square">
               <AvatarImage src={userData?.photoURL || undefined} className="object-cover aspect-square" />
               <AvatarFallback className="bg-primary text-white text-3xl font-black">
-                {userData?.username?.[0]?.toUpperCase() || "?"}
+                {String(cleanUsername)[0]?.toUpperCase()}
               </AvatarFallback>
             </Avatar>
             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
@@ -130,9 +131,9 @@ function UserProfileContent({ userId, onWhisper, onReply }: { userId: string; on
               <Button 
                 size="sm" 
                 className="rounded-xl h-8 px-4 gap-2 bg-primary text-primary-foreground font-black uppercase text-[9px] tracking-widest shadow-lg shadow-primary/20"
-                onClick={() => onReply(userData.id, userData.username)}
+                onClick={() => onReply(userData.id, cleanUsername, userData.photoURL || "")}
               >
-                <Reply className="h-3 w-3" /> Reply
+                <Camera className="h-3 w-3" /> Reply
               </Button>
             )}
             {onWhisper && userData && userData.id !== currentUser?.uid && (
@@ -140,7 +141,7 @@ function UserProfileContent({ userId, onWhisper, onReply }: { userId: string; on
                 size="sm" 
                 variant="outline"
                 className="rounded-xl h-8 px-4 gap-2 border-indigo-200 text-indigo-600 font-black uppercase text-[9px] tracking-widest bg-indigo-50/50"
-                onClick={() => onWhisper(userData.id, userData.username)}
+                onClick={() => onWhisper(userData.id, cleanUsername)}
               >
                 <Ghost className="h-3 w-3" /> Whisper
               </Button>
@@ -156,7 +157,7 @@ function UserProfileContent({ userId, onWhisper, onReply }: { userId: string; on
 
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <h3 className="text-xl font-black tracking-tight">@{userData?.username || "..."}</h3>
+            <h3 className="text-xl font-black tracking-tight">@{cleanUsername}</h3>
             {isOnline ? (
               <Badge variant="secondary" className="bg-green-500/10 text-green-600 border-green-500/20 text-[10px] font-black h-5 uppercase tracking-wider px-2">Online</Badge>
             ) : isIdle ? (
@@ -205,7 +206,7 @@ function UserProfileContent({ userId, onWhisper, onReply }: { userId: string; on
       <Dialog open={isZoomOpen} onOpenChange={setIsZoomOpen}>
         <DialogContent className="max-w-[90vw] max-h-[90vh] p-0 border-none bg-transparent shadow-none flex items-center justify-center z-[2000]">
           <DialogHeader className="sr-only">
-            <DialogTitle>@{userData?.username || 'User'} Profile Picture</DialogTitle>
+            <DialogTitle>@{cleanUsername} Profile Picture</DialogTitle>
             <DialogDescription>Full-sized profile picture view for the Verse user in high fidelity.</DialogDescription>
           </DialogHeader>
           <div className="relative w-full h-full flex flex-col items-center justify-center group">
@@ -213,12 +214,12 @@ function UserProfileContent({ userId, onWhisper, onReply }: { userId: string; on
               {userData?.photoURL ? (
                 <img 
                   src={userData.photoURL} 
-                  alt={userData.username} 
+                  alt={cleanUsername} 
                   className="max-w-full max-h-[80vh] rounded-[3rem] shadow-2xl object-contain animate-in zoom-in-95 duration-200"
                 />
               ) : (
                 <div className="w-64 h-64 bg-primary rounded-[3rem] flex items-center justify-center text-white text-8xl font-black shadow-2xl">
-                  {userData?.username?.[0]?.toUpperCase() || "?"}
+                  {String(cleanUsername)[0]?.toUpperCase()}
                 </div>
               )}
               
@@ -231,10 +232,10 @@ function UserProfileContent({ userId, onWhisper, onReply }: { userId: string; on
                 {onReply && userData && userData.id !== currentUser?.uid && (
                   <>
                     <button 
-                      onClick={() => { onReply(userData.id, userData.username); setIsZoomOpen(false); }}
+                      onClick={() => { onReply(userData.id, cleanUsername, userData.photoURL || ""); setIsZoomOpen(false); }}
                       className="flex items-center gap-2 text-[10px] font-black uppercase text-foreground hover:text-primary transition-colors"
                     >
-                      <Reply className="h-3.5 w-3.5" /> Reply
+                      <Camera className="h-3.5 w-3.5" /> Reply
                     </button>
                     <div className="w-[1px] h-4 bg-border" />
                   </>

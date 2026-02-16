@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useFirestore, useUser, useDoc, useMemoFirebase, useCollection } from "@/firebase";
 import { doc, arrayUnion, arrayRemove, deleteField, collection, query, where, documentId, getDocs } from "firebase/firestore";
 import { UserProfilePopover } from "@/components/profile/user-profile-popover";
-import { Reply, CornerDownRight, Play, Pause, MoreHorizontal, Trash2, Ban, Copy, Timer, Check, CheckCheck, Forward, Landmark, Mic, Maximize2, Heart, Download, FileText, File, Eye, Ghost, Lock, Smile, Plus, Users } from "lucide-react";
+import { Reply, CornerDownRight, Play, Pause, MoreHorizontal, Trash2, Ban, Copy, Timer, Check, CheckCheck, Forward, Landmark, Mic, Maximize2, Heart, Download, FileText, File, Eye, Ghost, Lock, Smile, Plus, Users, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
@@ -81,6 +81,7 @@ interface MessageBubbleProps {
   onLongPress?: (id: string) => void;
   onReply?: () => void;
   onWhisper?: (userId: string, username: string) => void;
+  onReplyToProfile?: (userId: string, username: string, photoURL: string) => void;
 }
 
 export const MessageBubble = memo(function MessageBubble({ 
@@ -92,7 +93,8 @@ export const MessageBubble = memo(function MessageBubble({
   onSelect,
   onLongPress,
   onReply,
-  onWhisper
+  onWhisper,
+  onReplyToProfile
 }: MessageBubbleProps) {
   const db = useFirestore();
   const { user } = useUser();
@@ -344,7 +346,7 @@ export const MessageBubble = memo(function MessageBubble({
         <UserProfilePopover 
           userId={message.senderId} 
           onWhisper={onWhisper} 
-          onReply={() => onReply?.()}
+          onReply={onReplyToProfile}
           side="right"
         >
           <button className="h-8 w-8 mb-0.5 mr-2 shrink-0 transition-transform active:scale-95">
@@ -368,7 +370,7 @@ export const MessageBubble = memo(function MessageBubble({
               <UserProfilePopover 
                 userId={message.senderId} 
                 onWhisper={onWhisper} 
-                onReply={() => onReply?.()}
+                onReply={onReplyToProfile}
                 side="right"
               >
                 <button className="text-[9px] font-black text-muted-foreground/60 ml-1 mb-0.5 hover:text-primary uppercase tracking-widest transition-colors">{message.senderName || "..."}</button>
@@ -410,7 +412,8 @@ export const MessageBubble = memo(function MessageBubble({
                       <AvatarFallback className="bg-primary text-white text-[6px] font-black">{String(message.replyTo.senderName || "U")[0].toUpperCase()}</AvatarFallback>
                     </Avatar>
                     <span className={cn("font-black text-[9px] flex items-center gap-1 uppercase tracking-wider", isMe ? "text-primary-foreground" : "text-primary")}>
-                      <CornerDownRight className="h-3 w-3" />{message.replyTo.senderName}
+                      {message.replyTo.messageId === 'profile' ? <Camera className="h-3 w-3" /> : <CornerDownRight className="h-3 w-3" />}
+                      {message.replyTo.senderName}
                     </span>
                   </div>
                   <p className={cn("line-clamp-1 italic font-medium px-1", isMe ? "text-primary-foreground/70" : "text-muted-foreground")}>{message.replyTo.text}</p>
@@ -618,7 +621,7 @@ export const MessageBubble = memo(function MessageBubble({
       />
 
       <Dialog open={isImageZoomOpen} onOpenChange={setIsImageZoomOpen}>
-        <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 border-none bg-transparent shadow-none flex flex-col items-center justify-center overflow-hidden">
+        <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 border-none bg-transparent shadow-none flex flex-col items-center justify-center overflow-hidden z-[2000]">
           <DialogHeader className="sr-only">
             <DialogTitle>Image View</DialogTitle>
             <DialogDescription>Full-sized view of the sent image.</DialogDescription>
@@ -649,7 +652,7 @@ export const MessageBubble = memo(function MessageBubble({
       </Dialog>
 
       <Dialog open={isPDFViewOpen} onOpenChange={setIsPDFViewOpen}>
-        <DialogContent className="max-w-[95vw] w-[95vw] h-[90vh] max-h-[90svh] p-0 border-none shadow-2xl bg-background overflow-hidden flex flex-col rounded-[2rem] sm:rounded-[2.5rem]">
+        <DialogContent className="max-w-[95vw] w-[95vw] h-[90vh] max-h-[90svh] p-0 border-none shadow-2xl bg-background overflow-hidden flex flex-col rounded-[2rem] sm:rounded-[2.5rem] z-[2000]">
           <DialogHeader className="p-4 md:p-6 pb-2 bg-gradient-to-b from-primary/10 to-transparent shrink-0 flex flex-row items-center justify-between border-b">
             <div className="flex flex-col gap-0.5 min-w-0 flex-1">
               <DialogTitle className="text-lg md:text-xl font-black tracking-tight uppercase truncate pr-4">
@@ -719,7 +722,7 @@ function ReactionDetailsDialog({ open, onOpenChange, emoji, uids }: { open: bool
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[350px] rounded-[2rem] border-none shadow-2xl p-0 overflow-hidden bg-background h-fit max-h-[80vh] flex flex-col">
+      <DialogContent className="sm:max-w-[350px] rounded-[2rem] border-none shadow-2xl p-0 overflow-hidden bg-background h-fit max-h-[80vh] flex flex-col z-[2000]">
         <DialogHeader className="p-6 bg-gradient-to-b from-primary/5 to-transparent border-b shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">

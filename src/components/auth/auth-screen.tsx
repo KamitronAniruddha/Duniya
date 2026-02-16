@@ -191,7 +191,7 @@ export function AuthScreen() {
                       exit={{ opacity: 0, scale: 0.9 }}
                     >
                       <motion.path
-                        d="M10,25 L20,5 L35,25 M12,18 H28 M45,25 V12 C45,8 55,8 55,12 V25 M65,12 V25 M65,5 V8"
+                        d="M15,25 L25,5 L40,25 M18,18 H32 M50,25 V12 C50,8 60,8 60,12 V25 M70,12 V25 M70,5 V8"
                         stroke="currentColor"
                         strokeWidth="3"
                         strokeLinecap="round"
@@ -214,7 +214,7 @@ export function AuthScreen() {
                       exit={{ opacity: 0, scale: 0.9 }}
                     >
                       <motion.path
-                        d="M10,25 C10,15 25,5 25,15 C25,25 10,30 20,30 C30,30 35,20 35,15 M40,25 V12 C40,8 50,8 50,12 V25 M55,25 V12 C55,8 65,8 65,12 V25 M70,12 V20 C70,25 85,25 85,12"
+                        d="M15,25 C15,15 30,5 30,15 C30,25 15,30 25,30 C35,30 40,20 40,15 M45,25 V12 C45,8 55,8 55,12 V25 M60,25 V12 C60,8 70,8 70,12 V25 M75,12 V20 C75,25 90,25 90,12"
                         stroke="currentColor"
                         strokeWidth="3"
                         strokeLinecap="round"
