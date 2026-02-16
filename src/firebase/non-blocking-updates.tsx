@@ -9,7 +9,6 @@ import {
   DocumentReference,
   SetOptions,
 } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
 import { errorEmitter } from '@/firebase/error-emitter';
 import {FirestorePermissionError} from '@/firebase/errors';
 
@@ -19,19 +18,16 @@ import {FirestorePermissionError} from '@/firebase/errors';
  */
 export function setDocumentNonBlocking(docRef: DocumentReference, data: any, options: SetOptions) {
   setDoc(docRef, data, options).catch(error => {
-    // Suppress permission errors during logout transitions
-    const auth = getAuth();
-    if (error.code === 'permission-denied' && !auth.currentUser) return;
-
     errorEmitter.emit(
       'permission-error',
       new FirestorePermissionError({
         path: docRef.path,
-        operation: 'write',
+        operation: 'write', // or 'create'/'update' based on options
         requestResourceData: data,
       })
     )
   })
+  // Execution continues immediately
 }
 
 
@@ -43,10 +39,6 @@ export function setDocumentNonBlocking(docRef: DocumentReference, data: any, opt
 export function addDocumentNonBlocking(colRef: CollectionReference, data: any) {
   const promise = addDoc(colRef, data)
     .catch(error => {
-      // Suppress permission errors during logout transitions
-      const auth = getAuth();
-      if (error.code === 'permission-denied' && !auth.currentUser) return;
-
       errorEmitter.emit(
         'permission-error',
         new FirestorePermissionError({
@@ -67,10 +59,6 @@ export function addDocumentNonBlocking(colRef: CollectionReference, data: any) {
 export function updateDocumentNonBlocking(docRef: DocumentReference, data: any) {
   updateDoc(docRef, data)
     .catch(error => {
-      // Suppress permission errors during logout transitions
-      const auth = getAuth();
-      if (error.code === 'permission-denied' && !auth.currentUser) return;
-
       errorEmitter.emit(
         'permission-error',
         new FirestorePermissionError({
@@ -90,10 +78,6 @@ export function updateDocumentNonBlocking(docRef: DocumentReference, data: any) 
 export function deleteDocumentNonBlocking(docRef: DocumentReference) {
   deleteDoc(docRef)
     .catch(error => {
-      // Suppress permission errors during logout transitions
-      const auth = getAuth();
-      if (error.code === 'permission-denied' && !auth.currentUser) return;
-
       errorEmitter.emit(
         'permission-error',
         new FirestorePermissionError({

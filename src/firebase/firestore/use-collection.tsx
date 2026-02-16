@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -10,7 +9,6 @@ import {
   QuerySnapshot,
   CollectionReference,
 } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
@@ -87,13 +85,6 @@ export function useCollection<T = any>(
         setIsLoading(false);
       },
       (error: FirestoreError) => {
-        // PERMANENT FIX: Suppress permission errors during logout transitions or auth resets
-        const auth = getAuth();
-        if (error.code === 'permission-denied' && !auth.currentUser) {
-          setIsLoading(false);
-          return;
-        }
-
         // This logic extracts the path from either a ref or a query
         const path: string =
           memoizedTargetRefOrQuery.type === 'collection'
@@ -109,10 +100,8 @@ export function useCollection<T = any>(
         setData(null)
         setIsLoading(false)
 
-        // Only trigger global error if user is actually authenticated
-        if (auth.currentUser) {
-          errorEmitter.emit('permission-error', contextualError);
-        }
+        // trigger global error propagation
+        errorEmitter.emit('permission-error', contextualError);
       }
     );
 

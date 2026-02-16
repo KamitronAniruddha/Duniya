@@ -1,4 +1,3 @@
-
 'use client';
     
 import { useState, useEffect } from 'react';
@@ -9,7 +8,6 @@ import {
   FirestoreError,
   DocumentSnapshot,
 } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
@@ -59,6 +57,7 @@ export function useDoc<T = any>(
 
     setIsLoading(true);
     setError(null);
+    // Optional: setData(null); // Clear previous data instantly
 
     const unsubscribe = onSnapshot(
       memoizedDocRef,
@@ -66,19 +65,13 @@ export function useDoc<T = any>(
         if (snapshot.exists()) {
           setData({ ...(snapshot.data() as T), id: snapshot.id });
         } else {
+          // Document does not exist
           setData(null);
         }
-        setError(null);
+        setError(null); // Clear any previous error on successful snapshot (even if doc doesn't exist)
         setIsLoading(false);
       },
       (error: FirestoreError) => {
-        // PERMANENT FIX: Suppress permission errors during logout transitions or auth resets
-        const auth = getAuth();
-        if (error.code === 'permission-denied' && !auth.currentUser) {
-          setIsLoading(false);
-          return;
-        }
-
         const contextualError = new FirestorePermissionError({
           operation: 'get',
           path: memoizedDocRef.path,
@@ -88,15 +81,13 @@ export function useDoc<T = any>(
         setData(null)
         setIsLoading(false)
 
-        // Only trigger global error if user is actually authenticated
-        if (auth.currentUser) {
-          errorEmitter.emit('permission-error', contextualError);
-        }
+        // trigger global error propagation
+        errorEmitter.emit('permission-error', contextualError);
       }
     );
 
     return () => unsubscribe();
-  }, [memoizedDocRef]);
+  }, [memoizedDocRef]); // Re-run if the memoizedDocRef changes.
 
   return { data, isLoading, error };
 }
