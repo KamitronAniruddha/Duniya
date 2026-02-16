@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -16,7 +15,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { setDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { motion, AnimatePresence } from "framer-motion";
 import { Label } from "@/components/ui/label";
-import { XP_REWARDS } from "@/lib/xp-system";
+import { XP_REWARDS, awardXP } from "@/lib/xp-system";
 
 interface ProfileReplyTarget {
   id: string;
@@ -206,10 +205,7 @@ export function MessageInput({
 
     // XP REWARD FOR MESSAGE
     const xpReward = Math.floor(XP_REWARDS.MESSAGE_BASE + (text.length * XP_REWARDS.MESSAGE_PER_CHAR));
-    updateDocumentNonBlocking(doc(db, "users", user!.uid), {
-      xp: increment(xpReward),
-      "xpBreakdown.chatting": increment(xpReward)
-    });
+    awardXP(db, user!.uid, xpReward, 'chatting', `Creative Dispatch: ${text.slice(0, 30)}${text.length > 30 ? '...' : ''}`);
 
     onSendMessage(
       text, 

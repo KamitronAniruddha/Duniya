@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -23,6 +22,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { CreatorFooter } from "@/components/creator-footer";
+import { awardXP, XP_REWARDS } from "@/lib/xp-system";
 
 interface CreateCommunityDialogProps {
   open: boolean;
@@ -189,13 +189,16 @@ export function CreateCommunityDialog({ open, onOpenChange, onCreated }: CreateC
           communityIcon: communityData.icon,
           status: "pending",
           type: "genesis",
-          role: invitee.role, // Advanced: Different roles handled
+          role: invitee.role,
           createdAt: new Date().toISOString()
         });
       }
 
       await batch.commit();
       
+      // Award XP for Genesis creation
+      awardXP(db, user.uid, XP_REWARDS.GENESIS_CREATION, 'genesis', `World Genesis: ${name.trim()}`);
+
       toast({ title: "Verse Synthesized", description: `${name} has been brought into existence.` });
       onCreated(communityId);
       onOpenChange(false);

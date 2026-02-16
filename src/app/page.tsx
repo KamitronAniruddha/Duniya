@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
@@ -19,7 +18,7 @@ import { ProfileDialog } from "@/components/profile/profile-dialog";
 import { motion, AnimatePresence } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CreatorFooter } from "@/components/creator-footer";
-import { XP_REWARDS, calculateLevel } from "@/lib/xp-system";
+import { XP_REWARDS, calculateLevel, awardXP } from "@/lib/xp-system";
 import { LevelUpToast } from "@/components/xp/level-up-toast";
 
 export default function DuniyaApp() {
@@ -73,11 +72,11 @@ export default function DuniyaApp() {
       
       const xpReward = XP_REWARDS.DAILY_LOGIN_BASE + (newStreak * XP_REWARDS.STREAK_BONUS);
       
+      awardXP(db, user.uid, xpReward, 'presence', `Daily Sync Streak: ${newStreak} Days`);
+      
       updateDocumentNonBlocking(doc(db, "users", user.uid), {
         lastLoginDate: today,
         loginStreak: newStreak,
-        xp: increment(xpReward),
-        "xpBreakdown.presence": increment(xpReward)
       });
     }
   }, [user?.uid, db, userData?.lastLoginDate]);
@@ -87,10 +86,7 @@ export default function DuniyaApp() {
     if (!user?.uid || !db) return;
     const interval = setInterval(() => {
       if (document.visibilityState === 'visible') {
-        updateDocumentNonBlocking(doc(db, "users", user.uid), {
-          xp: increment(XP_REWARDS.PASSIVE_HEARTBEAT),
-          "xpBreakdown.presence": increment(XP_REWARDS.PASSIVE_HEARTBEAT)
-        });
+        awardXP(db, user.uid, XP_REWARDS.PASSIVE_HEARTBEAT, 'presence', "Verse Pulse Synchronization");
       }
     }, 300000); // 5 minutes
     return () => clearInterval(interval);
