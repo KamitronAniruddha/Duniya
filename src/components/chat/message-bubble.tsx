@@ -193,7 +193,6 @@ export const MessageBubble = memo(function MessageBubble({
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    // Move toast into a microtask to avoid setState during render
     setTimeout(() => {
       toast({ title: "Starting Download", description: name });
     }, 0);
@@ -540,13 +539,28 @@ export const MessageBubble = memo(function MessageBubble({
           context={message.replyTo.profileContext} 
           targetName={message.replyTo.senderName} 
           senderName={message.senderName || "User"}
+          fallbackPhotoURL={message.replyTo.senderPhotoURL}
         />
       )}
     </div>
   );
 });
 
-function SharedIntelligenceDialog({ open, onOpenChange, context, targetName, senderName }: { open: boolean; onOpenChange: (open: boolean) => void; context: any; targetName: string; senderName: string }) {
+function SharedIntelligenceDialog({ 
+  open, 
+  onOpenChange, 
+  context, 
+  targetName, 
+  senderName,
+  fallbackPhotoURL 
+}: { 
+  open: boolean; 
+  onOpenChange: (open: boolean) => void; 
+  context: any; 
+  targetName: string; 
+  senderName: string;
+  fallbackPhotoURL?: string;
+}) {
   const db = useFirestore();
   const { user } = useUser();
   const targetRef = useMemoFirebase(() => (context?.targetUserId ? doc(db, "users", context.targetUserId) : null), [db, context?.targetUserId]);
@@ -584,21 +598,21 @@ function SharedIntelligenceDialog({ open, onOpenChange, context, targetName, sen
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[480px] rounded-[3rem] border-none shadow-[0_32px_128px_rgba(0,0,0,0.4)] p-0 overflow-hidden bg-background h-fit max-h-[90vh] flex flex-col z-[2000]">
-        <DialogHeader className="p-10 pb-6 bg-gradient-to-br from-primary/20 via-primary/5 to-transparent shrink-0 relative overflow-hidden">
+        <DialogHeader className="p-8 md:p-10 pb-6 bg-gradient-to-br from-primary/20 via-primary/5 to-transparent shrink-0 relative overflow-hidden">
           <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary/10 rounded-full blur-3xl animate-pulse" />
           <div className="flex items-center justify-between mb-4 relative z-10">
             <div className="flex items-center gap-2.5">
               <Sparkles className="h-5 w-5 text-primary animate-spin-slow" />
-              <span className="text-[11px] font-black uppercase tracking-[0.5em] text-primary/80">Social Depth Intelligence</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary/80">Social Depth Intelligence</span>
             </div>
             <div className="px-3 py-1 bg-primary/10 rounded-full border border-primary/20">
-              <span className="text-[9px] font-black text-primary uppercase tracking-widest">v2.4.0 High-Fidelity</span>
+              <span className="text-[8px] font-black text-primary uppercase tracking-widest">v2.4.0 High-Fidelity</span>
             </div>
           </div>
-          <DialogTitle className="text-5xl font-[900] tracking-tighter uppercase leading-tight text-foreground relative z-10">
+          <DialogTitle className="text-3xl md:text-4xl font-[900] tracking-tighter uppercase leading-tight text-foreground relative z-10">
             Social <span className="text-primary italic">Pulse</span>
           </DialogTitle>
-          <DialogDescription className="font-medium text-muted-foreground/80 text-sm mt-3 italic relative z-10 leading-relaxed">
+          <DialogDescription className="font-medium text-muted-foreground/80 text-xs md:text-sm mt-3 italic relative z-10 leading-relaxed">
             "Real-time decryption of digital lineage and Verse connectivity metrics."
           </DialogDescription>
         </DialogHeader>
@@ -608,7 +622,7 @@ function SharedIntelligenceDialog({ open, onOpenChange, context, targetName, sen
             variants={container}
             initial="hidden"
             animate="show"
-            className="p-10 pt-2 space-y-10"
+            className="p-8 md:p-10 pt-2 space-y-10"
           >
             {/* Main Identity Node */}
             <motion.div variants={item} className="flex flex-col items-center text-center gap-6">
@@ -619,7 +633,7 @@ function SharedIntelligenceDialog({ open, onOpenChange, context, targetName, sen
                   isHidden && "blur-2xl", 
                   isBlurred && "blur-lg"
                 )}>
-                  <AvatarImage src={isHidden ? undefined : targetPrivacyData?.photoURL} className="object-cover" />
+                  <AvatarImage src={isHidden ? undefined : (targetPrivacyData?.photoURL || fallbackPhotoURL)} className="object-cover" />
                   <AvatarFallback className="bg-primary text-white text-5xl font-[900] uppercase">{targetName[0]}</AvatarFallback>
                 </Avatar>
                 {isHidden && (
@@ -652,38 +666,39 @@ function SharedIntelligenceDialog({ open, onOpenChange, context, targetName, sen
                 <div className="absolute -top-4 -right-4 p-8 opacity-0 group-hover:opacity-10 transition-opacity"><Globe className="h-16 w-16" /></div>
                 <div className="flex items-center gap-2.5 text-primary">
                   <Compass className="h-5 w-5" />
-                  <span className="text-[10px] font-black uppercase tracking-[0.2em]">Verse Reach</span>
+                  <span className="text-[9px] font-black uppercase tracking-[0.2em]">Verse Reach</span>
                 </div>
                 {isHidden ? <Lock className="h-5 w-5 text-muted-foreground/30" /> : <span className="text-3xl font-black text-foreground">{context?.totalCommunities || 0}</span>}
-                <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest">Total Communities</p>
+                <p className="text-[8px] text-muted-foreground font-bold uppercase tracking-widest">Total Communities</p>
               </motion.div>
 
               <motion.div variants={item} className="p-6 bg-muted/30 rounded-[2.5rem] border border-transparent hover:border-primary/20 transition-all group flex flex-col gap-3 relative overflow-hidden">
                 <div className="absolute -top-4 -right-4 p-8 opacity-0 group-hover:opacity-10 transition-opacity"><Users className="h-16 w-16" /></div>
                 <div className="flex items-center gap-2.5 text-primary">
                   <Waves className="h-5 w-5" />
-                  <span className="text-[10px] font-black uppercase tracking-[0.2em]">Mutual Sync</span>
+                  <span className="text-[9px] font-black uppercase tracking-[0.2em]">Mutual Sync</span>
                 </div>
                 {isHidden ? <Lock className="h-5 w-5 text-muted-foreground/30" /> : <span className="text-3xl font-black text-foreground">{context?.commonCommunities || 0}</span>}
-                <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest">Shared Universes</p>
+                <p className="text-[8px] text-muted-foreground font-bold uppercase tracking-widest">Shared Universes</p>
               </motion.div>
 
               <motion.div variants={item} className="p-6 bg-muted/30 rounded-[2.5rem] border border-transparent hover:border-primary/20 transition-all group flex flex-col gap-3 relative overflow-hidden">
+                <div className="absolute -top-4 -right-4 p-8 opacity-0 group-hover:opacity-10 transition-opacity"><Landmark className="h-16 w-16" /></div>
                 <div className="flex items-center gap-2.5 text-primary">
                   <Milestone className="h-5 w-5" />
-                  <span className="text-[10px] font-black uppercase tracking-[0.2em]">Verse Age</span>
+                  <span className="text-[9px] font-black uppercase tracking-[0.2em]">Verse Age</span>
                 </div>
                 {isHidden ? <Lock className="h-5 w-5 text-muted-foreground/30" /> : <span className="text-xl font-black text-foreground truncate">{accountAge}</span>}
-                <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest">Identity Longevity</p>
+                <p className="text-[8px] text-muted-foreground font-bold uppercase tracking-widest">Identity Longevity</p>
               </motion.div>
 
               <motion.div variants={item} className="p-6 bg-primary/10 rounded-[2.5rem] border border-primary/20 transition-all group flex flex-col gap-3 relative overflow-hidden">
                 <div className="flex items-center gap-2.5 text-primary">
                   <ShieldCheck className="h-5 w-5" />
-                  <span className="text-[10px] font-black uppercase tracking-[0.2em]">Security</span>
+                  <span className="text-[9px] font-black uppercase tracking-[0.2em]">Security</span>
                 </div>
                 <span className="text-xl font-black text-primary uppercase">Grade AAA</span>
-                <p className="text-[9px] text-primary/60 font-bold uppercase tracking-widest">Protocol Trust</p>
+                <p className="text-[8px] text-primary/60 font-bold uppercase tracking-widest">Protocol Trust</p>
               </motion.div>
             </div>
 
@@ -692,9 +707,9 @@ function SharedIntelligenceDialog({ open, onOpenChange, context, targetName, sen
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <Zap className="h-5 w-5 text-primary fill-primary" />
-                  <span className="text-[11px] font-black uppercase tracking-[0.3em]">Verse Trajectory</span>
+                  <span className="text-[10px] font-black uppercase tracking-[0.3em]">Verse Trajectory</span>
                 </div>
-                <span className="text-[9px] font-black text-muted-foreground/60 uppercase">Live Pulse Analytics</span>
+                <span className="text-[8px] font-black text-muted-foreground/60 uppercase">Live Pulse Analytics</span>
               </div>
               
               <div className="h-24 w-full flex items-end gap-1 px-2 relative">
@@ -726,7 +741,7 @@ function SharedIntelligenceDialog({ open, onOpenChange, context, targetName, sen
                 <div className="h-5 w-5 rounded-full border-2 border-primary flex items-center justify-center text-primary">
                   <Info className="h-3 w-3" />
                 </div>
-                <span className="text-[11px] font-black uppercase tracking-[0.3em] text-primary">Intelligence Verification</span>
+                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Intelligence Verification</span>
               </div>
               <p className="text-base font-medium text-muted-foreground leading-relaxed relative z-10">
                 {isHidden 
