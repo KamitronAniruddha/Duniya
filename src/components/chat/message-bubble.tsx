@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { memo, useState, useRef, useEffect, useMemo, useCallback } from "react";
@@ -117,6 +118,7 @@ export const MessageBubble = memo(function MessageBubble({
   const [isImageZoomOpen, setIsImageZoomOpen] = useState(false);
   const [isReactionPickerOpen, setIsReactionPickerOpen] = useState(false);
   const [isRevealed, setIsRevealed] = useState(false);
+  const [isIntelligenceOpen, setIsSharedIntelligenceOpen] = useState(false);
 
   const [dragX, setDragX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -399,6 +401,7 @@ export const MessageBubble = memo(function MessageBubble({
 
               {message.replyTo && (
                 <button 
+                  onClick={() => { if (message.replyTo?.messageId === 'profile') setIsSharedIntelligenceOpen(true); }}
                   className={cn(
                     "w-full text-left mb-2 p-2 rounded-xl border-l-2 text-[11px] bg-black/5 flex flex-col gap-0.5 backdrop-blur-sm transition-all hover:bg-black/10 mx-auto max-w-[calc(100%-8px)]", 
                     isMe ? "border-primary-foreground/40" : "border-primary/50"
@@ -526,6 +529,101 @@ export const MessageBubble = memo(function MessageBubble({
       {message.forwardingChain && <MessageTraceDialog open={isTraceOpen} onOpenChange={setIsTraceOpen} chain={message.forwardingChain} />}
       {!isActuallyDeleted && <ForwardDialog open={isForwardOpen} onOpenChange={setIsForwardOpen} messagesToForward={[message]} />}
       {!isActuallyDeleted && <DeleteOptionsDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen} onDeleteForMe={() => { if (messagePath) updateDocumentNonBlocking(doc(db, messagePath), { deletedFor: arrayUnion(user?.uid) }); }} onDeleteForEveryone={() => { if (messagePath) updateDocumentNonBlocking(doc(db, messagePath), { isDeleted: true, content: "Deleted message", type: "text" }); }} isSender={isMe} />}
+      {message.replyTo?.messageId === 'profile' && (
+        <SharedIntelligenceDialog 
+          open={isIntelligenceOpen} 
+          onOpenChange={setIsSharedIntelligenceOpen} 
+          context={message.replyTo.profileContext} 
+          targetName={message.replyTo.senderName} 
+          senderName={message.senderName || "User"}
+        />
+      )}
     </div>
   );
 });
+
+function SharedIntelligenceDialog({ open, onOpenChange, context, targetName, senderName }: { open: boolean; onOpenChange: (open: boolean) => void; context: any; targetName: string; senderName: string }) {
+  const db = useFirestore();
+  const { user } = useUser();
+  const targetRef = useMemoFirebase(() => (context?.targetUserId ? doc(db, "users", context.targetUserId) : null), [db, context?.targetUserId]);
+  const { data: targetPrivacyData } = useDoc(targetRef);
+
+  const isHidden = !!targetPrivacyData?.isProfileHidden && targetPrivacyData?.id !== user?.uid;
+  const isBlurred = !!targetPrivacyData?.isProfileBlurred && 
+                    targetPrivacyData?.id !== user?.uid && 
+                    !targetPrivacyData?.authorizedViewers?.some((v: any) => v.uid === user?.uid && new Date(v.expiresAt) > new Date());
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[400px] rounded-[2.5rem] border-none shadow-2xl p-0 overflow-hidden bg-background h-fit max-h-[85vh] flex flex-col">
+        <DialogHeader className="p-8 pb-4 bg-gradient-to-b from-primary/15 via-primary/5 to-transparent shrink-0">
+          <div className="flex items-center gap-2 mb-2">
+            <Sparkles className="h-4 w-4 text-primary animate-pulse" />
+            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary">Intelligence Snapshot</span>
+          </div>
+          <DialogTitle className="text-3xl font-[900] tracking-tighter uppercase leading-none text-foreground">Social Depth</DialogTitle>
+          <DialogDescription className="font-medium text-muted-foreground mt-2 italic">Captured Verse connectivity metadata.</DialogDescription>
+        </DialogHeader>
+
+        <div className="p-8 pt-2 space-y-8 flex-1 overflow-y-auto">
+          <div className="flex flex-col items-center text-center gap-4">
+            <div className="relative">
+              <Avatar className={cn("h-24 w-24 border-4 border-background shadow-2xl transition-all", isHidden && "blur-2xl", isBlurred && "blur-lg")}>
+                <AvatarImage src={isHidden ? undefined : targetPrivacyData?.photoURL} className="object-cover" />
+                <AvatarFallback className="bg-primary text-white text-3xl font-black uppercase">{targetName[0]}</AvatarFallback>
+              </Avatar>
+              {isHidden && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Ghost className="h-8 w-8 text-rose-500 animate-pulse" />
+                </div>
+              )}
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-xl font-black uppercase tracking-tight">@{targetName}</h3>
+              <p className="text-[10px] font-black uppercase tracking-widest text-primary/60">Target Identity</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="p-5 bg-muted/30 rounded-[1.75rem] border border-transparent hover:border-primary/10 transition-all flex flex-col gap-2">
+              <div className="flex items-center gap-2 text-primary">
+                <Globe className="h-4 w-4" />
+                <span className="text-[9px] font-black uppercase tracking-widest">Verse Reach</span>
+              </div>
+              {isHidden ? (
+                <Lock className="h-4 w-4 text-muted-foreground/40" />
+              ) : (
+                <span className="text-2xl font-black">{context?.totalCommunities || 0}</span>
+              )}
+            </div>
+            <div className="p-5 bg-muted/30 rounded-[1.75rem] border border-transparent hover:border-primary/10 transition-all flex flex-col gap-2">
+              <div className="flex items-center gap-2 text-primary">
+                <Users className="h-4 w-4" />
+                <span className="text-[9px] font-black uppercase tracking-widest">Mutual Sync</span>
+              </div>
+              {isHidden ? (
+                <Lock className="h-4 w-4 text-muted-foreground/40" />
+              ) : (
+                <span className="text-2xl font-black">{context?.commonCommunities || 0}</span>
+              )}
+            </div>
+          </div>
+
+          <div className="p-6 bg-primary/5 rounded-[2rem] border border-primary/10 space-y-3 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-4 opacity-10"><Activity className="h-12 w-12 text-primary" /></div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-black uppercase tracking-widest text-primary">Intelligence Note</span>
+            </div>
+            <p className="text-sm font-medium text-muted-foreground leading-relaxed italic relative z-10">
+              {isHidden ? "Identity context restricted by Protocol." : `Snapshot created by @${senderName} during Verse session.`}
+            </p>
+          </div>
+        </div>
+
+        <div className="p-6 bg-muted/20 border-t flex items-center justify-center shrink-0">
+          <CreatorFooter />
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}

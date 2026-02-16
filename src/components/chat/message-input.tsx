@@ -1,8 +1,9 @@
+
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { SendHorizontal, Smile, History, Ghost, X, Mic, Square, Trash2, Video, Timer, Clock, Image as ImageIcon, Loader2, Paperclip, FileText, Type, TypeOutline, Eraser, Command, User as UserIcon, Palette, Link, Compass, Check, BellOff, Bell, LogOut, Info, Sparkles, EyeOff, Lock, Shield, ShieldAlert, Activity, Zap, Heart } from "lucide-react";
+import { SendHorizontal, Smile, History, Ghost, X, Mic, Square, Trash2, Video, Timer, Clock, Image as ImageIcon, Loader2, Paperclip, FileText, Type, TypeOutline, Eraser, Command, User as UserIcon, Palette, Link, Compass, Check, BellOff, Bell, LogOut, Info, Sparkles, EyeOff, Lock, Shield, ShieldAlert, Activity, Zap, Heart, Camera, Reply } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -120,7 +121,7 @@ export function MessageInput({
   const userDocRef = useMemoFirebase(() => (user ? doc(db, "users", user.uid) : null), [db, user?.uid]);
   const { data: userData } = useDoc(userDocRef);
 
-  // PREVIEW PRIVACY SYNC
+  // UNIVERSAL PRIVACY PREVIEW SYNC
   const replyTargetId = profileReplyTarget?.id || replyingTo?.senderId;
   const targetRef = useMemoFirebase(() => (replyTargetId ? doc(db, "users", replyTargetId) : null), [db, replyTargetId]);
   const { data: targetPrivacyData } = useDoc(targetRef);
@@ -283,7 +284,16 @@ export function MessageInput({
           <div className="flex items-center gap-3">
             <div className="relative shrink-0">
               <Avatar className={cn("h-12 w-12 border-2 border-primary/20 shadow-md", isTargetBlurred && "blur-sm", isTargetHidden && "blur-xl")}>
-                {isTargetHidden ? <div className="w-full h-full bg-muted flex items-center justify-center text-muted-foreground"><Ghost className="h-5 w-5" /></div> : <><AvatarImage src={isTargetBlurred ? undefined : (profileReplyTarget?.photoURL || replyingTo?.senderPhotoURL || undefined)} className="object-cover" /><AvatarFallback className="bg-primary text-white text-xs font-black">{String(profileReplyTarget?.username || replyingTo?.senderName || "?")[0].toUpperCase()}</AvatarFallback></>}
+                {isTargetHidden ? (
+                  <div className="w-full h-full bg-muted flex items-center justify-center text-muted-foreground"><Ghost className="h-5 w-5" /></div>
+                ) : (
+                  <>
+                    <AvatarImage src={isTargetBlurred ? undefined : (profileReplyTarget?.photoURL || replyingTo?.senderPhotoURL || undefined)} className="object-cover" />
+                    <AvatarFallback className="bg-primary text-white text-xs font-black">
+                      {String(profileReplyTarget?.username || replyingTo?.senderName || "?")[0].toUpperCase()}
+                    </AvatarFallback>
+                  </>
+                )}
               </Avatar>
               <div className="absolute -bottom-1 -right-1 p-1 bg-primary rounded-full shadow-lg border-2 border-background">
                 {profileReplyTarget ? <Camera className="h-3 w-3 text-white" /> : <Reply className="h-3 w-3 text-white" />}
@@ -292,7 +302,7 @@ export function MessageInput({
             <div className="flex-1 min-w-0 flex flex-col">
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-[10px] font-black text-primary uppercase tracking-widest leading-none">
-                  {profileReplyTarget ? `Commenting on @${profileReplyTarget.username}` : `Replying to @${targetPrivacyData?.username || replyingTo?.senderName || "User"}`}
+                  {profileReplyTarget ? `Commenting on @${profileReplyTarget.username}` : `Replying to @${targetPrivacyData?.username || (replyingTo?.senderName ? replyingTo.senderName.replace(/^@/, '') : "User")}`}
                 </span>
                 {isTargetHidden && <span className="text-[8px] font-black uppercase text-rose-500 bg-rose-500/10 px-1.5 py-0.5 rounded-full">Encrypted</span>}
               </div>
