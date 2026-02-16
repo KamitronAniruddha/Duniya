@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -16,7 +15,7 @@ import {
   Palette, Check, Upload, Link, Monitor, Tablet, Smartphone, 
   Sparkles, Trash2, Download, Heart, Maximize2, Shield, UserCheck, 
   X, Key, ImagePlus, Clock, Zap, Activity, Fingerprint, Globe, Waves, 
-  ShieldCheck, Milestone, Trophy
+  ShieldCheck, Milestone, Trophy, MessageSquare, Star
 } from "lucide-react";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
