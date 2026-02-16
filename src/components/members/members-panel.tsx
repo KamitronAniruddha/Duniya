@@ -6,7 +6,7 @@ import { useCollection, useFirestore, useDoc, useMemoFirebase, useUser } from "@
 import { collection, query, where, doc, getDocs, arrayUnion, arrayRemove, limit } from "firebase/firestore";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ShieldCheck, Loader2, UserPlus, Check, AlertCircle, UserMinus, Shield, Search, X, EyeOff, Ghost, Send, Bell, Reply, Camera } from "lucide-react";
+import { ShieldCheck, Loader2, UserPlus, Check, AlertCircle, UserMinus, Shield, Search, X, EyeOff, Ghost, Send, Bell, Reply, Camera, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -14,7 +14,6 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { updateDocumentNonBlocking, setDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { cn } from "@/lib/utils";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { UserProfilePopover } from "@/components/profile/user-profile-popover";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
@@ -385,7 +384,7 @@ export function MembersPanel({ serverId, onWhisper, onReply, onReplyProfile }: M
                 </div>
               )}
               <div className="space-y-2">
-                <Label htmlFor="search" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Search Universe</Label>
+                <Label htmlFor="search" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Search Universe</Label>
                 <div className="relative">
                   <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input id="search" className="pl-9 bg-muted/40 border-none rounded-xl" placeholder="Type a username..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} disabled={isInviting} />
@@ -428,6 +427,8 @@ function MemberItem({
   onReply?: (member: any) => void;
   now: number;
 }) {
+  const { user: currentUser } = useUser();
+  
   const lastSeen = member.lastOnlineAt ? new Date(member.lastOnlineAt).getTime() : 0;
   const isFresh = (now - lastSeen) < (3 * 60 * 1000);
   const isPublic = member.showOnlineStatus !== false;
@@ -435,7 +436,9 @@ function MemberItem({
   const isOnline = isFresh && isPublic && member.onlineStatus === "online";
   const isIdle = isFresh && isPublic && member.onlineStatus === "idle";
   
-  const { user: currentUser } = useUser();
+  const isHidden = !!member.isProfileHidden && member.id !== currentUser?.uid;
+  const isBlurred = !!member.isProfileBlurred && member.id !== currentUser?.uid && !member.authorizedViewers?.includes(currentUser?.uid || "");
+  
   const cleanUsername = member.username || member.displayName || "User";
 
   return (
@@ -447,11 +450,22 @@ function MemberItem({
         side="left"
       >
         <button className="relative transition-transform hover:scale-110">
-          <Avatar className="h-8 w-8 border border-border shadow-sm aspect-square">
-            <AvatarImage src={member.photoURL || undefined} className="aspect-square object-cover" />
-            <AvatarFallback className="bg-primary text-primary-foreground text-[10px] font-bold">
-              {String(cleanUsername)[0]?.toUpperCase()}
-            </AvatarFallback>
+          <Avatar className={cn(
+            "h-8 w-8 border border-border shadow-sm aspect-square",
+            isBlurred && "blur-sm"
+          )}>
+            {isHidden ? (
+              <div className="w-full h-full bg-muted flex items-center justify-center text-muted-foreground">
+                <Ghost className="h-4 w-4" />
+              </div>
+            ) : (
+              <>
+                <AvatarImage src={member.photoURL || undefined} className="aspect-square object-cover" />
+                <AvatarFallback className="bg-primary text-primary-foreground text-[10px] font-bold">
+                  {String(cleanUsername)[0]?.toUpperCase()}
+                </AvatarFallback>
+              </>
+            )}
           </Avatar>
           {isOnline ? (
             <div className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-background bg-green-500 shadow-[0_0_4px_rgba(34,197,94,0.6)]" />
@@ -482,9 +496,14 @@ function MemberItem({
             ) : null}
           </button>
         </UserProfilePopover>
-        {member.bio && (
+        {!isHidden && member.bio && (
           <span className="text-[10px] text-muted-foreground truncate leading-none mt-0.5">
             {member.bio}
+          </span>
+        )}
+        {isHidden && (
+          <span className="text-[10px] text-muted-foreground truncate leading-none mt-0.5 italic flex items-center gap-1">
+            <EyeOff className="h-2 w-2" /> Encrypted
           </span>
         )}
       </div>
@@ -511,16 +530,12 @@ function MemberItem({
               <DropdownMenuItem onClick={onToggleAdmin}>
                 {isAdmin ? "Demote to User" : "Promote to Admin"}
               </DropdownMenuItem>
-              <DropdownMenuItem className="text-destructive font-medium" asChild>
-                <AlertDialog>
-                  <button className="w-full flex items-center gap-2 px-2 py-1.5 text-left" onClick={(e) => {
-                    e.stopPropagation();
-                    if (confirm(`Remove @${cleanUsername} from community?`)) onRemove();
-                  }}>
-                    <UserMinus className="h-4 w-4" />
-                    Remove Member
-                  </button>
-                </AlertDialog>
+              <DropdownMenuItem className="text-destructive font-medium" onClick={(e) => {
+                e.stopPropagation();
+                if (confirm(`Remove @${cleanUsername} from community?`)) onRemove();
+              }}>
+                <UserMinus className="h-4 w-4 mr-2" />
+                Remove Member
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

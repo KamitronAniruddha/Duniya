@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useFirestore, useUser, useDoc, useMemoFirebase, useCollection } from "@/firebase";
 import { doc, arrayUnion, arrayRemove, deleteField, collection, query, where, documentId, getDocs } from "firebase/firestore";
 import { UserProfilePopover } from "@/components/profile/user-profile-popover";
-import { Reply, CornerDownRight, Play, Pause, MoreHorizontal, Trash2, Ban, Copy, Timer, Check, CheckCheck, Forward, Landmark, Mic, Maximize2, Heart, Download, FileText, File, Eye, Ghost, Lock, Smile, Plus, Users, Camera, Info, Sparkles, Globe, Activity, Zap } from "lucide-react";
+import { Reply, CornerDownRight, Play, Pause, MoreHorizontal, Trash2, Ban, Copy, Timer, Check, CheckCheck, Forward, Landmark, Mic, Maximize2, Heart, Download, FileText, File, Eye, Ghost, Lock, Smile, Plus, Users, Camera, Info, Sparkles, Globe, Activity, Zap, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
@@ -105,6 +105,12 @@ export const MessageBubble = memo(function MessageBubble({
   const db = useFirestore();
   const { user } = useUser();
   const { toast } = useToast();
+
+  const senderRef = useMemoFirebase(() => doc(db, "users", message.senderId), [db, message.senderId]);
+  const { data: senderData } = useDoc(senderRef);
+
+  const isSenderHidden = !!senderData?.isProfileHidden && !isMe;
+  const isSenderBlurred = !!senderData?.isProfileBlurred && !isMe && !senderData?.authorizedViewers?.includes(user?.uid || "");
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -357,9 +363,22 @@ export const MessageBubble = memo(function MessageBubble({
           side="right"
         >
           <button className="h-8 w-8 mb-0.5 mr-2 shrink-0 transition-transform active:scale-95">
-            <Avatar className="h-full w-full border border-border shadow-sm aspect-square">
-              <AvatarImage src={message.senderPhotoURL} className="aspect-square object-cover" />
-              <AvatarFallback className="text-[9px] font-black bg-primary text-primary-foreground">{message.senderName?.[0]?.toUpperCase() || "?"}</AvatarFallback>
+            <Avatar className={cn(
+              "h-full w-full border border-border shadow-sm aspect-square",
+              isSenderBlurred && "blur-sm"
+            )}>
+              {isSenderHidden ? (
+                <div className="w-full h-full bg-muted flex items-center justify-center text-muted-foreground">
+                  <Ghost className="h-4 w-4" />
+                </div>
+              ) : (
+                <>
+                  <AvatarImage src={message.senderPhotoURL} className="aspect-square object-cover" />
+                  <AvatarFallback className="text-[9px] font-black bg-primary text-primary-foreground">
+                    {message.senderName?.[0]?.toUpperCase() || "?"}
+                  </AvatarFallback>
+                </>
+              )}
             </Avatar>
           </button>
         </UserProfilePopover>
@@ -380,7 +399,10 @@ export const MessageBubble = memo(function MessageBubble({
                 onReply={onReplyToProfile}
                 side="right"
               >
-                <button className="text-[9px] font-black text-muted-foreground/60 ml-1 mb-0.5 hover:text-primary uppercase tracking-widest transition-colors">@{message.senderName || "..."}</button>
+                <button className="text-[9px] font-black text-muted-foreground/60 ml-1 mb-0.5 hover:text-primary uppercase tracking-widest transition-colors">
+                  @{message.senderName || "..."}
+                  {isSenderHidden && <span className="ml-1 opacity-40 lowercase italic font-medium tracking-normal">(encrypted)</span>}
+                </button>
               </UserProfilePopover>
             )}
             

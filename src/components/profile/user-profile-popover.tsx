@@ -18,7 +18,7 @@ import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 interface UserProfilePopoverProps {
   userId: string;
-  children: React.RefNode;
+  children: React.ReactNode;
   onWhisper?: (userId: string, username: string) => void;
   onReply?: (userId: string, username: string, photoURL: string, bio?: string, totalCommunities?: number, commonCommunities?: number) => void;
   side?: "left" | "right" | "top" | "bottom";
@@ -56,10 +56,12 @@ export function UserProfilePopover({ userId, children, onWhisper, onReply, side 
         <PopoverContent className="w-64 p-6 rounded-[2rem] border-none shadow-2xl bg-popover/95 backdrop-blur-xl animate-in zoom-in-95 duration-200">
           <div className="flex flex-col items-center text-center gap-4">
             <div className="h-16 w-16 bg-rose-500/10 rounded-full flex items-center justify-center text-rose-500 animate-pulse">
-              <EyeOff className="h-8 w-8" />
+              <Ghost className="h-8 w-8" />
             </div>
             <div className="space-y-1">
-              <h4 className="font-black text-sm uppercase tracking-widest">Identity Encrypted</h4>
+              <h4 className="font-black text-sm uppercase tracking-widest flex items-center gap-2 justify-center">
+                <EyeOff className="h-3 w-3" /> Identity Encrypted
+              </h4>
               <p className="text-[10px] text-muted-foreground font-medium italic">This user has restricted access to their identity protocol.</p>
             </div>
           </div>
