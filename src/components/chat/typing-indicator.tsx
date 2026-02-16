@@ -5,6 +5,7 @@ import { useCollection, useFirestore, useUser, useMemoFirebase } from "@/firebas
 import { collection, query } from "firebase/firestore";
 import { motion, AnimatePresence } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Ghost } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface TypingIndicatorProps {
@@ -37,7 +38,6 @@ export function TypingIndicator({ serverId, channelId }: TypingIndicatorProps) {
     
     // STRICT REAL-TIME FILTERING:
     // Only show typers who have updated their status in the last 6 seconds.
-    // This ensures that if a user goes offline abruptly, the indicator disappears.
     return typingUsers.filter(u => {
       if (u.id === user.uid) return false;
       const lastTyped = u.lastTypedAt ? new Date(u.lastTypedAt).getTime() : 0;
@@ -63,7 +63,6 @@ export function TypingIndicator({ serverId, channelId }: TypingIndicatorProps) {
             transition={{ type: "spring", stiffness: 400, damping: 25 }}
             className="flex items-center gap-2 bg-primary/5 dark:bg-primary/10 backdrop-blur-xl px-3 py-1.5 rounded-full border border-primary/20 shadow-[0_8px_30px_rgba(var(--primary),0.1)] group"
           >
-            {/* Animated Avatar Group */}
             <div className="flex -space-x-2 mr-1">
               {activeTypers.slice(0, 3).map((typer, i) => (
                 <motion.div
@@ -75,14 +74,13 @@ export function TypingIndicator({ serverId, channelId }: TypingIndicatorProps) {
                   <Avatar className="h-5 w-5 border-2 border-background shadow-sm ring-1 ring-primary/10">
                     <AvatarImage src={typer.photoURL || undefined} />
                     <AvatarFallback className="bg-primary text-[6px] text-white font-black">
-                      {typer.username?.[0]?.toUpperCase()}
+                      {typer.username?.[0]?.toUpperCase() || <Ghost className="h-2 w-2" />}
                     </AvatarFallback>
                   </Avatar>
                 </motion.div>
               ))}
             </div>
 
-            {/* Dot Dance Animation */}
             <div className="flex items-center gap-1 bg-background/40 px-2 py-1 rounded-full border border-border/50">
               {[0, 1, 2].map((i) => (
                 <motion.div
@@ -109,9 +107,6 @@ export function TypingIndicator({ serverId, channelId }: TypingIndicatorProps) {
             >
               {typingText}
             </motion.span>
-
-            {/* Glow Accent */}
-            <div className="absolute inset-0 bg-primary/5 blur-xl rounded-full -z-10 group-hover:bg-primary/10 transition-colors" />
           </motion.div>
         )}
       </AnimatePresence>

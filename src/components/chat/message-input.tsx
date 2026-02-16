@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, SendHorizontal, Smile, History, Ghost, X, CornerDownRight, Mic, Square, Trash2, Video, Timer, Clock, Image as ImageIcon, Loader2, Paperclip, FileText, Bold, Italic, Type, TypeOutline, Eraser, Command, User as UserIcon, Reply, Camera, Globe, Users, Heart, Activity, Zap, Palette, Link, Compass, Check, BellOff, Bell, LogOut, Info, Sparkles, EyeOff, Lock, Shield } from "lucide-react";
+import { SendHorizontal, Smile, History, Ghost, X, Mic, Square, Trash2, Video, Timer, Clock, Image as ImageIcon, Loader2, Paperclip, FileText, Type, TypeOutline, Eraser, Command, User as UserIcon, Palette, Link, Compass, Check, BellOff, Bell, LogOut, Info, Sparkles, EyeOff, Lock, Shield, ShieldAlert, Activity, Zap, Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -40,7 +40,8 @@ interface MessageInputProps {
     whisperTarget?: { id: string; username: string } | null,
     replySenderPhotoURL?: string,
     isProfileReply?: boolean,
-    profileContext?: any
+    profileContext?: any,
+    isSensitive?: boolean
   ) => void;
   onExecuteCommand?: (cmd: string, args: string[]) => Promise<boolean>;
   inputRef?: React.RefObject<HTMLInputElement>;
@@ -116,9 +117,6 @@ export function MessageInput({
   onCancelProfileReply,
   whisperingTo, 
   onCancelWhisper, 
-  onTriggerWhisper, 
-  onTriggerReplyUser,
-  onTriggerReplyProfile,
   serverId,
   channelId
 }: MessageInputProps) {
@@ -130,6 +128,7 @@ export function MessageInput({
   
   const [disappearingEnabled, setDisappearingEnabled] = useState(false);
   const [disappearDuration, setDisappearDuration] = useState(10000);
+  const [isSensitive, setIsSensitive] = useState(false);
   const [customSeconds, setCustomSeconds] = useState("");
 
   const [isRecording, setIsRecording] = useState(false);
@@ -202,19 +201,15 @@ export function MessageInput({
 
     if (text.trim().length > 0) {
       const now = Date.now();
-      // Heartbeat: Update every 2.5 seconds to maintain active status
       if (!isTypingBroadcastingRef.current || (now - lastTypingWriteRef.current > 2500)) {
         broadcastTyping();
       }
-
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-      // Auto-clear after 4 seconds of inactivity
       typingTimeoutRef.current = setTimeout(stopTyping, 4000);
     } else {
       stopTyping();
     }
 
-    // Explicit cleanup for tab close/app switch
     const handleUnload = () => stopTyping();
     window.addEventListener('beforeunload', handleUnload);
     window.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') stopTyping(); });
@@ -254,24 +249,6 @@ export function MessageInput({
       setShowWhisperSuggestions(false);
     }
   }, [text]);
-
-  const applyFormatting = (prefix: string, suffix: string) => {
-    if (!inputRef.current) return;
-    const start = inputRef.current.selectionStart || 0;
-    const end = inputRef.current.selectionEnd || 0;
-    const selectedText = text.substring(start, end);
-    const beforeText = text.substring(0, start);
-    const afterText = text.substring(end);
-
-    const newText = `${beforeText}${prefix}${selectedText}${suffix}${afterText}`;
-    setText(newText);
-    
-    setTimeout(() => {
-      inputRef.current?.focus();
-      const newPos = start + prefix.length + selectedText.length + suffix.length;
-      inputRef.current?.setSelectionRange(newPos, newPos);
-    }, 0);
-  };
 
   const handleApplyCommand = (usage: string) => {
     setText(usage);
@@ -363,12 +340,14 @@ export function MessageInput({
         totalCommunities: profileReplyTarget.totalCommunities,
         commonCommunities: profileReplyTarget.commonCommunities,
         bio: profileReplyTarget.bio
-      } : undefined
+      } : undefined,
+      isSensitive
     );
     
     setText("");
     setImagePreview(null);
     setFilePreview(null);
+    setIsSensitive(false);
     setShowFormatting(false);
   };
 
@@ -417,62 +396,29 @@ export function MessageInput({
 
   const startRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1, sampleRate: 48000 } 
-      });
-      const options = { audioBitsPerSecond: 128000, mimeType: MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm' };
-      const recorder = new MediaRecorder(stream, options);
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
       mediaRecorderRef.current = recorder;
       chunksRef.current = [];
       recorder.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
       recorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: options.mimeType });
+        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
         const reader = new FileReader();
         reader.readAsDataURL(blob);
         reader.onloadend = () => {
           const duration = disappearDuration === -1 ? (parseInt(customSeconds) || 10) * 1000 : disappearDuration;
           const finalTargetName = profileReplyTarget?.username || activeTargetData?.username || replyingTo?.senderName || "User";
           const finalTargetPhoto = profileReplyTarget?.photoURL || activeTargetData?.photoURL || replyingTo?.senderPhotoURL || "";
-          onSendMessage("", reader.result as string, undefined, finalTargetName, { enabled: disappearingEnabled, duration: duration }, undefined, undefined, whisperingTo, finalTargetPhoto, !!profileReplyTarget);
+          onSendMessage("", reader.result as string, undefined, finalTargetName, { enabled: disappearingEnabled, duration: duration }, undefined, undefined, whisperingTo, finalTargetPhoto, !!profileReplyTarget, undefined, isSensitive);
         };
         stream.getTracks().forEach(track => track.stop());
       };
-      recorder.start(200);
+      recorder.start();
       setIsRecording(true);
       setRecordingTime(0);
       timerRef.current = setInterval(() => setRecordingTime(prev => prev + 1), 1000);
     } catch (err) {
       toast({ variant: "destructive", title: "Microphone Error", description: "Access denied." });
-    }
-  };
-
-  const startVideoRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 480, height: 480, facingMode: "user" }, audio: { echoCancellation: true, noiseSuppression: true } });
-      streamRef.current = stream;
-      if (videoRef.current) videoRef.current.srcObject = stream;
-      const recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp8,opus' });
-      mediaRecorderRef.current = recorder;
-      chunksRef.current = [];
-      recorder.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
-      recorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: 'video/webm' });
-        const reader = new FileReader();
-        reader.readAsDataURL(blob);
-        reader.onloadend = () => {
-          const duration = disappearDuration === -1 ? (parseInt(customSeconds) || 10) * 1000 : disappearDuration;
-          const finalTargetName = profileReplyTarget?.username || activeTargetData?.username || replyingTo?.senderName || "User";
-          const finalTargetPhoto = profileReplyTarget?.photoURL || activeTargetData?.photoURL || replyingTo?.senderPhotoURL || "";
-          onSendMessage("", undefined, reader.result as string, finalTargetName, { enabled: disappearingEnabled, duration: duration }, undefined, undefined, whisperingTo, finalTargetPhoto, !!profileReplyTarget);
-        };
-        stream.getTracks().forEach(track => track.stop());
-      };
-      recorder.start();
-      setIsRecordingVideo(true);
-      setRecordingTime(0);
-      timerRef.current = setInterval(() => setRecordingTime(prev => prev + 1), 1000);
-    } catch (err) {
-      toast({ variant: "destructive", title: "Camera Error", description: "Access denied." });
     }
   };
 
@@ -626,20 +572,6 @@ export function MessageInput({
               )}>
                 {isTargetHidden ? "Captured identity context is no longer visible." : (profileReplyTarget ? (activeTargetData?.bio || profileReplyTarget.bio || "Sharing thoughts on this identity picture.") : (replyingTo.content || replyingTo.text || "Media message"))}
               </p>
-              
-              {profileReplyTarget && !isTargetHidden && (
-                <div className="flex items-center gap-4 mt-1.5">
-                  <div className="flex items-center gap-1.5">
-                    <Globe className="h-3 w-3 text-primary/60" />
-                    <span className="text-[9px] font-black uppercase tracking-tighter text-muted-foreground">Connected: {activeTargetData?.serverIds?.length || profileReplyTarget.totalCommunities} Communities</span>
-                  </div>
-                  <div className="w-[1px] h-3 bg-border" />
-                  <div className="flex items-center gap-1.5">
-                    <Users className="h-3 w-3 text-primary/60" />
-                    <span className="text-[9px] font-black uppercase tracking-tighter text-muted-foreground">Mutual Verse Identified</span>
-                  </div>
-                </div>
-              )}
             </div>
             <button type="button" onClick={profileReplyTarget ? onCancelProfileReply : onCancelReply} className="h-8 w-8 rounded-full hover:bg-muted flex items-center justify-center transition-colors shadow-sm bg-background/50">
               <X className="h-4 w-4" />
@@ -663,59 +595,47 @@ export function MessageInput({
         </div>
       )}
 
-      {imagePreview && (
+      {(imagePreview || filePreview) && (
         <div className="px-4 py-3 bg-muted/20 border-t flex flex-col gap-2 animate-in slide-in-from-bottom-4 duration-200">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black uppercase text-primary tracking-widest">Image Preview</span>
-            <button type="button" onClick={() => setImagePreview(null)} className="h-6 w-6 rounded-full bg-background/50 hover:bg-background flex items-center justify-center transition-colors shadow-sm">
+            <div className="flex items-center gap-3">
+              <span className="text-[10px] font-black uppercase text-primary tracking-widest">{imagePreview ? 'Image Preview' : 'Document Selected'}</span>
+              <div className="flex items-center gap-2 px-2 py-1 bg-amber-500/10 rounded-lg border border-amber-500/20 cursor-pointer" onClick={() => setIsSensitive(!isSensitive)}>
+                <ShieldAlert className={cn("h-3 w-3 transition-colors", isSensitive ? "text-amber-600 fill-amber-600" : "text-muted-foreground")} />
+                <span className={cn("text-[8px] font-black uppercase", isSensitive ? "text-amber-600" : "text-muted-foreground")}>{isSensitive ? 'Marked Sensitive' : 'Mark as Sensitive'}</span>
+              </div>
+            </div>
+            <button type="button" onClick={() => { setImagePreview(null); setFilePreview(null); setIsSensitive(false); }} className="h-6 w-6 rounded-full bg-background/50 hover:bg-background flex items-center justify-center transition-colors shadow-sm">
               <X className="h-3.5 w-3.5" />
             </button>
           </div>
-          <div className="relative w-24 h-24 rounded-xl overflow-hidden border-2 border-primary/20 shadow-lg">
-            <img src={imagePreview} className="w-full h-full object-cover" alt="Preview" />
-          </div>
-        </div>
-      )}
-
-      {filePreview && (
-        <div className="px-4 py-3 bg-muted/20 border-t flex flex-col gap-2 animate-in slide-in-from-bottom-4 duration-200">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black uppercase text-primary tracking-widest">Document Selected</span>
-            <button type="button" onClick={() => setFilePreview(null)} className="h-6 w-6 rounded-full bg-background/50 hover:bg-background flex items-center justify-center transition-colors shadow-sm">
-              <X className="h-3.5 w-3.5" />
-            </button>
-          </div>
-          <div className="flex items-center gap-3 p-3 bg-background rounded-xl border-2 border-primary/20 shadow-lg w-fit max-w-full">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              {filePreview.type.includes('pdf') ? <FileText className="h-5 w-5 text-primary" /> : <Paperclip className="h-5 w-5 text-primary" />}
+          {imagePreview ? (
+            <div className="relative w-24 h-24 rounded-xl overflow-hidden border-2 border-primary/20 shadow-lg">
+              <img src={imagePreview} className={cn("w-full h-full object-cover transition-all", isSensitive && "blur-md")} alt="Preview" />
+              {isSensitive && <div className="absolute inset-0 bg-black/20 flex items-center justify-center"><Shield className="h-6 w-6 text-white" /></div>}
             </div>
-            <div className="flex flex-col">
-              <span className="text-xs font-bold truncate max-w-[200px]">{filePreview.name}</span>
-              <span className="text-[9px] font-black text-muted-foreground uppercase">{filePreview.type.split('/')[1] || 'FILE'}</span>
+          ) : filePreview && (
+            <div className="flex items-center gap-3 p-3 bg-background rounded-xl border-2 border-primary/20 shadow-lg w-fit max-w-full">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                {filePreview.type.includes('pdf') ? <FileText className="h-5 w-5 text-primary" /> : <Paperclip className="h-5 w-5 text-primary" />}
+              </div>
+              <div className="flex flex-col">
+                <span className="text-xs font-bold truncate max-w-[200px]">{filePreview.name}</span>
+                <span className="text-[9px] font-black text-muted-foreground uppercase">{filePreview.type.split('/')[1] || 'FILE'}</span>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 
       <div className="p-4 bg-background border-t relative">
         {(isRecording || isRecordingVideo) ? (
           <div className="flex items-center gap-4 max-w-5xl mx-auto bg-muted/20 p-3 rounded-2xl animate-in fade-in zoom-in-95 border border-primary/10 shadow-xl">
-            {isRecordingVideo && (
-              <div className="h-24 w-24 rounded-full overflow-hidden border-4 border-primary bg-black shrink-0 relative shadow-lg">
-                <video ref={videoRef} autoPlay muted playsInline className="h-full w-full object-cover scale-x-[-1]" />
-                <div className="absolute top-2 right-2 h-3 w-3 rounded-full bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
-              </div>
-            )}
             <div className="flex-1 flex flex-col gap-1">
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2 px-4 py-1.5 bg-red-500/10 text-red-500 rounded-full w-fit border border-red-500/20">
                   <motion.div animate={{ scale: [1, 1.2, 1], opacity: [1, 0.5, 1] }} transition={{ repeat: Infinity, duration: 1 }} className="h-2.5 w-2.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
                   <span className="text-sm font-black font-mono">{formatTime(recordingTime)}</span>
-                </div>
-                <div className="flex-1 flex items-center gap-1.5 h-4 overflow-hidden">
-                  {[...Array(12)].map((_, i) => (
-                    <motion.div key={i} animate={{ height: [2, Math.random() * 12 + 2, 2] }} transition={{ repeat: Infinity, duration: 0.4, delay: i * 0.1 }} className="w-1 bg-primary/40 rounded-full" />
-                  ))}
                 </div>
               </div>
             </div>
@@ -728,57 +648,7 @@ export function MessageInput({
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="flex flex-col gap-2 max-w-5xl mx-auto">
-            {disappearingEnabled && (
-              <div className="flex items-center gap-3 px-3 py-2 bg-primary/5 border border-primary/10 rounded-lg animate-in slide-in-from-top-2 duration-150">
-                <Timer className="h-4 w-4 text-primary animate-pulse" />
-                <div className="flex-1 flex items-center gap-2">
-                  <span className="text-[10px] font-black uppercase text-primary tracking-widest">Disappearing Messages</span>
-                  <Select value={disappearDuration.toString()} onValueChange={(val) => setDisappearDuration(parseInt(val))}>
-                    <SelectTrigger className="h-7 text-[10px] w-24 bg-background border-primary/20">
-                      <SelectValue placeholder="Duration" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {DISAPPEAR_OPTIONS.map(opt => (
-                        <SelectItem key={opt.value} value={opt.value.toString()} className="text-[10px] font-bold">{opt.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {disappearDuration === -1 && (
-                    <Input placeholder="Secs" className="h-7 w-16 text-[10px] p-1 font-bold" value={customSeconds} onChange={(e) => setCustomSeconds(e.target.value)} />
-                  )}
-                </div>
-                <button type="button" onClick={() => setDisappearingEnabled(false)} className="h-6 w-6 rounded-full hover:bg-muted flex items-center justify-center"><X className="h-3 w-3" /></button>
-              </div>
-            )}
-
             <div className="flex flex-col gap-2 bg-muted/20 rounded-2xl p-1.5 border border-border/50">
-              <AnimatePresence>
-                {showFormatting && (
-                  <motion.div 
-                    initial={{ height: 0, opacity: 0 }} 
-                    animate={{ height: "auto", opacity: 1 }} 
-                    exit={{ height: 0, opacity: 0 }} 
-                    className="flex items-center gap-1 px-2 py-1 border-b border-border/50 overflow-hidden"
-                  >
-                    <button type="button" onClick={() => applyFormatting("**", "**")} className="h-8 w-8 rounded-lg hover:bg-background flex items-center justify-center text-foreground/70 hover:text-primary transition-all"><Bold className="h-4 w-4" /></button>
-                    <button type="button" onClick={() => applyFormatting("__", "__")} className="h-8 w-8 rounded-lg hover:bg-background flex items-center justify-center text-foreground/70 hover:text-primary transition-all"><Italic className="h-4 w-4" /></button>
-                    <div className="w-[1px] h-4 bg-border/50 mx-1" />
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <button type="button" className="flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-background text-[10px] font-black uppercase tracking-widest text-foreground/70 hover:text-primary transition-all">
-                          <Type className="h-3.5 w-3.5" /> Font
-                        </button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start" className="w-40 font-black uppercase text-[10px] tracking-widest p-1 border-none shadow-2xl bg-popover/95 backdrop-blur-md">
-                        <DropdownMenuItem onClick={() => applyFormatting("", "")} className="rounded-lg p-2">Default Sans</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => applyFormatting("[[serif]]", "[[/serif]]")} className="rounded-lg p-2 font-['Playfair_Display'] capitalize italic">Playfair Serif</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => applyFormatting("[[mono]]", "[[/mono]]")} className="rounded-lg p-2 font-mono">Monospace</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
               <div className="flex items-center gap-2">
                 <div className="flex items-center gap-1 shrink-0 ml-1">
                   <Popover>
@@ -868,7 +738,6 @@ export function MessageInput({
                       <button type="button" onClick={() => fileInputRef.current?.click()} className="h-10 w-10 flex items-center justify-center rounded-xl text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all">
                         <Paperclip className="h-5 w-5" />
                       </button>
-                      <button type="button" onClick={startVideoRecording} className="h-10 w-10 flex items-center justify-center rounded-xl text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all"><Video className="h-5 w-5" /></button>
                       <button type="button" onClick={startRecording} className="h-10 w-10 flex items-center justify-center rounded-xl bg-muted text-muted-foreground hover:bg-primary hover:text-primary-foreground transition-all shadow-sm active:scale-95"><Mic className="h-5 w-5" /></button>
                     </>
                   )}
