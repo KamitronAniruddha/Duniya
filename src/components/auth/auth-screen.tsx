@@ -142,12 +142,11 @@ export function AuthScreen() {
               Create New Account
             </Button>
           </CardContent>
-          <div className="p-4 bg-muted/20 border-t flex items-center justify-center">
+          <div className="p-4 bg-muted/20 border-t flex flex-col items-center justify-center gap-2">
             <div className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.3em] text-muted-foreground/40">
               <span>Duniya Messenger Verified</span>
-              <div className="h-1 w-1 rounded-full bg-primary/40" />
-              <span>Aniruddha ❤️</span>
             </div>
+            <SignatureSVG type="ani" size={60} className="text-primary/40" />
           </div>
         </Card>
       </motion.div>
@@ -174,37 +173,9 @@ export function AuthScreen() {
                     <button 
                       type="button"
                       onClick={() => setSignatureType(prev => prev === "ani" ? "sanu" : "ani")}
-                      className="h-10 w-32 flex items-center justify-center outline-none group cursor-pointer"
+                      className="h-12 w-40 flex items-center justify-center outline-none group cursor-pointer"
                     >
-                      <AnimatePresence mode="wait">
-                        {signatureType === "ani" ? (
-                          <motion.svg key="ani-sig" width="80" height="36" viewBox="0 0 80 36" fill="none" className="text-primary" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                            <motion.path 
-                              d="M10,25 C15,10 25,5 30,15 C30,25 15,30 20,30 C25,30 35,20 35,15 M40,25 V12 C40,8 50,8 50,12 V25 M60,12 V25 M60,5 V8" 
-                              stroke="currentColor" 
-                              strokeWidth="3" 
-                              strokeLinecap="round" 
-                              strokeLinejoin="round" 
-                              initial={{ pathLength: 0 }} 
-                              animate={{ pathLength: 1 }} 
-                              transition={{ duration: 1.5 }} 
-                            />
-                          </motion.svg>
-                        ) : (
-                          <motion.svg key="sanu-sig" width="100" height="36" viewBox="0 0 100 36" fill="none" className="text-primary" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                            <motion.path 
-                              d="M20,25 C20,10 35,5 35,15 C35,25 20,30 30,30 C40,30 45,20 45,15 M50,25 V12 C50,8 60,8 60,12 V25 M65,25 V12 C65,8 75,8 75,12 V25 M80,12 V20 C80,25 95,25 95,12" 
-                              stroke="currentColor" 
-                              strokeWidth="3" 
-                              strokeLinecap="round" 
-                              strokeLinejoin="round" 
-                              initial={{ pathLength: 0 }} 
-                              animate={{ pathLength: 1 }} 
-                              transition={{ duration: 1.8 }} 
-                            />
-                          </motion.svg>
-                        )}
-                      </AnimatePresence>
+                      <SignatureSVG type={signatureType} size={100} />
                     </button>
                   </div>
                   
@@ -251,9 +222,9 @@ export function AuthScreen() {
               </Card>
               
               <div className="flex flex-col items-center gap-2 mt-4 mb-2">
-                <div className="flex items-center gap-2 px-4 py-1 bg-muted/40 backdrop-blur-md rounded-full border border-border shadow-sm">
-                  <span className="text-[7px] font-black uppercase tracking-[0.3em] text-muted-foreground/70">Made by Aniruddha with love</span>
-                  <Heart className="h-2 w-2 text-red-500 fill-red-500 animate-pulse" />
+                <div className="flex flex-col items-center gap-1 px-6 py-2 bg-muted/40 backdrop-blur-md rounded-3xl border border-border shadow-sm">
+                  <span className="text-[7px] font-black uppercase tracking-[0.3em] text-muted-foreground/70">Signature Verified</span>
+                  <SignatureSVG type="ani" size={50} className="text-primary/60" />
                 </div>
               </div>
             </motion.div>
@@ -261,5 +232,40 @@ export function AuthScreen() {
         </AnimatePresence>
       </div>
     </div>
+  );
+}
+
+export function SignatureSVG({ type, size = 80, className }: { type: "ani" | "sanu", size?: number, className?: string }) {
+  // Traced "Ani" from user image: Tall A with loop, cursive n, circular dotted i
+  const aniPath = "M15,35 C5,25 15,5 25,5 C35,5 30,35 30,35 M18,22 H35 M45,35 V22 C45,15 55,15 55,22 V35 C55,15 65,15 65,22 V35 M75,22 V35 M75,10 A1.5,1.5 0 1,1 75,13 A1.5,1.5 0 1,1 75,10";
+  
+  // Traced "Sanu": Elegant S loop, cursive a-n-u
+  const sanuPath = "M20,15 C10,15 10,35 25,35 C40,35 40,5 25,5 C10,5 10,25 25,25 C40,25 50,35 60,35 M65,35 V25 C65,20 75,20 75,25 V35 M85,35 V25 C85,20 95,20 95,25 V35 M105,25 V30 C105,35 115,35 115,30 V25";
+
+  return (
+    <AnimatePresence mode="wait">
+      <motion.svg 
+        key={type} 
+        width={size} 
+        height={size * 0.4} 
+        viewBox={type === "ani" ? "0 0 100 40" : "0 0 120 40"} 
+        fill="none" 
+        className={cn("text-primary", className)}
+        initial={{ opacity: 0 }} 
+        animate={{ opacity: 1 }} 
+        exit={{ opacity: 0 }}
+      >
+        <motion.path 
+          d={type === "ani" ? aniPath : sanuPath} 
+          stroke="currentColor" 
+          strokeWidth="2.5" 
+          strokeLinecap="round" 
+          strokeLinejoin="round" 
+          initial={{ pathLength: 0 }} 
+          animate={{ pathLength: 1 }} 
+          transition={{ duration: 2, ease: "easeInOut" }} 
+        />
+      </motion.svg>
+    </AnimatePresence>
   );
 }

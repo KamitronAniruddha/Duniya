@@ -297,11 +297,14 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
   const handleReplyToUser = useCallback((id: string, username: string) => {
     const userMessages = messages.filter(m => m.senderId === id);
     if (userMessages.length > 0) {
+      // If messages exist, use standard visual reply block (No tag needed)
       setReplyingTo(userMessages[userMessages.length - 1]);
     } else {
+      // If no history, prefix with tag only (No js js)
       toast({ title: "Identity Reply", description: `Tagging @${username} in your next message.` });
       if (inputRef.current) {
-        inputRef.current.value = `@${username} ${inputRef.current.value}`;
+        const cleanName = username.replace(/^@/, '');
+        inputRef.current.value = `@${cleanName} ${inputRef.current.value}`;
         inputRef.current.focus();
       }
     }
