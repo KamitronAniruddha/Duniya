@@ -426,7 +426,7 @@ export default function DuniyaApp() {
       <ProfileDialog open={isProfileOpen} onOpenChange={setIsProfileOpen} />
       
       {/* Primary Layout Wrapper - Ensures elements inside have correct stacking context */}
-      <div className="relative w-full h-full flex flex-col md:flex-row overflow-hidden">
+      <div className="relative w-full h-full flex flex-col md:flex-row overflow-hidden z-10">
         {mode === "mobile" ? renderMobileLayout() : mode === "tablet" ? renderTabletLayout() : renderLaptopLayout()}
       </div>
       

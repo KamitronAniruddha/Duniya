@@ -194,7 +194,7 @@ export const MessageBubble = memo(function MessageBubble({
     setIsFullPickerOpen(false);
   }, [user, messagePath, message.reactions, isActuallyDeleted, db]);
 
-  const handleDownload = (url: string, name: string) => {
+  const handleDownload = useCallback((url: string, name: string) => {
     const link = document.createElement("a");
     link.href = url;
     link.download = name;
@@ -202,7 +202,7 @@ export const MessageBubble = memo(function MessageBubble({
     link.click();
     document.body.removeChild(link);
     toast({ title: "Starting Download", description: name });
-  };
+  }, [toast]);
 
   const renderContent = (text: string) => {
     if (!text) return null;
@@ -684,7 +684,10 @@ export const MessageBubble = memo(function MessageBubble({
                   <Reply className="h-3.5 w-3.5" /> Reply
                 </button>
                 <div className="w-[1px] h-4 bg-border" />
-                <button onClick={handleDownload(message.imageUrl!, message.fileName || "image.jpg")} className="flex items-center gap-2 text-[10px] font-black uppercase text-foreground hover:text-primary transition-colors">
+                <button 
+                  onClick={() => handleDownload(message.imageUrl!, message.fileName || "image.jpg")} 
+                  className="flex items-center gap-2 text-[10px] font-black uppercase text-foreground hover:text-primary transition-colors"
+                >
                   <Download className="h-3.5 w-3.5" /> Save
                 </button>
               </div>
@@ -705,7 +708,12 @@ export const MessageBubble = memo(function MessageBubble({
               </DialogDescription>
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              <Button size="sm" variant="outline" className="h-8 md:h-10 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest bg-background/50 backdrop-blur-sm px-3 md:px-4" onClick={() => handleDownload(message.fileUrl!, message.fileName || "document.pdf")}>
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="h-8 md:h-10 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest bg-background/50 backdrop-blur-sm px-3 md:px-4" 
+                onClick={() => handleDownload(message.fileUrl!, message.fileName || "document.pdf")}
+              >
                 <Download className="h-3 w-3 mr-1.5 md:mr-2 text-primary" /> Save
               </Button>
             </div>
