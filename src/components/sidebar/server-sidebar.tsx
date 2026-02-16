@@ -8,15 +8,12 @@ import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Plus, Compass, Globe, Heart, Loader2, Settings, Share2, Copy, Check, Info } from "lucide-react";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { ServerSettingsDialog } from "@/components/servers/server-settings-dialog";
 import { CommunityProfileDialog } from "@/components/communities/community-profile-dialog";
 import { CreateCommunityDialog } from "@/components/servers/create-community-dialog";
+import { JoinVerseDialog } from "@/components/servers/join-verse-dialog";
 
 interface ServerSidebarProps {
   activeServerId: string | null;
@@ -30,8 +27,6 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive }
   const { toast } = useToast();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
-  const [joinId, setJoinId] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const [editingServerId, setEditingServerId] = useState<string | null>(null);
   const [viewingProfileId, setViewingProfileId] = useState<string | null>(null);
 
@@ -41,42 +36,6 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive }
   }, [db, user?.uid]);
 
   const { data: communities } = useCollection(communitiesQuery);
-
-  const handleJoinServer = async () => {
-    const trimmedInput = joinId.trim();
-    if (!trimmedInput || !user || !db) return;
-    setIsLoading(true);
-
-    try {
-      const q = query(collection(db, "communities"), where("joinCode", "==", trimmedInput), limit(1));
-      const querySnapshot = await getDocs(q);
-      
-      if (querySnapshot.empty) {
-        throw new Error("Community with this code not found.");
-      }
-      
-      const communityDoc = querySnapshot.docs[0];
-      const targetId = communityDoc.id;
-      const communityData = communityDoc.data();
-
-      const batch = writeBatch(db);
-      batch.update(doc(db, "communities", targetId), {
-        members: arrayUnion(user.uid)
-      });
-      batch.update(doc(db, "users", user.uid), {
-        serverIds: arrayUnion(targetId)
-      });
-
-      await batch.commit();
-      toast({ title: "Joined Community", description: `Welcome to ${communityData.name}!` });
-      setIsJoinModalOpen(false);
-      onSelectServer(targetId);
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Join Error", description: e.message });
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const copyJoinCode = (code: string) => {
     navigator.clipboard.writeText(code);
@@ -159,18 +118,17 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive }
         <div className="flex flex-col items-center gap-3 mt-auto mb-4">
           <CreateCommunityDialog open={isModalOpen} onOpenChange={setIsModalOpen} onCreated={onSelectServer} />
 
-          <Dialog open={isJoinModalOpen} onOpenChange={setIsJoinModalOpen}>
-            <DialogTrigger asChild>
-              <button className="w-12 h-12 flex items-center justify-center rounded-[24px] hover:rounded-[12px] bg-sidebar-accent hover:bg-primary text-primary hover:text-white transition-all duration-150 shadow-md group">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button 
+                onClick={() => setIsJoinModalOpen(true)}
+                className="w-12 h-12 flex items-center justify-center rounded-[24px] hover:rounded-[12px] bg-sidebar-accent hover:bg-primary text-primary hover:text-white transition-all duration-150 shadow-md group"
+              >
                 <Compass className="h-6 w-6 group-hover:scale-110 transition-transform" />
               </button>
-            </DialogTrigger>
-            <DialogContent className="rounded-[2.5rem] border-none shadow-2xl">
-              <DialogHeader><DialogTitle className="text-xl font-black uppercase tracking-tighter">JOIN THE VERSE</DialogTitle></DialogHeader>
-              <div className="space-y-4 py-4"><div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">5-Digit Join Code</Label><Input value={joinId} onChange={(e) => setJoinId(e.target.value)} placeholder="e.g. 12345" className="bg-muted/40 border-none rounded-2xl h-12 font-bold text-center tracking-[0.5em]" maxLength={5} /></div></div>
-              <DialogFooter className="gap-2"><Button variant="ghost" className="rounded-xl font-bold" onClick={() => setIsJoinModalOpen(false)}>Cancel</Button><Button onClick={handleJoinServer} className="rounded-xl font-black shadow-lg shadow-primary/20" disabled={isLoading || !joinId.trim()}>{isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Compass className="h-4 w-4 mr-2" />}Join</Button></DialogFooter>
-            </DialogContent>
-          </Dialog>
+            </TooltipTrigger>
+            <TooltipContent side="right" className="font-bold text-[10px] uppercase tracking-widest">Join Portal</TooltipContent>
+          </Tooltip>
           
           <div className="flex flex-col items-center gap-1 opacity-40 hover:opacity-100 transition-all mt-2">
             <Heart className="h-3 w-3 text-red-500 fill-red-500 animate-pulse" />
@@ -179,6 +137,7 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive }
         </div>
       </TooltipProvider>
 
+      <JoinVerseDialog open={isJoinModalOpen} onOpenChange={setIsJoinModalOpen} onJoined={onSelectServer} />
       {editingServerId && <ServerSettingsDialog open={!!editingServerId} onOpenChange={(open) => !open && setEditingServerId(null)} serverId={editingServerId} />}
       {viewingProfileId && <CommunityProfileDialog open={!!viewingProfileId} onOpenChange={(open) => !open && setViewingProfileId(null)} serverId={viewingProfileId} />}
     </aside>

@@ -215,7 +215,7 @@ export function CreateCommunityDialog({ open, onOpenChange, onCreated }: CreateC
         </button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[650px] w-[95vw] rounded-[2.5rem] p-0 overflow-hidden border-none shadow-[0_32px_128px_rgba(0,0,0,0.4)] bg-background h-[85vh] max-h-[700px] flex flex-col font-body">
-        {/* Synthesis Progress Header - Refined Typography */}
+        {/* Synthesis Progress Header */}
         <header className="px-8 py-6 bg-card border-b shrink-0 flex flex-col gap-4 relative overflow-hidden">
           <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none">
             <Sparkles className="h-24 w-24 text-primary" />
@@ -481,7 +481,7 @@ export function CreateCommunityDialog({ open, onOpenChange, onCreated }: CreateC
           </ScrollArea>
         </div>
 
-        {/* Unified Synthesis Footer - Refined Button Scale */}
+        {/* Unified Synthesis Footer */}
         <DialogFooter className="p-6 bg-card border-t shrink-0 flex flex-row items-center justify-between gap-4">
           <CreatorFooter className="hidden sm:flex opacity-40 scale-90 origin-left" />
           

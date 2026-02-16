@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Globe, Search, Sparkles, Users, Loader2, Plus, ArrowRight, Heart } from "lucide-react";
+import { Globe, Search, Sparkles, Users, Loader2, Plus, ArrowRight, Heart, Activity, Zap, ShieldCheck } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useCollection, useFirestore, useUser, useMemoFirebase } from "@/firebase";
 import { collection, query, where, doc, arrayUnion, writeBatch } from "firebase/firestore";
@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { CreatorFooter } from "@/components/creator-footer";
+import { cn } from "@/lib/utils";
 
 export function DuniyaPanel({ onJoinSuccess }: { onJoinSuccess: (serverId: string) => void }) {
   const db = useFirestore();
@@ -21,7 +22,6 @@ export function DuniyaPanel({ onJoinSuccess }: { onJoinSuccess: (serverId: strin
   const [searchQuery, setSearchQuery] = useState("");
   const [joiningId, setJoiningId] = useState<string | null>(null);
 
-  // Fetch all communities marked as public
   const publicCommunitiesQuery = useMemoFirebase(() => {
     if (!db) return null;
     return query(collection(db, "communities"), where("isPublic", "==", true));
@@ -29,13 +29,11 @@ export function DuniyaPanel({ onJoinSuccess }: { onJoinSuccess: (serverId: strin
 
   const { data: rawCommunities, isLoading } = useCollection(publicCommunitiesQuery);
 
-  // Filter out communities the user is already a member of
   const discoveryCommunities = useMemo(() => {
     if (!rawCommunities || !user) return [];
     return rawCommunities.filter(c => !c.members?.includes(user.uid));
   }, [rawCommunities, user?.uid]);
 
-  // Apply search filtering
   const filteredCommunities = useMemo(() => {
     if (!discoveryCommunities) return [];
     return discoveryCommunities.filter(c => 
@@ -51,17 +49,14 @@ export function DuniyaPanel({ onJoinSuccess }: { onJoinSuccess: (serverId: strin
     try {
       const batch = writeBatch(db);
       
-      // Update community members
       batch.update(doc(db, "communities", community.id), {
         members: arrayUnion(user.uid)
       });
 
-      // Update user server list
       batch.update(doc(db, "users", user.uid), {
         serverIds: arrayUnion(community.id)
       });
 
-      // Create tracking record for membership
       batch.set(doc(db, "communities", community.id, "members", user.uid), {
         id: user.uid,
         communityId: community.id,
@@ -72,20 +67,20 @@ export function DuniyaPanel({ onJoinSuccess }: { onJoinSuccess: (serverId: strin
 
       await batch.commit();
       
-      toast({
-        title: "Joined Community!",
-        description: `Welcome to ${community.name}. Let's Karo Chutiyapaa!`,
-      });
-      
+      toast({ title: "Joined Community!", description: `Welcome to ${community.name}. Let's Karo Chutiyapaa!` });
       onJoinSuccess(community.id);
     } catch (e: any) {
-      toast({
-        variant: "destructive",
-        title: "Join Error",
-        description: e.message || "Could not join community.",
-      });
+      toast({ variant: "destructive", title: "Join Error", description: e.message });
     } finally {
       setJoiningId(null);
+    }
+  };
+
+  const container = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1 }
     }
   };
 
@@ -102,11 +97,11 @@ export function DuniyaPanel({ onJoinSuccess }: { onJoinSuccess: (serverId: strin
           </div>
         </div>
         
-        <div className="relative w-72">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+        <div className="relative w-72 group">
+          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
           <Input 
             placeholder="Search communities..." 
-            className="pl-9 bg-muted/40 border-none rounded-xl h-10 text-foreground font-bold" 
+            className="pl-9 bg-muted/40 border-none rounded-xl h-10 text-foreground font-bold focus:ring-2 focus:ring-primary/20" 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -131,63 +126,72 @@ export function DuniyaPanel({ onJoinSuccess }: { onJoinSuccess: (serverId: strin
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <AnimatePresence mode="popLayout">
-                {filteredCommunities.map((community) => (
-                  <motion.div
-                    key={community.id}
-                    layout
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <Card className="group rounded-[2rem] border-none shadow-lg hover:shadow-2xl transition-all hover:scale-[1.02] bg-card overflow-hidden">
-                      <div className="h-24 bg-gradient-to-br from-primary to-accent relative">
-                        <div className="absolute -bottom-10 left-6">
-                          <Avatar className="h-20 w-20 border-4 border-card shadow-xl group-hover:rotate-3 transition-transform">
-                            <AvatarImage src={community.icon} className="object-cover" />
-                            <AvatarFallback className="bg-primary text-white text-3xl font-black uppercase">
-                              {community.name?.[0]}
-                            </AvatarFallback>
-                          </Avatar>
+            <motion.div 
+              variants={container}
+              initial="hidden"
+              animate="show"
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+            >
+              {filteredCommunities.map((community) => (
+                <motion.div
+                  key={community.id}
+                  variants={{ hidden: { opacity: 0, scale: 0.95 }, show: { opacity: 1, scale: 1 } }}
+                  layout
+                >
+                  <Card className="group rounded-[2.5rem] border-none shadow-lg hover:shadow-[0_24px_48px_rgba(0,0,0,0.1)] transition-all duration-500 hover:scale-[1.02] bg-card overflow-hidden">
+                    <div className="h-28 bg-gradient-to-br from-primary via-primary/80 to-accent relative overflow-hidden">
+                      <div className="absolute top-0 right-0 p-4 opacity-10"><Zap className="h-20 w-20 text-white" /></div>
+                      <div className="absolute -bottom-10 left-6">
+                        <Avatar className="h-20 w-20 border-4 border-card shadow-2xl group-hover:rotate-3 transition-transform duration-500">
+                          <AvatarImage src={community.icon} className="object-cover" />
+                          <AvatarFallback className="bg-primary text-white text-3xl font-black uppercase">
+                            {community.name?.[0]}
+                          </AvatarFallback>
+                        </Avatar>
+                      </div>
+                    </div>
+                    <CardHeader className="pt-12 pb-2">
+                      <div className="flex items-center justify-between mb-1">
+                        <CardTitle className="text-xl font-[900] uppercase tracking-tight truncate mr-2">
+                          {community.name}
+                        </CardTitle>
+                        <div className="flex items-center gap-1.5 text-primary bg-primary/5 px-2 py-0.5 rounded-full">
+                          <Users className="h-3 w-3" />
+                          <span className="text-[10px] font-black">{community.members?.length || 0}</span>
                         </div>
                       </div>
-                      <CardHeader className="pt-12 pb-2">
-                        <div className="flex items-center justify-between mb-1">
-                          <CardTitle className="text-xl font-black uppercase tracking-tight truncate mr-2">
-                            {community.name}
-                          </CardTitle>
-                          <div className="flex items-center gap-1 text-primary">
-                            <Users className="h-3 w-3" />
-                            <span className="text-xs font-black">{community.members?.length || 0}</span>
-                          </div>
-                        </div>
-                        <CardDescription className="line-clamp-2 text-xs font-medium leading-relaxed italic min-h-[32px]">
-                          {community.description || "A legendary community in the Duniya Verse."}
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="pt-2 pb-6">
-                        <Button 
-                          className="w-full h-12 rounded-2xl font-black uppercase tracking-widest gap-2 group/btn shadow-lg shadow-primary/20"
-                          onClick={() => handleJoin(community)}
-                          disabled={joiningId === community.id}
-                        >
-                          {joiningId === community.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <>
-                              Join Verse
-                              <ArrowRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
-                            </>
-                          )}
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-            </div>
+                      <CardDescription className="line-clamp-2 text-xs font-medium leading-relaxed italic min-h-[32px] opacity-70">
+                        {community.description || "A legendary community in the Duniya Verse."}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="pt-2 pb-6 space-y-4">
+                      <div className="flex gap-2">
+                        <Badge variant="secondary" className="bg-primary/10 text-primary border-none text-[8px] font-black uppercase px-2 h-5">
+                          <ShieldCheck className="h-2.5 w-2.5 mr-1" /> Verified Node
+                        </Badge>
+                        <Badge variant="secondary" className="bg-accent/10 text-accent border-none text-[8px] font-black uppercase px-2 h-5">
+                          <Activity className="h-2.5 w-2.5 mr-1" /> Active Pulse
+                        </Badge>
+                      </div>
+                      <Button 
+                        className="w-full h-12 rounded-2xl font-black uppercase tracking-widest gap-2 group/btn shadow-lg shadow-primary/20 bg-primary hover:bg-primary/90 text-white"
+                        onClick={() => handleJoin(community)}
+                        disabled={joiningId === community.id}
+                      >
+                        {joiningId === community.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <>
+                            Sync Portal
+                            <ArrowRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
+                          </>
+                        )}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
+            </motion.div>
           )}
         </div>
       </ScrollArea>
