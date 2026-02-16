@@ -180,7 +180,7 @@ export function AuthScreen() {
                         {signatureType === "ani" ? (
                           <motion.svg key="ani-sig" width="80" height="36" viewBox="0 0 80 36" fill="none" className="text-primary" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                             <motion.path 
-                              d="M10,25 L20,5 L35,25 M12,18 H28 M45,25 V12 C45,8 55,8 55,12 V25 M65,12 V25 M65,5 V8" 
+                              d="M10,25 C15,10 25,5 30,15 C30,25 15,30 20,30 C25,30 35,20 35,15 M40,25 V12 C40,8 50,8 50,12 V25 M60,12 V25 M60,5 V8" 
                               stroke="currentColor" 
                               strokeWidth="3" 
                               strokeLinecap="round" 

@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 import { useCollection, useFirestore, useUser, useDoc, useMemoFirebase, useAuth } from "@/firebase";
 import { collection, query, doc, writeBatch, arrayRemove } from "firebase/firestore";
-import { Hash, Settings, ChevronDown, LogOut, Loader2, Plus, Timer, Globe, Mail, Info, Share2, Copy, Check, LogOut as LeaveIcon, AlertTriangle } from "lucide-react";
+import { Hash, Settings, ChevronDown, LogOut, Loader2, Plus, Timer, Globe, Mail, Info, Share2, Copy, Check, LogOut as LeaveIcon, AlertTriangle, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import { ServerSettingsDialog } from "@/components/servers/server-settings-dialo
 import { DisappearingMessagesDialog } from "@/components/servers/disappearing-messages-dialog";
 import { ContactFormDialog } from "@/components/contact/contact-form-dialog";
 import { CommunityProfileDialog } from "@/components/communities/community-profile-dialog";
+import { FeatureShowcaseDialog } from "@/components/features/feature-showcase-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -37,6 +38,7 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
   const [serverSettingsOpen, setServerSettingsOpen] = useState(false);
   const [disappearingOpen, setDisappearingOpen] = useState(false);
   const [communityProfileOpen, setCommunityProfileOpen] = useState(false);
+  const [showcaseOpen, setShowcaseOpen] = useState(false);
   const [createChannelOpen, setCreateChannelOpen] = useState(false);
   const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
   const [newChannelName, setNewChannelName] = useState("");
@@ -73,7 +75,6 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
         lastOnlineAt: new Date().toISOString()
       });
     }
-    // Set flag for AuthScreen to show logout success message
     localStorage.setItem("justLoggedOut", "true");
     await auth.signOut();
   };
@@ -253,14 +254,23 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
         </div>
       )}
 
-      <div className="p-4 bg-muted/20 border-t flex flex-col gap-4 shrink-0">
+      <div className="p-4 bg-muted/20 border-t flex flex-col gap-3 shrink-0">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="w-full gap-2 text-[10px] font-black uppercase tracking-widest h-10 border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary shadow-sm"
+          onClick={() => setShowcaseOpen(true)}
+        >
+          <Sparkles className="h-3.5 w-3.5 fill-primary" /> Explore Verse Guide
+        </Button>
+
         <ContactFormDialog trigger={
-          <Button variant="outline" size="sm" className="w-full gap-2 text-[10px] font-black uppercase tracking-widest h-8 border-dashed bg-background/50">
+          <Button variant="ghost" size="sm" className="w-full gap-2 text-[10px] font-black uppercase tracking-widest h-8 border-dashed border-muted-foreground/20 hover:bg-background/50">
             <Mail className="h-3 w-3" /> Contact Admin
           </Button>
         } />
         
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between pt-2">
           <div className="flex items-center gap-3 min-w-0">
             <div className="relative cursor-pointer group/avatar" onClick={() => setProfileOpen(true)}>
               <Avatar className="h-10 w-10 shadow-md transition-transform group-hover/avatar:scale-105 border-2 border-transparent group-hover/avatar:border-primary/20">
@@ -287,6 +297,7 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
       {serverId && <ServerSettingsDialog open={serverSettingsOpen} onOpenChange={setServerSettingsOpen} serverId={serverId} />}
       {serverId && <DisappearingMessagesDialog open={disappearingOpen} onOpenChange={setDisappearingOpen} serverId={serverId} />}
       {serverId && <CommunityProfileDialog open={communityProfileOpen} onOpenChange={setCommunityProfileOpen} serverId={serverId} />}
+      <FeatureShowcaseDialog open={showcaseOpen} onOpenChange={setShowcaseOpen} />
       
       <Dialog open={createChannelOpen} onOpenChange={setCreateChannelOpen}>
         <DialogContent className="rounded-[2.5rem] border-none shadow-2xl">
