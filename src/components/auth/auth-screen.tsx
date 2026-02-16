@@ -11,7 +11,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Label } from "@/components/ui/label";
 import { Loader2, Heart, CheckCircle2, ArrowLeft, ShieldCheck, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { Logo } from "@/components/logo";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -68,8 +67,7 @@ export function AuthScreen() {
         const user = userCredential.user;
 
         await updateProfile(user, { 
-          displayName: username.trim(),
-          photoURL: "" 
+          displayName: username.trim()
         });
 
         const userRef = doc(db, "users", user.uid);
@@ -80,7 +78,6 @@ export function AuthScreen() {
           username: cleanUsername,
           email: cleanEmail,
           photoURL: "",
-          avatarUrl: "",
           bio: "Welcome to Duniya!",
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
@@ -188,24 +185,20 @@ export function AuthScreen() {
                       height="36"
                       viewBox="0 0 80 36"
                       fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
                       className="text-primary transition-transform group-hover:scale-110"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0, scale: 0.9 }}
                     >
                       <motion.path
-                        d="M15,25 L22,10 L32,25 M18,18 H28 M40,25 V15 C40,10 50,10 50,15 V25 M60,15 V25 M60,8 V10"
+                        d="M10,25 L20,5 L35,25 M12,18 H28 M45,25 V12 Q45,8 55,8 V25 M65,12 V25 M65,5 V8"
                         stroke="currentColor"
                         strokeWidth="2.5"
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         initial={{ pathLength: 0 }}
                         animate={{ pathLength: 1 }}
-                        transition={{ 
-                          duration: 1.2, 
-                          ease: "easeInOut",
-                        }}
+                        transition={{ duration: 1.2, ease: "easeInOut" }}
                       />
                     </motion.svg>
                   ) : (
@@ -215,24 +208,20 @@ export function AuthScreen() {
                       height="36"
                       viewBox="0 0 100 36"
                       fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
                       className="text-primary transition-transform group-hover:scale-110"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0, scale: 0.9 }}
                     >
                       <motion.path
-                        d="M15,25 C10,20 15,10 25,10 C35,10 15,25 25,25 M40,25 C35,25 35,15 40,15 C45,15 45,25 40,25 M45,15 V25 M55,25 V15 C55,10 65,10 65,15 V25 M75,15 V25 C75,30 85,30 85,25 V15"
+                        d="M10,20 Q10,5 25,5 Q35,5 20,25 Q35,25 35,15 M40,25 V12 Q40,8 50,8 V25 M55,25 V12 Q55,8 65,8 V25 M70,12 V20 Q70,25 85,25 V12"
                         stroke="currentColor"
                         strokeWidth="2.5"
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         initial={{ pathLength: 0 }}
                         animate={{ pathLength: 1 }}
-                        transition={{ 
-                          duration: 1.5, 
-                          ease: "easeInOut",
-                        }}
+                        transition={{ duration: 1.5, ease: "easeInOut" }}
                       />
                     </motion.svg>
                   )}

@@ -407,7 +407,7 @@ export const MessageBubble = memo(function MessageBubble({
                   <div className="flex items-center gap-2 mb-0.5">
                     <Avatar className="h-4 w-4 border shadow-sm">
                       <AvatarImage src={message.replyTo.senderPhotoURL} className="object-cover" />
-                      <AvatarFallback className="bg-primary text-white text-[6px] font-black">{message.replyTo.senderName?.[0]?.toUpperCase()}</AvatarFallback>
+                      <AvatarFallback className="bg-primary text-white text-[6px] font-black">{String(message.replyTo.senderName || "U")[0].toUpperCase()}</AvatarFallback>
                     </Avatar>
                     <span className={cn("font-black text-[9px] flex items-center gap-1 uppercase tracking-wider", isMe ? "text-primary-foreground" : "text-primary")}>
                       <CornerDownRight className="h-3 w-3" />{message.replyTo.senderName}
@@ -437,7 +437,7 @@ export const MessageBubble = memo(function MessageBubble({
                 </div>
               ) : message.type === 'media' && message.videoUrl ? (
                 <div className="relative group/video overflow-hidden rounded-2xl aspect-square w-56 md:w-64 bg-black shadow-xl mx-auto">
-                  <video ref={videoRef} src={message.videoUrl} className="w-full h-full object-cover" border-none loop muted={!isVideoPlaying} autoPlay playsInline onClick={(e) => { e.stopPropagation(); setIsVideoPlaying(!isVideoPlaying); }} />
+                  <video ref={videoRef} src={message.videoUrl} className="w-full h-full object-cover" loop muted={!isVideoPlaying} autoPlay playsInline onClick={(e) => { e.stopPropagation(); setIsVideoPlaying(!isVideoPlaying); }} />
                 </div>
               ) : message.type === 'media' && message.imageUrl ? (
                 <div className="relative group/image overflow-hidden rounded-2xl w-56 md:w-64 bg-muted/20 shadow-xl mx-auto cursor-pointer" onClick={(e) => { e.stopPropagation(); setIsImageZoomOpen(true); }}>

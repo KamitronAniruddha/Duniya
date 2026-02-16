@@ -19,7 +19,6 @@ import { DeleteOptionsDialog } from "./delete-options-dialog";
 import { ForwardDialog } from "./forward-dialog";
 import { ChannelSettingsDialog } from "@/components/channels/channel-settings-dialog";
 import { AnimatePresence, motion } from "framer-motion";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 interface ChatWindowProps {
   channelId?: string | null;
@@ -146,7 +145,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
     if (replyingTo) {
       data.replyTo = { 
         messageId: replyingTo.id || "", 
-        senderName: replySenderName || "User", 
+        senderName: replySenderName || replyingTo.senderName || "User", 
         senderPhotoURL: replySenderPhotoURL || replyingTo.senderPhotoURL || "",
         text: replyingTo.content || replyingTo.text || 'Media Message' 
       };

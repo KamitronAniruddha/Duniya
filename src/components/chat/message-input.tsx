@@ -235,7 +235,7 @@ export function MessageInput({
       finalContent, 
       undefined, 
       undefined, 
-      replyUser?.username || replyingTo?.senderName, 
+      replyUser?.username || replyingTo?.senderName || "User", 
       { enabled: disappearingEnabled, duration: duration }, 
       imagePreview || undefined, 
       filePreview || undefined, 
@@ -308,7 +308,7 @@ export function MessageInput({
         reader.readAsDataURL(blob);
         reader.onloadend = () => {
           const duration = disappearDuration === -1 ? (parseInt(customSeconds) || 10) * 1000 : disappearDuration;
-          onSendMessage("", reader.result as string, undefined, replyUser?.username, { enabled: disappearingEnabled, duration: duration });
+          onSendMessage("", reader.result as string, undefined, replyUser?.username || replyingTo?.senderName, { enabled: disappearingEnabled, duration: duration }, undefined, undefined, whisperingTo, replyUser?.photoURL || replyingTo?.senderPhotoURL);
         };
         stream.getTracks().forEach(track => track.stop());
       };
@@ -336,7 +336,7 @@ export function MessageInput({
         reader.readAsDataURL(blob);
         reader.onloadend = () => {
           const duration = disappearDuration === -1 ? (parseInt(customSeconds) || 10) * 1000 : disappearDuration;
-          onSendMessage("", undefined, reader.result as string, replyUser?.username, { enabled: disappearingEnabled, duration: duration });
+          onSendMessage("", undefined, reader.result as string, replyUser?.username || replyingTo?.senderName, { enabled: disappearingEnabled, duration: duration }, undefined, undefined, whisperingTo, replyUser?.photoURL || replyingTo?.senderPhotoURL);
         };
         stream.getTracks().forEach(track => track.stop());
       };
@@ -458,22 +458,22 @@ export function MessageInput({
       {replyingTo && (
         <div className="px-4 py-2 bg-muted/30 border-t flex items-center gap-3 animate-in slide-in-from-bottom-2 duration-150">
           <div className="relative shrink-0">
-            <Avatar className="h-8 w-8 border shadow-sm">
+            <Avatar className="h-10 w-10 border-2 border-primary/20 shadow-md">
               <AvatarImage src={replyUser?.photoURL || replyingTo?.senderPhotoURL} className="object-cover" />
-              <AvatarFallback className="bg-primary text-white text-[10px] font-black">
-                {replyUser?.username?.[0]?.toUpperCase() || replyingTo?.senderName?.[0]?.toUpperCase()}
+              <AvatarFallback className="bg-primary text-white text-xs font-black">
+                {String(replyUser?.username || replyingTo?.senderName || "?")[0].toUpperCase()}
               </AvatarFallback>
             </Avatar>
-            <div className="absolute -bottom-1 -right-1 p-0.5 bg-primary rounded-full shadow-sm">
-              <CornerDownRight className="h-2.5 w-2.5 text-white" />
+            <div className="absolute -bottom-1 -right-1 p-1 bg-primary rounded-full shadow-lg border-2 border-background">
+              <Reply className="h-2.5 w-2.5 text-white" />
             </div>
           </div>
           <div className="flex-1 min-w-0 flex flex-col">
-            <span className="text-[10px] font-black text-primary uppercase tracking-wider">Replying to {replyUser?.username || replyingTo?.senderName || "..." }</span>
+            <span className="text-[10px] font-black text-primary uppercase tracking-widest leading-none mb-1">Replying to @{replyUser?.username || replyingTo?.senderName || "User" }</span>
             <p className="text-xs text-muted-foreground truncate italic font-medium">{replyingTo.content || replyingTo.text || "Media message"}</p>
           </div>
-          <button onClick={onCancelReply} className="h-6 w-6 rounded-full hover:bg-muted flex items-center justify-center transition-colors">
-            <X className="h-3 w-3" />
+          <button onClick={onCancelReply} className="h-8 w-8 rounded-full hover:bg-muted flex items-center justify-center transition-colors shadow-sm bg-background/50">
+            <X className="h-4 w-4" />
           </button>
         </div>
       )}
