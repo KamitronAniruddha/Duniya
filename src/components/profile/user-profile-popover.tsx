@@ -221,7 +221,7 @@ function UserProfileContent({ userId, onWhisper, onReply, onOpenZoom, onOpenCont
             )}
           >
             <Avatar className={cn("h-full w-full rounded-none aspect-square", (isBlurred || isHidden) && "blur-xl scale-110")}>
-              <AvatarImage src={isBlurred || isHidden ? undefined : userData?.photoURL} className="object-cover aspect-square" />
+              <AvatarImage src={(isBlurred || isHidden) ? undefined : (userData?.photoURL || undefined)} className="object-cover aspect-square" />
               <AvatarFallback className="bg-primary text-white text-3xl font-black">{String(cleanUsername)[0]?.toUpperCase()}</AvatarFallback>
             </Avatar>
             {(!isBlurred && !isHidden) && <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"><Maximize2 className="h-6 w-6 text-white" /></div>}
@@ -373,7 +373,7 @@ function IdentityContributeDialog({ open, onOpenChange, userId, username }: { op
           <div className="flex flex-col items-center gap-6">
             <div className="relative group/gift">
               <Avatar className="h-32 w-32 border-4 border-background shadow-2xl rounded-[2.5rem] ring-1 ring-accent/20 transition-transform group-hover/gift:scale-105">
-                <AvatarImage src={newPhotoURL} className="object-cover" />
+                <AvatarImage src={newPhotoURL || undefined} className="object-cover" />
                 <AvatarFallback className="bg-muted text-accent text-4xl font-black">
                   <UserIcon className="h-12 w-12" />
                 </AvatarFallback>

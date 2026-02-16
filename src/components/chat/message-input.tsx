@@ -165,7 +165,7 @@ export function MessageInput({
   const replyUserRef = useMemoFirebase(() => (replyingTo ? doc(db, "users", replyingTo.senderId) : null), [db, replyingTo?.senderId]);
   const { data: replyUser } = useDoc(replyUserRef);
 
-  // REAL-TIME PRIVACY SYNC FOR PROFILE REPLY PREVIEW
+  // REAL-TIME PRIVACY SYNC FOR REPLY PREVIEW
   const profileTargetRef = useMemoFirebase(() => (profileReplyTarget?.id ? doc(db, "users", profileReplyTarget.id) : null), [db, profileReplyTarget?.id]);
   const { data: profileTargetData } = useDoc(profileTargetRef);
 
@@ -558,7 +558,7 @@ export function MessageInput({
                         className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-muted transition-all text-left group"
                       >
                         <Avatar className="h-8 w-8 border border-border shadow-sm">
-                          <AvatarImage src={m.photoURL} />
+                          <AvatarImage src={m.photoURL || undefined} />
                           <AvatarFallback className="bg-primary text-white font-black text-[10px]">{m.username?.[0]?.toUpperCase()}</AvatarFallback>
                         </Avatar>
                         <div className="flex flex-col min-w-0">
@@ -590,7 +590,7 @@ export function MessageInput({
                   </div>
                 ) : (
                   <>
-                    <AvatarImage src={isTargetBlurred ? undefined : (profileReplyTarget?.photoURL || replyUser?.photoURL || replyingTo?.senderPhotoURL)} className="object-cover" />
+                    <AvatarImage src={isTargetBlurred ? undefined : (profileReplyTarget?.photoURL || replyUser?.photoURL || replyingTo?.senderPhotoURL || undefined)} className="object-cover" />
                     <AvatarFallback className="bg-primary text-white text-xs font-black">
                       {String(profileReplyTarget?.username || replyUser?.username || replyingTo?.senderName || "?")[0].toUpperCase()}
                     </AvatarFallback>
