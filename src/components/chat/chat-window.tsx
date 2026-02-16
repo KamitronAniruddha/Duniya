@@ -1,12 +1,13 @@
+
 "use client";
 
 import { useRef, useEffect, useState, useMemo, useCallback } from "react";
 import { useCollection, useFirestore, useUser, useDoc, useMemoFirebase, useAuth } from "@/firebase";
-import { collection, query, orderBy, limit, doc, arrayUnion, writeBatch, deleteField } from "firebase/firestore";
+import { collection, query, orderBy, limit, doc, arrayUnion, writeBatch, deleteField, where, getDocs } from "firebase/firestore";
 import { MessageBubble } from "./message-bubble";
 import { MessageInput } from "./message-input";
 import { TypingIndicator } from "./typing-indicator";
-import { Hash, Users, Loader2, MessageCircle, X, Trash2, MoreVertical, Eraser, Forward, Settings, Heart, Activity, Zap, Info, Clock, Check, BellOff, Bell, History, Link, Compass, LogOut } from "lucide-react";
+import { Hash, Users, Loader2, MessageCircle, X, Trash2, MoreVertical, Eraser, Forward, Settings, Heart, Activity, Zap, Info, Clock, Check, BellOff, Bell, History, Link, Compass, LogOut, Lock, Ghost } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { setDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { cn } from "@/lib/utils";
@@ -28,6 +29,7 @@ interface ProfileReplyTarget {
   bio?: string;
   totalCommunities: number;
   commonCommunities: number;
+  joinedAt?: string;
 }
 
 interface ChatWindowProps {
@@ -198,6 +200,13 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
     setIsClearChatDialogOpen(false);
   }, [db, basePath, user, messages, toast]);
 
+  const handleWhisper = useCallback((id: string, username: string) => {
+    setWhisperingTo({ id, username });
+    setReplyingTo(null);
+    setProfileReplyTarget(null);
+    if (inputRef.current) inputRef.current.focus();
+  }, []);
+
   const handleCommand = useCallback(async (cmd: string, args: string[]) => {
     if (cmd === "clr" || cmd === "clear") {
       handleClearChat();
@@ -217,6 +226,31 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
       });
       await batch.commit();
       toast({ title: `Wiped last ${lastCountMessages.length} message(s)` });
+      return true;
+    }
+    if (cmd === "whisper") {
+      const username = args[0]?.replace(/^@/, '');
+      if (!username) {
+        toast({ title: "Whisper Protocol", description: "Usage: @whisper @username [message]" });
+        return true;
+      }
+      
+      const findUser = async () => {
+        const q = query(collection(db, "users"), where("username", "==", username.toLowerCase()), limit(1));
+        const snap = await getDocs(q);
+        if (snap.empty) {
+          toast({ title: "Target Missing", description: `@${username} not found in the Verse.` });
+          return;
+        }
+        const target = snap.docs[0].data();
+        handleWhisper(target.id, target.username || "User");
+        
+        const msgText = args.slice(1).join(" ");
+        if (msgText) {
+          handleSendMessage(msgText, undefined, undefined, undefined, undefined, undefined, undefined, { id: target.id, username: target.username || "User" });
+        }
+      };
+      findUser();
       return true;
     }
     if (cmd === "phide") {
@@ -296,7 +330,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
       return true;
     }
     return false;
-  }, [db, basePath, user, messages, handleClearChat, toast, userData, serverId, auth, themes, theme, setTheme, onOpenProfile, onOpenExplore]);
+  }, [db, basePath, user, messages, handleClearChat, toast, userData, serverId, auth, themes, theme, setTheme, onOpenProfile, onOpenExplore, handleWhisper, handleSendMessage]);
 
   const handleBatchDelete = useCallback(async (type: "everyone" | "me") => {
     if (!db || !basePath || !user || selectedIds.size === 0) return;
@@ -354,20 +388,15 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
   const handleCancelProfileReply = useCallback(() => setProfileReplyTarget(null), []);
   const handleCancelWhisper = useCallback(() => setWhisperingTo(null), []);
 
-  const handleWhisper = useCallback((id: string, username: string) => {
-    setWhisperingTo({ id, username });
-    setReplyingTo(null);
-    setProfileReplyTarget(null);
-  }, []);
-
-  const handleReplyToProfile = useCallback((id: string, username: string, photoURL: string, bio?: string, totalCommunities?: number, commonCommunities?: number) => {
+  const handleReplyToProfile = useCallback((id: string, username: string, photoURL: string, bio?: string, totalCommunities?: number, commonCommunities?: number, joinedAt?: string) => {
     setProfileReplyTarget({ 
       id, 
       username: username.replace(/^@/, ''), 
       photoURL, 
       bio, 
       totalCommunities: totalCommunities || 0, 
-      commonCommunities: commonCommunities || 0 
+      commonCommunities: commonCommunities || 0,
+      joinedAt
     });
     setReplyingTo(null);
     setWhisperingTo(null);

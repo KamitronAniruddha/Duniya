@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -64,6 +65,7 @@ const EMOJI_CATEGORIES = [
 const CHEAT_CODES = [
   { icon: <Eraser className="h-4 w-4 text-orange-500" />, label: "clr", description: "Clear current chat history", usage: "@clr" },
   { icon: <Trash2 className="h-4 w-4 text-red-500" />, label: "del", description: "Delete last X messages", usage: "@del 5" },
+  { icon: <Lock className="h-4 w-4 text-indigo-500" />, label: "whisper", description: "Toggle private whisper mode", usage: "@whisper @username" },
   { icon: <Activity className="h-4 w-4 text-emerald-500" />, label: "ping", description: "Verse sync latency", usage: "@ping" },
   { icon: <Palette className="h-4 w-4 text-pink-500" />, label: "theme", description: "Cycle visual vibes", usage: "@theme" },
   { icon: <UserIcon className="h-4 w-4 text-blue-500" />, label: "profile", description: "Modify identity signature", usage: "@profile" },
@@ -90,7 +92,6 @@ export function MessageInput({
   const { user } = useUser();
   const { toast } = useToast();
   const [text, setText] = useState("");
-  const [recentEmojis, setRecentEmojis] = useState<string[]>([]);
   
   const [disappearingEnabled, setDisappearingEnabled] = useState(false);
   const [disappearDuration, setDisappearDuration] = useState(10000);
@@ -194,7 +195,6 @@ export function MessageInput({
       }
     }
 
-    // Capture comprehensive context for profile replies
     const profileContext = profileReplyTarget ? {
       targetUserId: profileReplyTarget.id,
       totalCommunities: profileReplyTarget.totalCommunities,
@@ -287,6 +287,21 @@ export function MessageInput({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {whisperingTo && (
+        <div className="px-4 py-2 bg-indigo-500/10 border-t flex items-center justify-between animate-in slide-in-from-bottom-2 duration-150">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 bg-indigo-500 rounded-lg shadow-lg">
+              <Lock className="h-3 w-3 text-white" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest leading-none">Whisper Node Active</span>
+              <p className="text-xs text-indigo-600/70 font-bold">Only @{whisperingTo.username} can decrypt this message.</p>
+            </div>
+          </div>
+          <button type="button" onClick={onCancelWhisper} className="h-8 w-8 rounded-full hover:bg-indigo-500/10 flex items-center justify-center transition-colors"><X className="h-4 w-4 text-indigo-600" /></button>
+        </div>
+      )}
 
       {(replyingTo || profileReplyTarget) && (
         <div className="px-4 py-2 bg-muted/30 border-t flex flex-col gap-2 animate-in slide-in-from-bottom-2 duration-150">
