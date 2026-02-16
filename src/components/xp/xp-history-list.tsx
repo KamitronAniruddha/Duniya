@@ -7,6 +7,7 @@ import { MessageSquare, Zap, Activity, ShieldCheck, Clock, Plus, Star, Crown, Gl
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
 
 interface XPHistoryListProps {
   userId: string;

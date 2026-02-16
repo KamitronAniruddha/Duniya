@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Zap, Sparkles, Trophy, Star, ArrowUpRight, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getLevelProgress, calculateLevel, getXPToNextLevel, getRankTitle } from "@/lib/xp-system";
+import { Badge } from "@/components/ui/badge";
 
 interface XPVisualizerProps {
   xp: number;
