@@ -169,10 +169,13 @@ export function MessageInput({
   const profileTargetRef = useMemoFirebase(() => (profileReplyTarget?.id ? doc(db, "users", profileReplyTarget.id) : null), [db, profileReplyTarget?.id]);
   const { data: profileTargetData } = useDoc(profileTargetRef);
 
-  const isTargetHidden = !!profileTargetData?.isProfileHidden && profileTargetData?.id !== user?.uid;
-  const isTargetBlurred = !!profileTargetData?.isProfileBlurred && 
-                          profileTargetData?.id !== user?.uid && 
-                          !profileTargetData?.authorizedViewers?.includes(user?.uid || "");
+  // Consolidate target data for privacy check
+  const activeTargetData = profileReplyTarget ? profileTargetData : replyUser;
+
+  const isTargetHidden = !!activeTargetData?.isProfileHidden && activeTargetData?.id !== user?.uid;
+  const isTargetBlurred = !!activeTargetData?.isProfileBlurred && 
+                          activeTargetData?.id !== user?.uid && 
+                          !activeTargetData?.authorizedViewers?.includes(user?.uid || "");
 
   const membersQuery = useMemoFirebase(() => {
     if (!db || !serverId) return null;

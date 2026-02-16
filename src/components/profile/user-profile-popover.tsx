@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useDoc, useFirestore, useMemoFirebase, useUser } from "@/firebase";
 import { doc, arrayUnion, arrayRemove } from "firebase/firestore";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { CalendarDays, User as UserIcon, Maximize2, EyeOff, Ghost, Clock, Download, Heart, Reply, Camera, Lock, Key, ShieldAlert, Sparkles, Loader2, ImagePlus, Check, X, Upload } from "lucide-react";
+import { CalendarDays, User as UserIcon, Maximize2, EyeOff, Ghost, Clock, Download, Heart, Reply, Camera, Lock, Key, ShieldAlert, Sparkles, Loader2, ImagePlus, Check, X, Upload, Link } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
