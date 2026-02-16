@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useFirestore, useUser, useDoc, useMemoFirebase } from "@/firebase";
 import { doc, arrayUnion, arrayRemove, deleteField, collection, query, where, documentId, getDocs } from "firebase/firestore";
 import { UserProfilePopover } from "@/components/profile/user-profile-popover";
-import { Reply, CornerDownRight, Play, Pause, MoreHorizontal, Trash2, Ban, Copy, Timer, Check, CheckCheck, Forward, Landmark, Mic, Maximize2, Heart, Download, FileText, File, Eye, Ghost, Lock, Smile, Plus, Users, Camera, Info, Sparkles, Globe, Activity, Zap, EyeOff, ShieldAlert, Milestone, Compass, Waves, ShieldCheck } from "lucide-react";
+import { Reply, CornerDownRight, Play, Pause, MoreHorizontal, Trash2, Ban, Copy, Timer, Check, CheckCheck, Forward, Landmark, Mic, Maximize2, Heart, Download, FileText, File, Eye, Ghost, Lock, Smile, Plus, Users, Camera, Info, Sparkles, Globe, Activity, Zap, EyeOff, ShieldAlert, Milestone, Compass, Waves, ShieldCheck, Fingerprint } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
@@ -19,7 +19,7 @@ import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogDescription } f
 import { motion, AnimatePresence } from "framer-motion";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { CreatorFooter } from "@/components/creator-footer";
 import { formatDistanceToNow } from "date-fns";
 
@@ -721,7 +721,9 @@ function SharedIntelligenceDialog({ open, onOpenChange, context, targetName, sen
             <motion.div variants={item} className="p-8 bg-primary/5 rounded-[3rem] border border-primary/10 space-y-4 relative overflow-hidden">
               <div className="absolute top-0 left-0 p-6 opacity-[0.03]"><Activity className="h-24 w-24 text-primary" /></div>
               <div className="flex items-center gap-3">
-                <Info className="h-5 w-5 text-primary" />
+                <div className="h-5 w-5 rounded-full border-2 border-primary flex items-center justify-center text-primary">
+                  <Info className="h-3 w-3" />
+                </div>
                 <span className="text-[11px] font-black uppercase tracking-[0.3em] text-primary">Intelligence Verification</span>
               </div>
               <p className="text-base font-medium text-muted-foreground leading-relaxed relative z-10">
