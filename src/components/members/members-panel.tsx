@@ -6,7 +6,7 @@ import { useCollection, useFirestore, useDoc, useMemoFirebase, useUser } from "@
 import { collection, query, where, doc, getDocs, arrayUnion, arrayRemove, limit } from "firebase/firestore";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ShieldCheck, Loader2, UserPlus, Check, AlertCircle, UserMinus, Shield, Search, X, EyeOff, Ghost, Send, Bell } from "lucide-react";
+import { ShieldCheck, Loader2, UserPlus, Check, AlertCircle, UserMinus, Shield, Search, X, EyeOff, Ghost, Send, Bell, Reply } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -22,9 +22,10 @@ import { Badge } from "@/components/ui/badge";
 interface MembersPanelProps {
   serverId: string;
   onWhisper?: (userId: string, username: string) => void;
+  onReply?: (userId: string, username: string) => void;
 }
 
-export function MembersPanel({ serverId, onWhisper }: MembersPanelProps) {
+export function MembersPanel({ serverId, onWhisper, onReply }: MembersPanelProps) {
   const db = useFirestore();
   const { user: currentUser } = useUser();
   const { toast } = useToast();
@@ -49,7 +50,7 @@ export function MembersPanel({ serverId, onWhisper }: MembersPanelProps) {
 
   const isOwner = server?.ownerId === currentUser?.uid;
   const serverAdmins = server?.admins || [];
-  const isAdmin = isOwner || serverAdmins.includes(currentUser?.uid || "");
+  const isAdmin = isOwner || serverAdmins.push === undefined ? false : serverAdmins.includes(currentUser?.uid || "");
 
   const pendingInvitesQuery = useMemoFirebase(() => {
     if (!db || !serverId || !isAdmin) return null;
@@ -290,6 +291,7 @@ export function MembersPanel({ serverId, onWhisper }: MembersPanelProps) {
                         onRemove={() => handleRemoveMember(member.id, member.username)}
                         onToggleAdmin={() => handleToggleAdmin(member.id, serverAdmins.includes(member.id))}
                         onWhisper={onWhisper}
+                        onReply={onReply}
                         now={now}
                       />
                     ))}
@@ -314,6 +316,7 @@ export function MembersPanel({ serverId, onWhisper }: MembersPanelProps) {
                         onRemove={() => handleRemoveMember(member.id, member.username)}
                         onToggleAdmin={() => handleToggleAdmin(member.id, serverAdmins.includes(member.id))}
                         onWhisper={onWhisper}
+                        onReply={onReply}
                         now={now}
                       />
                     ))}
@@ -335,6 +338,7 @@ export function MembersPanel({ serverId, onWhisper }: MembersPanelProps) {
                         onRemove={() => handleRemoveMember(member.id, member.username)}
                         onToggleAdmin={() => handleToggleAdmin(member.id, serverAdmins.includes(member.id))}
                         onWhisper={onWhisper}
+                        onReply={onReply}
                         now={now}
                       />
                     ))}
@@ -396,6 +400,7 @@ function MemberItem({
   onRemove,
   onToggleAdmin,
   onWhisper,
+  onReply,
   now
 }: { 
   member: any; 
@@ -405,6 +410,7 @@ function MemberItem({
   onRemove: () => void;
   onToggleAdmin: () => void;
   onWhisper?: (userId: string, username: string) => void;
+  onReply?: (userId: string, username: string) => void;
   now: number;
 }) {
   const lastSeen = member.lastOnlineAt ? new Date(member.lastOnlineAt).getTime() : 0;
@@ -418,7 +424,12 @@ function MemberItem({
 
   return (
     <div className="flex items-center gap-2 p-2 rounded-md hover:bg-muted transition-colors group cursor-default relative">
-      <UserProfilePopover userId={member.id} onWhisper={onWhisper} side="left">
+      <UserProfilePopover 
+        userId={member.id} 
+        onWhisper={onWhisper} 
+        onReply={onReply}
+        side="left"
+      >
         <button className="relative transition-transform hover:scale-110">
           <Avatar className="h-8 w-8 border border-border shadow-sm aspect-square">
             <AvatarImage src={member.photoURL || undefined} className="aspect-square object-cover" />
@@ -435,7 +446,12 @@ function MemberItem({
       </UserProfilePopover>
       
       <div className="flex flex-col min-w-0 flex-1">
-        <UserProfilePopover userId={member.id} onWhisper={onWhisper} side="left">
+        <UserProfilePopover 
+          userId={member.id} 
+          onWhisper={onWhisper} 
+          onReply={onReply}
+          side="left"
+        >
           <button className="flex items-center gap-1 min-w-0 w-full text-left">
             <span className={cn(
               "text-xs font-bold truncate leading-none hover:text-primary transition-colors",
@@ -458,6 +474,11 @@ function MemberItem({
       </div>
 
       <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+        {onReply && member.id !== currentUser?.uid && (
+          <Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:text-primary/80 hover:bg-primary/10" onClick={() => onReply(member.id, member.username)}>
+            <Reply className="h-3.5 w-3.5" />
+          </Button>
+        )}
         {onWhisper && member.id !== currentUser?.uid && (
           <Button variant="ghost" size="icon" className="h-7 w-7 text-indigo-500 hover:text-indigo-600 hover:bg-indigo-500/10" onClick={() => onWhisper(member.id, member.username)}>
             <Ghost className="h-3.5 w-3.5" />

@@ -33,6 +33,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
   const { user } = useUser();
   const { toast } = useToast();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const [replyingTo, setReplyingTo] = useState<any | null>(null);
   const [whisperingTo, setWhisperingTo] = useState<{ id: string; username: string } | null>(null);
@@ -48,7 +49,6 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
     return null;
   }, [serverId, channelId]);
 
-  // BUG FIX: Clear selection mode and selected IDs when the channel or server changes
   useEffect(() => {
     setSelectionMode(false);
     setSelectedIds(new Set());
@@ -175,13 +175,11 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
     if (cmd === "del") {
       const count = parseInt(args[0]);
       if (isNaN(count) || count <= 0) return true;
-      
       const lastCountMessages = messages.filter(m => m.senderId === user?.uid).slice(-count);
       if (lastCountMessages.length === 0) {
         toast({ title: "No messages to delete", description: "Only your own messages can be deleted with this command." });
         return true;
       }
-
       const batch = writeBatch(db);
       lastCountMessages.forEach(msg => {
         const msgRef = doc(db, basePath!, "messages", msg.id);
@@ -253,6 +251,19 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
     setWhisperingTo({ id, username });
     setReplyingTo(null);
   }, []);
+
+  const handleReplyToUser = useCallback((id: string, username: string) => {
+    const userMessages = messages.filter(m => m.senderId === id);
+    if (userMessages.length > 0) {
+      setReplyingTo(userMessages[userMessages.length - 1]);
+    } else {
+      toast({ title: "Identity Reply", description: `Tagging @${username} in your next message.` });
+      if (inputRef.current) {
+        inputRef.current.value = `@${username} ${inputRef.current.value}`;
+        inputRef.current.focus();
+      }
+    }
+  }, [messages, toast]);
 
   useEffect(() => {
     if (scrollRef.current && !selectionMode) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -372,11 +383,13 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers }
               whisperingTo={whisperingTo}
               onCancelWhisper={handleCancelWhisper}
               onTriggerWhisper={handleWhisper}
+              onTriggerReplyUser={handleReplyToUser}
               serverId={serverId}
+              inputRef={inputRef}
             />
           </div>
         </div>
-        {showMembers && serverId && <div className="hidden lg:block border-l z-10 bg-background overflow-hidden"><MembersPanel serverId={serverId} onWhisper={handleWhisper} /></div>}
+        {showMembers && serverId && <div className="hidden lg:block border-l z-10 bg-background overflow-hidden"><MembersPanel serverId={serverId} onWhisper={handleWhisper} onReply={handleReplyToUser} /></div>}
       </div>
       
       <DeleteOptionsDialog 

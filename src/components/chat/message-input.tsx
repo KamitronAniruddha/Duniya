@@ -1,8 +1,9 @@
+
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, SendHorizontal, Smile, History, Ghost, X, CornerDownRight, Mic, Square, Trash2, Video, Timer, Clock, Image as ImageIcon, Loader2, Paperclip, FileText, Bold, Italic, Type, TypeOutline, Eraser, Command, User as UserIcon } from "lucide-react";
+import { Plus, SendHorizontal, Smile, History, Ghost, X, CornerDownRight, Mic, Square, Trash2, Video, Timer, Clock, Image as ImageIcon, Loader2, Paperclip, FileText, Bold, Italic, Type, TypeOutline, Eraser, Command, User as UserIcon, Reply } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -36,6 +37,7 @@ interface MessageInputProps {
   whisperingTo?: { id: string; username: string } | null;
   onCancelWhisper?: () => void;
   onTriggerWhisper?: (userId: string, username: string) => void;
+  onTriggerReplyUser?: (userId: string, username: string) => void;
   serverId?: string | null;
 }
 
@@ -66,7 +68,18 @@ const CHEAT_CODES = [
   { icon: <Ghost className="h-4 w-4 text-indigo-500" />, label: "whisper", description: "Private message someone", usage: "@whisper @user text" }
 ];
 
-export function MessageInput({ onSendMessage, onExecuteCommand, inputRef: externalInputRef, replyingTo, onCancelReply, whisperingTo, onCancelWhisper, onTriggerWhisper, serverId }: MessageInputProps) {
+export function MessageInput({ 
+  onSendMessage, 
+  onExecuteCommand, 
+  inputRef: externalInputRef, 
+  replyingTo, 
+  onCancelReply, 
+  whisperingTo, 
+  onCancelWhisper, 
+  onTriggerWhisper, 
+  onTriggerReplyUser,
+  serverId 
+}: MessageInputProps) {
   const db = useFirestore();
   const { toast } = useToast();
   const [text, setText] = useState("");
@@ -102,7 +115,6 @@ export function MessageInput({ onSendMessage, onExecuteCommand, inputRef: extern
   const replyUserRef = useMemoFirebase(() => (replyingTo ? doc(db, "users", replyingTo.senderId) : null), [db, replyingTo?.senderId]);
   const { data: replyUser } = useDoc(replyUserRef);
 
-  // Fetch community members for suggestions
   const membersQuery = useMemoFirebase(() => {
     if (!db || !serverId) return null;
     return query(collection(db, "users"), where("serverIds", "array-contains", serverId));
@@ -121,13 +133,11 @@ export function MessageInput({ onSendMessage, onExecuteCommand, inputRef: extern
   }, []);
 
   useEffect(() => {
-    // Handle general cheat code suggestions (@clr, @del, etc)
     if (text.startsWith("@") && !text.includes(" ")) {
       setShowSuggestions(true);
       setShowWhisperSuggestions(false);
       setCommandSearch(text.slice(1).toLowerCase());
     } 
-    // Handle whisper member suggestions (@whisper @username)
     else if (text.match(/^@whisper\s+@?([a-zA-Z0-9._-]*)$/i)) {
       const match = text.match(/^@whisper\s+@?([a-zA-Z0-9._-]*)$/i);
       setShowWhisperSuggestions(true);
@@ -174,7 +184,6 @@ export function MessageInput({ onSendMessage, onExecuteCommand, inputRef: extern
     e.preventDefault();
     if (!text.trim() && !imagePreview && !filePreview) return;
 
-    // Handle Cheat Codes
     if (text.trim() === "@clr") {
       await onExecuteCommand?.("clr", []);
       setText("");
@@ -444,7 +453,7 @@ export function MessageInput({ onSendMessage, onExecuteCommand, inputRef: extern
             <CornerDownRight className="h-4 w-4 text-primary" />
           </div>
           <div className="flex-1 min-w-0 flex flex-col">
-            <span className="text-[10px] font-black text-primary uppercase tracking-wider">Replying to {replyUser?.username || "..."}</span>
+            <span className="text-[10px] font-black text-primary uppercase tracking-wider">Replying to {replyUser?.username || "..." }</span>
             <p className="text-xs text-muted-foreground truncate italic font-medium">{replyingTo.content || replyingTo.text || "Media message"}</p>
           </div>
           <button onClick={onCancelReply} className="h-6 w-6 rounded-full hover:bg-muted flex items-center justify-center transition-colors">

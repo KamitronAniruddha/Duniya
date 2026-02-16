@@ -173,7 +173,6 @@ export const MessageBubble = memo(function MessageBubble({
     updateDocumentNonBlocking(msgRef, {
       [`reactions.${emoji}`]: hasReacted ? arrayRemove(user.uid) : arrayUnion(user.uid)
     });
-    // BUG FIX: Close pickers after reaction
     setIsReactionPickerOpen(false);
     setIsFullPickerOpen(false);
   }, [user, messagePath, message.reactions, isActuallyDeleted, db]);
@@ -231,11 +230,8 @@ export const MessageBubble = memo(function MessageBubble({
     setIsDragging(true);
     longPressTimer.current = setTimeout(() => {
       if (!selectionMode && !isActuallyDeleted) {
-        // Selection Mode Trigger: Activated by long press
         onLongPress?.(message.id);
         setIsDragging(false);
-        
-        // Haptic feedback
         if (window.navigator && window.navigator.vibrate) {
           window.navigator.vibrate(50);
         }
@@ -250,7 +246,6 @@ export const MessageBubble = memo(function MessageBubble({
     const diffX = clientX - startX.current;
     const diffY = clientY - startY.current;
     
-    // If user moves finger significantly, cancel long press
     if (Math.abs(diffX) > 10 || Math.abs(diffY) > 10) {
       if (longPressTimer.current) clearTimeout(longPressTimer.current);
     }
@@ -345,7 +340,12 @@ export const MessageBubble = memo(function MessageBubble({
       </AnimatePresence>
 
       {!isMe && !selectionMode && (
-        <UserProfilePopover userId={message.senderId} onWhisper={onWhisper} side="right">
+        <UserProfilePopover 
+          userId={message.senderId} 
+          onWhisper={onWhisper} 
+          onReply={() => onReply?.()}
+          side="right"
+        >
           <button className="h-8 w-8 mb-0.5 mr-2 shrink-0 transition-transform active:scale-95">
             <Avatar className="h-full w-full border border-border shadow-sm aspect-square">
               <AvatarImage src={message.senderPhotoURL} className="aspect-square object-cover" />
@@ -364,7 +364,12 @@ export const MessageBubble = memo(function MessageBubble({
         ) : (
           <>
             {!isMe && !selectionMode && (
-              <UserProfilePopover userId={message.senderId} onWhisper={onWhisper} side="right">
+              <UserProfilePopover 
+                userId={message.senderId} 
+                onWhisper={onWhisper} 
+                onReply={() => onReply?.()}
+                side="right"
+              >
                 <button className="text-[9px] font-black text-muted-foreground/60 ml-1 mb-0.5 hover:text-primary uppercase tracking-widest transition-colors">{message.senderName || "..."}</button>
               </UserProfilePopover>
             )}
@@ -614,14 +619,21 @@ export const MessageBubble = memo(function MessageBubble({
           <div className="relative w-full h-full flex flex-col items-center justify-center">
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.2, ease: "easeOut" }} className="relative group">
               <img src={message.imageUrl} className="max-w-full max-h-[85vh] rounded-2xl shadow-2xl object-contain" alt="Zoomed view" />
-              <div className="absolute -bottom-16 left-1/2 -translate-x-1/2 flex items-center gap-4 px-6 py-3 bg-background/80 backdrop-blur-md rounded-full border border-border shadow-2xl">
+              <div className="absolute -bottom-16 left-1/2 -translate-x-1/2 flex items-center gap-4 px-6 py-3 bg-background/80 backdrop-blur-md rounded-full border border-border shadow-2xl whitespace-nowrap">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-black uppercase tracking-widest text-primary">Verse Media</span>
                   <Heart className="h-3 w-3 text-red-500 fill-red-500 animate-pulse" />
                 </div>
                 <div className="w-[1px] h-4 bg-border" />
+                <button 
+                  onClick={() => { onReply?.(); setIsImageZoomOpen(false); }}
+                  className="flex items-center gap-2 text-[10px] font-black uppercase text-foreground hover:text-primary transition-colors"
+                >
+                  <Reply className="h-3.5 w-3.5" /> Reply
+                </button>
+                <div className="w-[1px] h-4 bg-border" />
                 <button onClick={() => handleDownload(message.imageUrl!, message.fileName || "image.jpg")} className="flex items-center gap-2 text-[10px] font-black uppercase text-foreground hover:text-primary transition-colors">
-                  <Download className="h-3.5 w-3.5" /> Save to Device
+                  <Download className="h-3.5 w-3.5" /> Save
                 </button>
               </div>
             </motion.div>
@@ -682,7 +694,6 @@ function ReactionDetailsDialog({ open, onOpenChange, emoji, uids }: { open: bool
       const fetchUsers = async () => {
         setIsLoading(true);
         try {
-          // BUG FIX: Firestore 'in' queries are limited to 10 items.
           const q = query(collection(db, "users"), where(documentId(), "in", uids.slice(0, 10)));
           const snap = await getDocs(q);
           setUsers(snap.docs.map(d => ({ id: d.id, ...d.data() })));

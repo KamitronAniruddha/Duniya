@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { CalendarDays, User as UserIcon, Maximize2, EyeOff, Ghost, Clock, Download, Heart } from "lucide-react";
+import { CalendarDays, User as UserIcon, Maximize2, EyeOff, Ghost, Clock, Download, Heart, Reply } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
@@ -19,10 +19,11 @@ interface UserProfilePopoverProps {
   userId: string;
   children: React.ReactNode;
   onWhisper?: (userId: string, username: string) => void;
+  onReply?: (userId: string, username: string) => void;
   side?: "left" | "right" | "top" | "bottom";
 }
 
-export function UserProfilePopover({ userId, children, onWhisper, side = "right" }: UserProfilePopoverProps) {
+export function UserProfilePopover({ userId, children, onWhisper, onReply, side = "right" }: UserProfilePopoverProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -38,14 +39,18 @@ export function UserProfilePopover({ userId, children, onWhisper, side = "right"
           sideOffset={10}
           collisionPadding={20}
         >
-          <UserProfileContent userId={userId} onWhisper={(id, name) => { onWhisper?.(id, name); setIsOpen(false); }} />
+          <UserProfileContent 
+            userId={userId} 
+            onWhisper={(id, name) => { onWhisper?.(id, name); setIsOpen(false); }}
+            onReply={(id, name) => { onReply?.(id, name); setIsOpen(false); }}
+          />
         </PopoverContent>
       )}
     </Popover>
   );
 }
 
-function UserProfileContent({ userId, onWhisper }: { userId: string; onWhisper?: (userId: string, username: string) => void }) {
+function UserProfileContent({ userId, onWhisper, onReply }: { userId: string; onWhisper?: (userId: string, username: string) => void; onReply?: (userId: string, username: string) => void }) {
   const db = useFirestore();
   const { user: currentUser } = useUser();
   const { toast } = useToast();
@@ -109,15 +114,27 @@ function UserProfileContent({ userId, onWhisper }: { userId: string; onWhisper?:
             </div>
           </button>
           
-          {onWhisper && userData && userData.id !== currentUser?.uid && (
-            <Button 
-              size="sm" 
-              className="rounded-xl h-9 px-4 gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase text-[10px] tracking-widest shadow-lg shadow-indigo-500/20"
-              onClick={() => onWhisper(userData.id, userData.username)}
-            >
-              <Ghost className="h-3.5 w-3.5" /> Whisper
-            </Button>
-          )}
+          <div className="flex flex-col gap-2">
+            {onReply && userData && userData.id !== currentUser?.uid && (
+              <Button 
+                size="sm" 
+                className="rounded-xl h-8 px-4 gap-2 bg-primary text-primary-foreground font-black uppercase text-[9px] tracking-widest shadow-lg shadow-primary/20"
+                onClick={() => onReply(userData.id, userData.username)}
+              >
+                <Reply className="h-3 w-3" /> Reply
+              </Button>
+            )}
+            {onWhisper && userData && userData.id !== currentUser?.uid && (
+              <Button 
+                size="sm" 
+                variant="outline"
+                className="rounded-xl h-8 px-4 gap-2 border-indigo-200 text-indigo-600 font-black uppercase text-[9px] tracking-widest bg-indigo-50/50"
+                onClick={() => onWhisper(userData.id, userData.username)}
+              >
+                <Ghost className="h-3 w-3" /> Whisper
+              </Button>
+            )}
+          </div>
 
           {isOnline ? (
             <div className="absolute bottom-1 left-[76px] h-6 w-6 rounded-full border-4 border-background bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.6)] animate-pulse" />
@@ -194,18 +211,27 @@ function UserProfileContent({ userId, onWhisper }: { userId: string; onWhisper?:
                 </div>
               )}
               
-              <div className="absolute -bottom-16 left-1/2 -translate-x-1/2 flex items-center gap-4 px-6 py-3 bg-background/80 backdrop-blur-md rounded-full border border-border shadow-2xl">
+              <div className="absolute -bottom-16 left-1/2 -translate-x-1/2 flex items-center gap-4 px-6 py-3 bg-background/80 backdrop-blur-md rounded-full border border-border shadow-2xl whitespace-nowrap">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-black uppercase tracking-widest text-primary">Verse Identity</span>
                   <Heart className="h-3 w-3 text-red-500 fill-red-500 animate-pulse" />
                 </div>
-                {userData?.photoURL && (
+                <div className="w-[1px] h-4 bg-border" />
+                {onReply && userData && userData.id !== currentUser?.uid && (
                   <>
-                    <div className="w-[1px] h-4 bg-border" />
-                    <button onClick={handleDownload} className="flex items-center gap-2 text-[10px] font-black uppercase text-foreground hover:text-primary transition-colors">
-                      <Download className="h-3.5 w-3.5" /> Save to Device
+                    <button 
+                      onClick={() => { onReply(userData.id, userData.username); setIsZoomOpen(false); }}
+                      className="flex items-center gap-2 text-[10px] font-black uppercase text-foreground hover:text-primary transition-colors"
+                    >
+                      <Reply className="h-3.5 w-3.5" /> Reply
                     </button>
+                    <div className="w-[1px] h-4 bg-border" />
                   </>
+                )}
+                {userData?.photoURL && (
+                  <button onClick={handleDownload} className="flex items-center gap-2 text-[10px] font-black uppercase text-foreground hover:text-primary transition-colors">
+                    <Download className="h-3.5 w-3.5" /> Save
+                  </button>
                 )}
               </div>
             </motion.div>
