@@ -24,6 +24,7 @@ interface ProfileReplyTarget {
   bio?: string;
   totalCommunities: number;
   commonCommunities: number;
+  joinedAt?: string;
 }
 
 interface MessageInputProps {
@@ -194,6 +195,15 @@ export function MessageInput({
       }
     }
 
+    // Capture comprehensive context for profile replies
+    const profileContext = profileReplyTarget ? {
+      targetUserId: profileReplyTarget.id,
+      totalCommunities: profileReplyTarget.totalCommunities,
+      commonCommunities: profileReplyTarget.commonCommunities,
+      bio: profileReplyTarget.bio,
+      joinedAt: profileReplyTarget.joinedAt || new Date().toISOString()
+    } : undefined;
+
     onSendMessage(
       text, 
       undefined, 
@@ -205,7 +215,7 @@ export function MessageInput({
       whisperingTo,
       profileReplyTarget?.photoURL || replyingTo?.senderPhotoURL || "",
       !!profileReplyTarget,
-      profileReplyTarget,
+      profileContext,
       isSensitive
     );
     

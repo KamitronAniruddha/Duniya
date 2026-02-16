@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useFirestore, useUser, useDoc, useMemoFirebase } from "@/firebase";
 import { doc, arrayUnion, arrayRemove, deleteField, collection, query, where, documentId, getDocs } from "firebase/firestore";
 import { UserProfilePopover } from "@/components/profile/user-profile-popover";
-import { Reply, CornerDownRight, Play, Pause, MoreHorizontal, Trash2, Ban, Copy, Timer, Check, CheckCheck, Forward, Landmark, Mic, Maximize2, Heart, Download, FileText, File, Eye, Ghost, Lock, Smile, Plus, Users, Camera, Info, Sparkles, Globe, Activity, Zap, EyeOff, ShieldAlert } from "lucide-react";
+import { Reply, CornerDownRight, Play, Pause, MoreHorizontal, Trash2, Ban, Copy, Timer, Check, CheckCheck, Forward, Landmark, Mic, Maximize2, Heart, Download, FileText, File, Eye, Ghost, Lock, Smile, Plus, Users, Camera, Info, Sparkles, Globe, Activity, Zap, EyeOff, ShieldAlert, Milestone, Compass, Waves, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
@@ -21,6 +21,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CreatorFooter } from "@/components/creator-footer";
+import { formatDistanceToNow } from "date-fns";
 
 export interface ForwardHop {
   communityName: string;
@@ -61,6 +62,7 @@ interface MessageBubbleProps {
         totalCommunities: number;
         commonCommunities: number;
         bio?: string;
+        joinedAt?: string;
       }
     };
     whisperTo?: string | null;
@@ -401,7 +403,7 @@ export const MessageBubble = memo(function MessageBubble({
 
               {message.replyTo && (
                 <button 
-                  onClick={() => { if (message.replyTo?.messageId === 'profile') setIsSharedIntelligenceOpen(true); }}
+                  onClick={(e) => { e.stopPropagation(); if (message.replyTo?.messageId === 'profile') setIsSharedIntelligenceOpen(true); }}
                   className={cn(
                     "w-full text-left mb-2 p-2 rounded-xl border-l-2 text-[11px] bg-black/5 flex flex-col gap-0.5 backdrop-blur-sm transition-all hover:bg-black/10 mx-auto max-w-[calc(100%-8px)]", 
                     isMe ? "border-primary-foreground/40" : "border-primary/50"
@@ -553,74 +555,185 @@ function SharedIntelligenceDialog({ open, onOpenChange, context, targetName, sen
                     targetPrivacyData?.id !== user?.uid && 
                     !targetPrivacyData?.authorizedViewers?.some((v: any) => v.uid === user?.uid && new Date(v.expiresAt) > new Date());
 
+  const container = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const item = {
+    hidden: { y: 20, opacity: 0 },
+    show: { y: 0, opacity: 1, transition: { type: "spring", stiffness: 100 } }
+  };
+
+  const accountAge = useMemo(() => {
+    if (!context?.joinedAt) return "Origin Era";
+    try {
+      return formatDistanceToNow(new Date(context.joinedAt));
+    } catch {
+      return "Unknown Era";
+    }
+  }, [context?.joinedAt]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[400px] rounded-[2.5rem] border-none shadow-2xl p-0 overflow-hidden bg-background h-fit max-h-[85vh] flex flex-col">
-        <DialogHeader className="p-8 pb-4 bg-gradient-to-b from-primary/15 via-primary/5 to-transparent shrink-0">
-          <div className="flex items-center gap-2 mb-2">
-            <Sparkles className="h-4 w-4 text-primary animate-pulse" />
-            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary">Intelligence Snapshot</span>
+      <DialogContent className="sm:max-w-[480px] rounded-[3rem] border-none shadow-[0_32px_128px_rgba(0,0,0,0.4)] p-0 overflow-hidden bg-background h-fit max-h-[90vh] flex flex-col z-[2000]">
+        <DialogHeader className="p-10 pb-6 bg-gradient-to-br from-primary/20 via-primary/5 to-transparent shrink-0 relative overflow-hidden">
+          <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary/10 rounded-full blur-3xl animate-pulse" />
+          <div className="flex items-center justify-between mb-4 relative z-10">
+            <div className="flex items-center gap-2.5">
+              <Sparkles className="h-5 w-5 text-primary animate-spin-slow" />
+              <span className="text-[11px] font-black uppercase tracking-[0.5em] text-primary/80">Social Depth Intelligence</span>
+            </div>
+            <div className="px-3 py-1 bg-primary/10 rounded-full border border-primary/20">
+              <span className="text-[9px] font-black text-primary uppercase tracking-widest">v2.4.0 High-Fidelity</span>
+            </div>
           </div>
-          <DialogTitle className="text-3xl font-[900] tracking-tighter uppercase leading-none text-foreground">Social Depth</DialogTitle>
-          <DialogDescription className="font-medium text-muted-foreground mt-2 italic">Captured Verse connectivity metadata.</DialogDescription>
+          <DialogTitle className="text-5xl font-[900] tracking-tighter uppercase leading-tight text-foreground relative z-10">
+            Social <span className="text-primary italic">Pulse</span>
+          </DialogTitle>
+          <DialogDescription className="font-medium text-muted-foreground/80 text-sm mt-3 italic relative z-10 leading-relaxed">
+            "Real-time decryption of digital lineage and Verse connectivity metrics."
+          </DialogDescription>
         </DialogHeader>
 
-        <div className="p-8 pt-2 space-y-8 flex-1 overflow-y-auto">
-          <div className="flex flex-col items-center text-center gap-4">
-            <div className="relative">
-              <Avatar className={cn("h-24 w-24 border-4 border-background shadow-2xl transition-all", isHidden && "blur-2xl", isBlurred && "blur-lg")}>
-                <AvatarImage src={isHidden ? undefined : targetPrivacyData?.photoURL} className="object-cover" />
-                <AvatarFallback className="bg-primary text-white text-3xl font-black uppercase">{targetName[0]}</AvatarFallback>
-              </Avatar>
-              {isHidden && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <Ghost className="h-8 w-8 text-rose-500 animate-pulse" />
+        <ScrollArea className="flex-1">
+          <motion.div 
+            variants={container}
+            initial="hidden"
+            animate="show"
+            className="p-10 pt-2 space-y-10"
+          >
+            {/* Main Identity Node */}
+            <motion.div variants={item} className="flex flex-col items-center text-center gap-6">
+              <div className="relative group">
+                <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full scale-150 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                <Avatar className={cn(
+                  "h-32 w-32 border-8 border-background shadow-2xl transition-all duration-700 group-hover:scale-110 group-hover:rotate-2", 
+                  isHidden && "blur-2xl", 
+                  isBlurred && "blur-lg"
+                )}>
+                  <AvatarImage src={isHidden ? undefined : targetPrivacyData?.photoURL} className="object-cover" />
+                  <AvatarFallback className="bg-primary text-white text-5xl font-[900] uppercase">{targetName[0]}</AvatarFallback>
+                </Avatar>
+                {isHidden && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Ghost className="h-12 w-12 text-rose-500 animate-pulse drop-shadow-lg" />
+                  </div>
+                )}
+                <div className="absolute -bottom-2 -right-2 p-3 bg-primary rounded-2xl shadow-xl border-4 border-background">
+                  <Fingerprint className="h-6 w-6 text-white" />
                 </div>
-              )}
-            </div>
-            <div className="space-y-1">
-              <h3 className="text-xl font-black uppercase tracking-tight">@{targetName}</h3>
-              <p className="text-[10px] font-black uppercase tracking-widest text-primary/60">Target Identity</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="p-5 bg-muted/30 rounded-[1.75rem] border border-transparent hover:border-primary/10 transition-all flex flex-col gap-2">
-              <div className="flex items-center gap-2 text-primary">
-                <Globe className="h-4 w-4" />
-                <span className="text-[9px] font-black uppercase tracking-widest">Verse Reach</span>
               </div>
-              {isHidden ? (
-                <Lock className="h-4 w-4 text-muted-foreground/40" />
-              ) : (
-                <span className="text-2xl font-black">{context?.totalCommunities || 0}</span>
-              )}
-            </div>
-            <div className="p-5 bg-muted/30 rounded-[1.75rem] border border-transparent hover:border-primary/10 transition-all flex flex-col gap-2">
-              <div className="flex items-center gap-2 text-primary">
-                <Users className="h-4 w-4" />
-                <span className="text-[9px] font-black uppercase tracking-widest">Mutual Sync</span>
+              <div className="space-y-2">
+                <h3 className="text-3xl font-black uppercase tracking-tight text-foreground">@{targetName}</h3>
+                <div className="flex items-center justify-center gap-3">
+                  <Badge variant="secondary" className="bg-primary/10 text-primary border-none text-[10px] font-black uppercase tracking-widest px-3 h-6">
+                    <Activity className="h-3 w-3 mr-1.5" /> Synchronized
+                  </Badge>
+                  {isHidden && (
+                    <Badge variant="destructive" className="border-none text-[10px] font-black uppercase tracking-widest px-3 h-6">
+                      <Lock className="h-3 w-3 mr-1.5" /> Encrypted
+                    </Badge>
+                  )}
+                </div>
               </div>
-              {isHidden ? (
-                <Lock className="h-4 w-4 text-muted-foreground/40" />
-              ) : (
-                <span className="text-2xl font-black">{context?.commonCommunities || 0}</span>
-              )}
-            </div>
-          </div>
+            </motion.div>
 
-          <div className="p-6 bg-primary/5 rounded-[2rem] border border-primary/10 space-y-3 relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-4 opacity-10"><Activity className="h-12 w-12 text-primary" /></div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-black uppercase tracking-widest text-primary">Intelligence Note</span>
-            </div>
-            <p className="text-sm font-medium text-muted-foreground leading-relaxed italic relative z-10">
-              {isHidden ? "Identity context restricted by Protocol." : `Snapshot created by @${senderName} during Verse session.`}
-            </p>
-          </div>
-        </div>
+            {/* Intelligence Grid */}
+            <div className="grid grid-cols-2 gap-5">
+              <motion.div variants={item} className="p-6 bg-muted/30 rounded-[2.5rem] border border-transparent hover:border-primary/20 transition-all group flex flex-col gap-3 relative overflow-hidden">
+                <div className="absolute -top-4 -right-4 p-8 opacity-0 group-hover:opacity-10 transition-opacity"><Globe className="h-16 w-16" /></div>
+                <div className="flex items-center gap-2.5 text-primary">
+                  <Compass className="h-5 w-5" />
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em]">Verse Reach</span>
+                </div>
+                {isHidden ? <Lock className="h-5 w-5 text-muted-foreground/30" /> : <span className="text-3xl font-black text-foreground">{context?.totalCommunities || 0}</span>}
+                <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest">Total Communities</p>
+              </motion.div>
 
-        <div className="p-6 bg-muted/20 border-t flex items-center justify-center shrink-0">
+              <motion.div variants={item} className="p-6 bg-muted/30 rounded-[2.5rem] border border-transparent hover:border-primary/20 transition-all group flex flex-col gap-3 relative overflow-hidden">
+                <div className="absolute -top-4 -right-4 p-8 opacity-0 group-hover:opacity-10 transition-opacity"><Users className="h-16 w-16" /></div>
+                <div className="flex items-center gap-2.5 text-primary">
+                  <Waves className="h-5 w-5" />
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em]">Mutual Sync</span>
+                </div>
+                {isHidden ? <Lock className="h-5 w-5 text-muted-foreground/30" /> : <span className="text-3xl font-black text-foreground">{context?.commonCommunities || 0}</span>}
+                <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest">Shared Universes</p>
+              </motion.div>
+
+              <motion.div variants={item} className="p-6 bg-muted/30 rounded-[2.5rem] border border-transparent hover:border-primary/20 transition-all group flex flex-col gap-3 relative overflow-hidden">
+                <div className="flex items-center gap-2.5 text-primary">
+                  <Milestone className="h-5 w-5" />
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em]">Verse Age</span>
+                </div>
+                {isHidden ? <Lock className="h-5 w-5 text-muted-foreground/30" /> : <span className="text-xl font-black text-foreground truncate">{accountAge}</span>}
+                <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest">Identity Longevity</p>
+              </motion.div>
+
+              <motion.div variants={item} className="p-6 bg-primary/10 rounded-[2.5rem] border border-primary/20 transition-all group flex flex-col gap-3 relative overflow-hidden">
+                <div className="flex items-center gap-2.5 text-primary">
+                  <ShieldCheck className="h-5 w-5" />
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em]">Security</span>
+                </div>
+                <span className="text-xl font-black text-primary uppercase">Grade AAA</span>
+                <p className="text-[9px] text-primary/60 font-bold uppercase tracking-widest">Protocol Trust</p>
+              </motion.div>
+            </div>
+
+            {/* Verse Trajectory Visualizer */}
+            <motion.div variants={item} className="p-8 bg-card border rounded-[3rem] space-y-6 relative overflow-hidden group">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Zap className="h-5 w-5 text-primary fill-primary" />
+                  <span className="text-[11px] font-black uppercase tracking-[0.3em]">Verse Trajectory</span>
+                </div>
+                <span className="text-[9px] font-black text-muted-foreground/60 uppercase">Live Pulse Analytics</span>
+              </div>
+              
+              <div className="h-24 w-full flex items-end gap-1 px-2 relative">
+                {isHidden ? (
+                  <div className="absolute inset-0 flex items-center justify-center bg-muted/20 backdrop-blur-sm rounded-2xl">
+                    <Ghost className="h-8 w-8 text-primary/20 animate-pulse" />
+                  </div>
+                ) : (
+                  [0.4, 0.7, 0.5, 0.9, 0.6, 0.8, 0.4, 0.9, 1, 0.7, 0.5, 0.8, 0.6, 0.9, 0.4].map((h, i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ height: 0 }}
+                      animate={{ height: `${h * 100}%` }}
+                      transition={{ delay: 0.5 + (i * 0.05), duration: 1, type: "spring" }}
+                      className="flex-1 bg-primary/20 rounded-full group-hover:bg-primary/40 transition-colors"
+                    />
+                  ))
+                )}
+              </div>
+              <p className="text-[10px] text-muted-foreground text-center font-medium italic">
+                {isHidden ? "Trajectory restricted by Protocol encryption." : "Consistent high-fidelity interaction detected across shared nodes."}
+              </p>
+            </motion.div>
+
+            {/* Intelligence Footer Note */}
+            <motion.div variants={item} className="p-8 bg-primary/5 rounded-[3rem] border border-primary/10 space-y-4 relative overflow-hidden">
+              <div className="absolute top-0 left-0 p-6 opacity-[0.03]"><Activity className="h-24 w-24 text-primary" /></div>
+              <div className="flex items-center gap-3">
+                <Info className="h-5 w-5 text-primary" />
+                <span className="text-[11px] font-black uppercase tracking-[0.3em] text-primary">Intelligence Verification</span>
+              </div>
+              <p className="text-base font-medium text-muted-foreground leading-relaxed relative z-10">
+                {isHidden 
+                  ? "Digital lineage context restricted. Identity has activated the 'Absolute Anonymity' protocol." 
+                  : `Snapshot captured by @${senderName} at precisely ${context?.joinedAt ? new Date(context.joinedAt).toLocaleTimeString() : 'sync time'}. Data integrity verified by Verse node.`}
+              </p>
+            </motion.div>
+          </motion.div>
+        </ScrollArea>
+
+        <div className="p-8 bg-muted/20 border-t flex items-center justify-center shrink-0">
           <CreatorFooter />
         </div>
       </DialogContent>

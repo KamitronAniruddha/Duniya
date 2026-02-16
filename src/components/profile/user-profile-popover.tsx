@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
@@ -22,7 +23,7 @@ interface UserProfilePopoverProps {
   userId: string;
   children: React.ReactNode;
   onWhisper?: (userId: string, username: string) => void;
-  onReply?: (userId: string, username: string, photoURL: string, bio?: string, totalCommunities?: number, commonCommunities?: number) => void;
+  onReply?: (userId: string, username: string, photoURL: string, bio?: string, totalCommunities?: number, commonCommunities?: number, joinedAt?: string) => void;
   side?: "left" | "right" | "top" | "bottom";
 }
 
@@ -82,7 +83,7 @@ export function UserProfilePopover({ userId, children, onWhisper, onReply, side 
             <UserProfileContent 
               userId={userId} 
               onWhisper={(id, name) => { onWhisper?.(id, name); setIsOpen(false); }}
-              onReply={(id, name, photo, bio, total, common) => { onReply?.(id, name, photo, bio, total, common); setIsOpen(false); }}
+              onReply={(id, name, photo, bio, total, common, joinedAt) => { onReply?.(id, name, photo, bio, total, common, joinedAt); setIsOpen(false); }}
               onOpenZoom={() => setIsZoomOpen(true)}
               onOpenContribute={() => { setIsContributeOpen(true); setIsOpen(false); }}
             />
@@ -119,7 +120,7 @@ export function UserProfilePopover({ userId, children, onWhisper, onReply, side 
   );
 }
 
-function UserProfileContent({ userId, onWhisper, onReply, onOpenZoom, onOpenContribute }: { userId: string; onWhisper?: (userId: string, username: string) => void; onReply?: (userId: string, username: string, photoURL: string, bio?: string, totalCommunities?: number, commonCommunities?: number) => void; onOpenZoom: () => void; onOpenContribute: () => void }) {
+function UserProfileContent({ userId, onWhisper, onReply, onOpenZoom, onOpenContribute }: { userId: string; onWhisper?: (userId: string, username: string) => void; onReply?: (userId: string, username: string, photoURL: string, bio?: string, totalCommunities?: number, commonCommunities?: number, joinedAt?: string) => void; onOpenZoom: () => void; onOpenContribute: () => void }) {
   const db = useFirestore();
   const { user: currentUser } = useUser();
   const [now, setNow] = useState(Date.now());
@@ -222,7 +223,7 @@ function UserProfileContent({ userId, onWhisper, onReply, onOpenZoom, onOpenCont
             {!isHidden && (
               !isBlurred ? (
                 <>
-                  {onReply && userData && userData.id !== currentUser?.uid && <Button size="sm" className="rounded-xl h-8 px-4 gap-2 bg-primary text-white font-black uppercase text-[9px] tracking-widest" onClick={() => onReply(userData.id, cleanUsername, userData.photoURL || "", userData.bio, stats.total, stats.common)}><Camera className="h-3 w-3" /> Reply</Button>}
+                  {onReply && userData && userData.id !== currentUser?.uid && <Button size="sm" className="rounded-xl h-8 px-4 gap-2 bg-primary text-white font-black uppercase text-[9px] tracking-widest" onClick={() => onReply(userData.id, cleanUsername, userData.photoURL || "", userData.bio, stats.total, stats.common, userData.createdAt)}><Camera className="h-3 w-3" /> Reply</Button>}
                   {canContribute && <Button size="sm" className="rounded-xl h-8 px-4 gap-2 bg-accent text-white font-black uppercase text-[9px] tracking-widest shadow-lg" onClick={onOpenContribute}><ImagePlus className="h-3 w-3" /> Gift Look</Button>}
                   {onWhisper && userData && userData.id !== currentUser?.uid && <Button size="sm" variant="outline" className="rounded-xl h-8 px-4 gap-2 text-indigo-600 font-black uppercase text-[9px] tracking-widest bg-indigo-50/50" onClick={() => onWhisper(userData.id, cleanUsername)}><Ghost className="h-3 w-3" /> Whisper</Button>}
                 </>
