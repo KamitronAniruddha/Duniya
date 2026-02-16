@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, User, Lock, Camera, ShieldAlert, Eye, EyeOff, Users, Palette, Check, Upload, Link, Monitor, Tablet, Smartphone, Sparkles, Trash2, Download, Heart, Maximize2, Shield, UserCheck, X } from "lucide-react";
+import { Loader2, User, Lock, Camera, ShieldAlert, Eye, EyeOff, Users, Palette, Check, Upload, Link, Monitor, Tablet, Smartphone, Sparkles, Trash2, Download, Heart, Maximize2, Shield, UserCheck, X, Key } from "lucide-react";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -313,36 +313,48 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
 
               <TabsContent value="requests" className="p-0 m-0 h-[400px]">
                 <ScrollArea className="h-full">
-                  {userData?.pendingProfileRequests?.length > 0 ? (
-                    <div className="p-6 space-y-3">
-                      <h4 className="text-[10px] font-black uppercase tracking-widest text-primary mb-4">Pending Key Requests</h4>
-                      {userData.pendingProfileRequests.map((req: any) => (
-                        <div key={req.uid} className="flex items-center gap-3 p-3 bg-muted/20 rounded-2xl border border-border/50">
-                          <Avatar className="h-10 w-10 border shadow-sm">
-                            <AvatarImage src={req.photoURL} />
-                            <AvatarFallback className="bg-primary text-white font-black">{req.username?.[0]?.toUpperCase()}</AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <span className="text-xs font-black uppercase tracking-tight">@{req.username}</span>
-                            <p className="text-[9px] text-muted-foreground font-medium truncate italic">Wants access to your identity.</p>
-                          </div>
-                          <div className="flex gap-1">
-                            <Button size="icon" variant="ghost" className="h-8 w-8 rounded-lg text-destructive hover:bg-destructive/10" onClick={() => handleDenyRequest(req)}>
-                              <X className="h-4 w-4" />
-                            </Button>
-                            <Button size="icon" variant="ghost" className="h-8 w-8 rounded-lg text-primary hover:bg-primary/10" onClick={() => handleApproveRequest(req)}>
-                              <Check className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
+                  <div className="p-6 space-y-6">
+                    <div className="bg-primary/5 rounded-2xl p-4 border border-primary/10">
+                      <div className="flex items-center gap-2 mb-2 text-primary">
+                        <Key className="h-4 w-4" />
+                        <h4 className="text-[10px] font-black uppercase tracking-widest">Transient Key Protocol</h4>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground leading-relaxed italic">
+                        Granting a key allows a user to unblur your identity for a single session. Permission is automatically revoked once they close your profile.
+                      </p>
                     </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center h-full opacity-30 gap-4">
-                      <Shield className="h-12 w-12" />
-                      <p className="text-[10px] font-black uppercase tracking-[0.2em]">No Active Requests</p>
-                    </div>
-                  )}
+
+                    {userData?.pendingProfileRequests?.length > 0 ? (
+                      <div className="space-y-3">
+                        <h4 className="text-[10px] font-black uppercase tracking-widest text-primary">Pending Requests</h4>
+                        {userData.pendingProfileRequests.map((req: any) => (
+                          <div key={req.uid} className="flex items-center gap-3 p-3 bg-muted/20 rounded-2xl border border-border/50">
+                            <Avatar className="h-10 w-10 border shadow-sm">
+                              <AvatarImage src={req.photoURL} />
+                              <AvatarFallback className="bg-primary text-white font-black">{req.username?.[0]?.toUpperCase()}</AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <span className="text-xs font-black uppercase tracking-tight">@{req.username}</span>
+                              <p className="text-[9px] text-muted-foreground font-medium truncate italic">Wants access to your identity.</p>
+                            </div>
+                            <div className="flex gap-1">
+                              <Button size="icon" variant="ghost" className="h-8 w-8 rounded-lg text-destructive hover:bg-destructive/10" onClick={() => handleDenyRequest(req)}>
+                                <X className="h-4 w-4" />
+                              </Button>
+                              <Button size="icon" variant="ghost" className="h-8 w-8 rounded-lg text-primary hover:bg-primary/10" onClick={() => handleApproveRequest(req)}>
+                                <Check className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-20 opacity-30 gap-4">
+                        <Shield className="h-12 w-12" />
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em]">No Active Requests</p>
+                      </div>
+                    )}
+                  </div>
                 </ScrollArea>
               </TabsContent>
             </div>

@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useDoc, useFirestore, useMemoFirebase, useUser } from "@/firebase";
-import { doc, arrayUnion } from "firebase/firestore";
+import { doc, arrayUnion, arrayRemove } from "firebase/firestore";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -122,6 +122,18 @@ function UserProfileContent({ userId, onWhisper, onReply, onOpenZoom }: { userId
   const currentUserRef = useMemoFirebase(() => (currentUser ? doc(db, "users", currentUser.uid) : null), [db, currentUser?.uid]);
   const { data: currentUserData } = useDoc(currentUserRef);
 
+  // Transient Key Logic: Automatically revoke authorization when the popover closes (unmounts)
+  useEffect(() => {
+    return () => {
+      if (userData?.id && currentUser?.uid && userData.authorizedViewers?.includes(currentUser.uid)) {
+        const ref = doc(db, "users", userData.id);
+        updateDocumentNonBlocking(ref, {
+          authorizedViewers: arrayRemove(currentUser.uid)
+        });
+      }
+    };
+  }, [userData?.id, currentUser?.uid, userData?.authorizedViewers, db]);
+
   const isBlurred = !!userData?.isProfileBlurred && 
                     userData?.id !== currentUser?.uid && 
                     !userData?.authorizedViewers?.includes(currentUser?.uid || "");
@@ -239,7 +251,7 @@ function UserProfileContent({ userId, onWhisper, onReply, onOpenZoom }: { userId
             <div className="mt-2 py-3 bg-amber-500/5 rounded-xl border border-amber-500/10 flex flex-col items-center gap-2 text-center">
               <Sparkles className="h-4 w-4 text-amber-600" />
               <p className="text-[10px] font-black uppercase tracking-widest text-amber-700">Identity Blurred</p>
-              <p className="text-[9px] text-muted-foreground px-4 leading-snug">Request permission to reveal this member's bio and identity.</p>
+              <p className="text-[9px] text-muted-foreground px-4 leading-snug">Request permission to reveal this member's bio and identity. Access is transient.</p>
             </div>
           )}
         </div>
