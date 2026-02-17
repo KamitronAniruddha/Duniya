@@ -165,6 +165,18 @@ service cloud.firestore {
       }
     }
 
+    /**
+     * @description Support for collectionGroup queries on messages (e.g. for unread badges).
+     */
+    match /{path=**}/messages/{messageId} {
+      allow read: if isSignedIn() && (
+        // Ensure user is allowed to see the message (whisper check)
+        (resource.data.visibleTo.hasAny(['all', request.auth.uid])) &&
+        // Ensure user is a member of the community the message belongs to
+        (resource.data.serverId == null || isCommunityMember(resource.data.serverId))
+      );
+    }
+
     match /media_attachments/{mediaId} {
       allow get: if isSignedIn();
       allow list: if false;

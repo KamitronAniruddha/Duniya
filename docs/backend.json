@@ -399,6 +399,10 @@
           "type": "string",
           "description": "Unique identifier for the Message entity."
         },
+        "serverId": {
+          "type": "string",
+          "description": "Reference to the Community (Server) this message belongs to."
+        },
         "channelId": {
           "type": "string",
           "description": "Reference to the Channel where the message was sent. (Relationship: Channel 1:N Message)"
