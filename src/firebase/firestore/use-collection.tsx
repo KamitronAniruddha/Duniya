@@ -84,7 +84,10 @@ export function useCollection<T = any>(
         setError(null);
         setIsLoading(false);
       },
-      (error: FirestoreError) => {
+      (serverError: FirestoreError) => {
+        // High Fidelity Debugging: Log the real server error before wrapping
+        console.error("Duniya Sync Error:", serverError.message);
+
         // This logic extracts the path from either a ref or a query
         const path: string =
           memoizedTargetRefOrQuery.type === 'collection'

@@ -90,10 +90,11 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
     if (!db || !basePath || !user) return null;
     // CRITICAL: Explicit visibility filter to match security rules and authorize listing
     // Alignment between query and rules is required for authorized collection listing.
+    // We use ORDER BY sentAt DESC to get latest messages and then reverse in UI.
     return query(
       collection(db, basePath, "messages"), 
       where("visibleTo", "array-contains-any", ["all", user.uid]),
-      orderBy("sentAt", "asc"), 
+      orderBy("sentAt", "desc"), 
       limit(100)
     );
   }, [db, basePath, user?.uid]);
@@ -102,10 +103,12 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
 
   const messages = useMemo(() => {
     if (!rawMessages || !user) return [];
-    return rawMessages.filter(msg => {
-      if (msg.fullyDeleted || msg.deletedFor?.includes(user.uid)) return false;
-      return true;
-    });
+    return [...rawMessages]
+      .filter(msg => {
+        if (msg.fullyDeleted || msg.deletedFor?.includes(user.uid)) return false;
+        return true;
+      })
+      .reverse(); // Flip back to chronological for the chat stream
   }, [rawMessages, user?.uid]);
 
   const handleSendMessage = useCallback(async (
