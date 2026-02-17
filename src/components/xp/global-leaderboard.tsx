@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useCollection, useFirestore, useUser, useMemoFirebase } from "@/firebase";
@@ -52,7 +53,7 @@ export function GlobalLeaderboard() {
 
   return (
     <div className="space-y-8 pb-6">
-      {/* Top 3 Podium - Responsive Stack */}
+      {/* Top 3 Podium - Intelligent Responsiveness */}
       <div className="flex flex-col md:flex-row items-center md:items-end justify-center gap-6 md:gap-6 pt-10 px-4">
         {/* Rank 2 - Master Node */}
         {topThree[1] && (

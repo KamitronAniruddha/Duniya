@@ -89,7 +89,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
 
   const messagesQuery = useMemoFirebase(() => {
     if (!db || !basePath || !user) return null;
-    // CRITICAL: Query MUST use array-contains-any on visibleTo to match the Security Rules
+    // CRITICAL: Query MUST use array-contains-any on visibleTo to match the Security Rules exactly
     return query(
       collection(db, basePath, "messages"), 
       where("visibleTo", "array-contains-any", ["all", user.uid]),
@@ -432,7 +432,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
             <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full opacity-30" />
           </div>
           <div className="space-y-6 max-w-lg">
-            <h2 className="text-7xl font-[900] tracking-tighter uppercase text-foreground leading-none">DUNIYA</h2>
+            <h2 className="text-7xl font-black tracking-tighter uppercase text-foreground leading-none">DUNIYA</h2>
             <div className="flex flex-col items-center gap-4">
               <span className="font-['Playfair_Display'] italic text-5xl text-primary flex items-center gap-4 lowercase">
                 Karo Chutiyapaa <Heart className="h-10 w-10 fill-red-500 text-red-500 animate-pulse" />
