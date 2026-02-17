@@ -89,8 +89,10 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
 
   const messagesQuery = useMemoFirebase(() => {
     if (!db || !basePath || !user) return null;
+    // CRITICAL: Filter by visibility to comply with security rules and avoid list errors
     return query(
       collection(db, basePath, "messages"), 
+      where("visibleTo", "array-contains-any", ["all", user.uid]),
       orderBy("sentAt", "asc"), 
       limit(100)
     );
@@ -102,10 +104,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
     if (!rawMessages || !user) return [];
     return rawMessages.filter(msg => {
       if (msg.fullyDeleted || msg.deletedFor?.includes(user.uid)) return false;
-      const visibleTo = msg.visibleTo || ["all"];
-      const isPublic = visibleTo.includes("all");
-      const isAuthorizedParticipant = visibleTo.includes(user.uid);
-      return isPublic || isAuthorizedParticipant;
+      return true; // Filtering is now handled by the query and rules
     });
   }, [rawMessages, user?.uid]);
 

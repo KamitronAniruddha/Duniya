@@ -25,11 +25,11 @@ service cloud.firestore {
       return resource != null && isOwner(userId);
     }
 
-    // Helper to check if a user is in a community's members array
+    // Helper to check if a user is in a community's members sub-collection
+    // This is more performant and compatible with collectionGroup queries
     function isCommunityMember(communityId) {
       return isSignedIn() && 
-             exists(/databases/$(database)/documents/communities/$(communityId)) && 
-             (request.auth.uid in get(/databases/$(database)/documents/communities/$(communityId)).data.members);
+             exists(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid));
     }
 
     function isPublicCommunity(communityId) {
@@ -128,7 +128,9 @@ service cloud.firestore {
         allow create, update, delete: if isSignedIn() && (get(/databases/$(database)/documents/communities/$(communityId)).data.ownerId == request.auth.uid);
 
         match /messages/{messageId} {
-          allow get, list: if isSignedIn() && (isPublicCommunity(communityId) || isCommunityMember(communityId));
+          allow get, list: if isSignedIn() && 
+                           (isPublicCommunity(communityId) || isCommunityMember(communityId)) &&
+                           (!('visibleTo' in resource.data) || resource.data.visibleTo.hasAny(['all', request.auth.uid]));
           allow create: if isSignedIn() && isCommunityMember(communityId) && request.resource.data.senderId == request.auth.uid;
           allow update, delete: if isSignedIn() && (resource.data.senderId == request.auth.uid || get(/databases/$(database)/documents/communities/$(communityId)).data.ownerId == request.auth.uid);
 
@@ -172,19 +174,18 @@ service cloud.firestore {
      * This is critical for cross-channel unread counts.
      */
     match /{path=**}/messages/{messageId} {
-      allow read: if isSignedIn() && (
-        // Whisper check: only allow if user is a participant or it's public
-        (!('visibleTo' in resource.data) || resource.data.visibleTo.hasAny(['all', request.auth.uid])) &&
-        // Community check: allow if serverId is missing (DMs) or if user is member of that specific server
-        (!('serverId' in resource.data) || resource.data.serverId == null || isCommunityMember(resource.data.serverId))
-      );
+      allow read: if isSignedIn() && 
+                    // Whisper check
+                    (resource.data.visibleTo.hasAny(['all', request.auth.uid])) &&
+                    // Membership check via sub-collection (indexable for group queries)
+                    exists(/databases/$(database)/documents/communities/$(resource.data.serverId)/members/$(request.auth.uid));
     }
 
     match /media_attachments/{mediaId} {
       allow get: if isSignedIn();
       allow list: if false;
       allow create: if isSignedIn() && request.resource.data.uploaderId == request.auth.uid;
-      allow update, delete: if isSignedIn() && resource.data.uploaderId == request.auth.uid;
+      allow update, delete: if isSignedIn() && request.resource.data.uploaderId == request.auth.uid;
     }
 
     match /calls/{callId} {

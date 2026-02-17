@@ -1,8 +1,9 @@
+
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
 import { useCollection, useFirestore, useMemoFirebase, useUser } from "@/firebase";
-import { collection, query, orderBy, limit } from "firebase/firestore";
+import { collection, query, orderBy, limit, where } from "firebase/firestore";
 import { Sparkles, Zap, BookOpen, Search, Loader2 } from "lucide-react";
 import { suggestContextualTools, type SuggestedAction } from "@/ai/flows/contextual-tool-suggestion";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,24 +21,16 @@ export function AISuggestionPanel({ serverId, channelId }: AISuggestionPanelProp
 
   const messagesQuery = useMemoFirebase(() => {
     if (!db || !serverId || !channelId || !user) return null;
-    // CRITICAL PERFORMANCE FIX: Removed array-contains-any filter to avoid composite index requirements.
-    // Client-side filtering ensures whispers are excluded from AI analysis instantly.
+    // CRITICAL: Filter by visibility to comply with security rules and avoid list errors
     return query(
       collection(db, "communities", serverId, "channels", channelId, "messages"),
+      where("visibleTo", "array-contains", "all"),
       orderBy("sentAt", "desc"),
       limit(10)
     );
   }, [db, serverId, channelId, user?.uid]);
 
-  const { data: rawMessages } = useCollection(messagesQuery);
-
-  const filteredMessages = useMemo(() => {
-    if (!rawMessages || !user) return [];
-    return rawMessages.filter(msg => {
-      const visibleTo = msg.visibleTo || ["all"];
-      return visibleTo.includes("all") || visibleTo.includes(user.uid);
-    }).slice(0, 5);
-  }, [rawMessages, user?.uid]);
+  const { data: filteredMessages } = useCollection(messagesQuery);
 
   useEffect(() => {
     if (!filteredMessages || filteredMessages.length === 0 || !user) return;

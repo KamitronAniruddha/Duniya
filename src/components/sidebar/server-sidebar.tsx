@@ -150,15 +150,15 @@ function UnreadBadge({ serverId }: { serverId: string }) {
   const db = useFirestore();
   const { user } = useUser();
   
-  // collectionGroup query to find unread messages for this server across all channels.
-  // Requires serverId field in message docs (added in ChatWindow/ForwardDialog).
   const messagesQuery = useMemoFirebase(() => {
     if (!db || !user || !serverId) return null;
+    // CRITICAL: Filter by serverId and visibility to comply with security rules and avoid list errors
     return query(
       collectionGroup(db, "messages"),
       where("serverId", "==", serverId),
+      where("visibleTo", "array-contains", "all"),
       orderBy("sentAt", "desc"),
-      limit(20) // Only check recent messages for performance
+      limit(20)
     );
   }, [db, user?.uid, serverId]);
 
