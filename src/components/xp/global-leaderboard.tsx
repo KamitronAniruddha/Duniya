@@ -18,7 +18,7 @@ export function GlobalLeaderboard() {
   const { user: currentUser } = useUser();
   const [inspectUserId, setInspectUserId] = useState<string | null>(null);
   
-  const leaderboardQuery = useMemoFirebase(() => {
+  const leadersQuery = useMemoFirebase(() => {
     if (!db) return null;
     return query(
       collection(db, "users"),
