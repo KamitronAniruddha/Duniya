@@ -15,6 +15,7 @@ export interface XPState {
     chatting: number;
     presence: number;
     genesis: number;
+    gaming: number;
   };
 }
 
@@ -60,6 +61,7 @@ export function getRankTitle(level: number): string {
  * - Passive Online (per 5 min): 5 XP
  * - Genesis Community Creation: 500 XP
  * - First Login of Day: 100 XP + (Streak * 10)
+ * - Guess Master Win: 250 XP
  */
 export const XP_REWARDS = {
   MESSAGE_BASE: 10,
@@ -68,6 +70,7 @@ export const XP_REWARDS = {
   GENESIS_CREATION: 500,
   DAILY_LOGIN_BASE: 100,
   STREAK_BONUS: 10,
+  GUESS_MASTER_WIN: 250,
 };
 
 /**
@@ -78,7 +81,7 @@ export function awardXP(
   db: Firestore,
   userId: string,
   amount: number,
-  type: 'chatting' | 'presence' | 'genesis' | 'bonus',
+  type: 'chatting' | 'presence' | 'genesis' | 'bonus' | 'gaming',
   reason: string
 ) {
   if (!db || !userId || amount <= 0) return;

@@ -1,9 +1,8 @@
-
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { SendHorizontal, Smile, History, Ghost, X, Mic, Square, Trash2, Video, Timer, Clock, Image as ImageIcon, Loader2, Paperclip, FileText, Type, TypeOutline, Eraser, Command, User as UserIcon, Palette, Link, Compass, Check, BellOff, Bell, LogOut, Info, Sparkles, EyeOff, Lock, Shield, ShieldAlert, Activity, Zap, Heart, Camera, Reply } from "lucide-react";
+import { SendHorizontal, Smile, History, Ghost, X, Mic, Square, Trash2, Video, Timer, Clock, Image as ImageIcon, Loader2, Paperclip, FileText, Type, TypeOutline, Eraser, Command, User as UserIcon, Palette, Link, Compass, Check, BellOff, Bell, LogOut, Info, Sparkles, EyeOff, Lock, Shield, ShieldAlert, Activity, Zap, Heart, Camera, Reply, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -64,6 +63,7 @@ const CHEAT_CODES = [
   { icon: <Trash2 className="h-4 w-4 text-red-500" />, label: "del", description: "Delete last X messages", usage: "@del 5" },
   { icon: <Lock className="h-4 w-4 text-indigo-500" />, label: "whisper", description: "Toggle private whisper mode", usage: "@whisper @username" },
   { icon: <Heart className="h-4 w-4 text-rose-500 fill-rose-500" />, label: "vibe", description: "Send an intimate digital pulse", usage: "@vibe @username I adore you" },
+  { icon: <Target className="h-4 w-4 text-primary" />, label: "guess", description: "Verse Guess Master Game", usage: "@guess start" },
   { icon: <Activity className="h-4 w-4 text-emerald-500" />, label: "ping", description: "Verse sync latency", usage: "@ping" },
   { icon: <Palette className="h-4 w-4 text-pink-500" />, label: "theme", description: "Cycle visual vibes", usage: "@theme" },
   { icon: <UserIcon className="h-4 w-4 text-blue-500" />, label: "profile", description: "Modify identity signature", usage: "@profile" },

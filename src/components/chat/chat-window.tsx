@@ -1,13 +1,12 @@
-
 "use client";
 
 import { useRef, useEffect, useState, useMemo, useCallback } from "react";
 import { useCollection, useFirestore, useUser, useDoc, useMemoFirebase, useAuth } from "@/firebase";
-import { collection, query, limit, doc, arrayUnion, writeBatch, deleteField, where, getDocs } from "firebase/firestore";
+import { collection, query, limit, doc, arrayUnion, writeBatch, deleteField, where, getDocs, updateDoc, setDoc } from "firebase/firestore";
 import { MessageBubble } from "./message-bubble";
 import { MessageInput } from "./message-input";
 import { TypingIndicator } from "./typing-indicator";
-import { Hash, Users, Loader2, MessageCircle, X, Trash2, MoreVertical, Eraser, Forward, Settings, Heart, Activity, Zap, Info, Clock, Check, BellOff, Bell, History, Link, Compass, LogOut, Lock, Ghost } from "lucide-react";
+import { Hash, Users, Loader2, MessageCircle, X, Trash2, MoreVertical, Eraser, Forward, Settings, Heart, Activity, Zap, Info, Clock, Check, BellOff, Bell, History, Link, Compass, LogOut, Lock, Ghost, Target, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { setDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { cn } from "@/lib/utils";
@@ -21,6 +20,8 @@ import { ForwardDialog } from "./forward-dialog";
 import { ChannelSettingsDialog } from "@/components/channels/channel-settings-dialog";
 import { AnimatePresence, motion } from "framer-motion";
 import { useTheme } from "next-themes";
+import { GuessGameOverlay } from "./guess-game-overlay";
+import { awardXP, XP_REWARDS } from "@/lib/xp-system";
 
 interface ProfileReplyTarget {
   id: string;
@@ -296,10 +297,95 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
       onOpenExplore?.();
       return true;
     }
+    if (cmd === "guess") {
+      const subCmd = args[0]?.toLowerCase();
+      
+      if (subCmd === "start") {
+        if (contextData?.activeGame && contextData.activeGame.status === "active") {
+          toast({ title: "Node Busy", description: "A game is already active in this channel." });
+          return true;
+        }
+        const secret = Math.floor(Math.random() * 90) + 10;
+        updateDocumentNonBlocking(contextRef!, {
+          activeGame: {
+            secretNumber: secret,
+            attempts: 0,
+            status: "active",
+            startedAt: new Date().toISOString()
+          }
+        });
+        handleSendMessage("initialized a new **Guess Master** node! Guess a number between **10** and **99** to win XP.", undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, false, undefined, false, "game_start");
+        return true;
+      }
+
+      if (subCmd === "end") {
+        if (isAdmin) {
+          updateDocumentNonBlocking(contextRef!, { activeGame: deleteField() });
+          toast({ title: "Node Terminated", description: "Game has been ended manually." });
+        } else {
+          toast({ variant: "destructive", title: "Access Denied", description: "Only admins can terminate game nodes." });
+        }
+        return true;
+      }
+
+      const num = parseInt(args[0]);
+      if (!isNaN(num) && num >= 10 && num <= 99) {
+        if (!contextData?.activeGame || contextData.activeGame.status !== "active") {
+          toast({ title: "No Node Active", description: "Use `@guess start` to begin a game." });
+          return true;
+        }
+
+        const game = contextData.activeGame;
+        const secret = game.secretNumber;
+        const attempts = (game.attempts || 0) + 1;
+        
+        let hint: "higher" | "lower" | "correct" = "correct";
+        if (num < secret) hint = "higher";
+        else if (num > secret) hint = "lower";
+
+        if (hint === "correct") {
+          updateDocumentNonBlocking(contextRef!, {
+            activeGame: {
+              ...game,
+              status: "won",
+              lastGuess: num,
+              lastGuesserName: userData?.username || user?.displayName || "User",
+              lastGuesserPhoto: userData?.photoURL || user?.photoURL || "",
+              attempts,
+              winnerName: userData?.username || user?.displayName || "User"
+            }
+          });
+          
+          handleSendMessage(`cracked the Guess Master node! The secret number was **${num}**. Won **${XP_REWARDS.GUESS_MASTER_WIN} XP**!`, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, false, undefined, false, "game_win");
+          awardXP(db, user!.uid, XP_REWARDS.GUESS_MASTER_WIN, "gaming", `Guess Master Victory: Node ${num}`);
+          
+          // Clear game after a delay
+          setTimeout(() => {
+            updateDocumentNonBlocking(contextRef!, { activeGame: deleteField() });
+          }, 5000);
+        } else {
+          updateDocumentNonBlocking(contextRef!, {
+            activeGame: {
+              ...game,
+              attempts,
+              lastGuess: num,
+              lastGuesserName: userData?.username || user?.displayName || "User",
+              lastGuesserPhoto: userData?.photoURL || user?.photoURL || "",
+              hint
+            }
+          });
+          awardXP(db, user!.uid, 2, "gaming", `Guess Attempt: ${num} (${hint})`);
+        }
+        return true;
+      }
+
+      toast({ title: "Guess Master Hub", description: "Commands: `@guess start`, `@guess [10-99]`, `@guess end`." });
+      return true;
+    }
     if (cmd === "help") {
       toast({ 
         title: "Verse Command Hub", 
-        description: "Available: @clr, @del, @whisper, @vibe, @phide, @porn, @ping, @theme, @profile, @explore, @invite, @trace, @logout, @id, @time, @version." 
+        description: "Available: @clr, @del, @whisper, @vibe, @guess, @phide, @porn, @ping, @theme, @profile, @explore, @invite, @trace, @logout, @id, @time, @version." 
       });
       return true;
     }
@@ -338,7 +424,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
       return true;
     }
     return false;
-  }, [db, basePath, user, messages, handleClearChat, toast, userData, serverId, auth, themes, theme, setTheme, onOpenProfile, onOpenExplore, handleWhisper, handleSendMessage]);
+  }, [db, basePath, user, messages, handleClearChat, toast, userData, serverId, auth, themes, theme, setTheme, onOpenProfile, onOpenExplore, handleWhisper, handleSendMessage, contextData, contextRef, isAdmin]);
 
   const handleBatchDelete = useCallback(async (type: "everyone" | "me") => {
     if (!db || !basePath || !user || selectedIds.size === 0) return;
@@ -504,6 +590,12 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
 
       <div className="flex-1 flex min-h-0 overflow-hidden bg-background">
         <div className="flex-1 flex flex-col min-w-0 h-full relative">
+          <AnimatePresence>
+            {contextData?.activeGame && (
+              <GuessGameOverlay activeGame={contextData.activeGame} />
+            )}
+          </AnimatePresence>
+
           <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-1 custom-scrollbar min-h-0">
             {messagesLoading ? (
               <div className="flex flex-col items-center justify-center py-20 opacity-30 gap-3">
