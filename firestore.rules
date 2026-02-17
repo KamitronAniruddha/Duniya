@@ -3,20 +3,16 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * Duniya Verse Security Rules v12.0
+     * Duniya Verse Security Rules v14.0
      * 
      * CORE PHILOSOPHY:
      * - Resilient path matching for all digital contexts.
-     * - Safeguarded data access with defaults to prevent runtime denials.
+     * - Safe-default field access to prevent evaluation crashes.
      * - Unified Whisper Protocol for high-fidelity privacy.
      */
 
     function isSignedIn() {
       return request.auth != null;
-    }
-
-    function isMember(communityId) {
-      return isSignedIn() && exists(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid));
     }
 
     // --- User Profiles & Identity Node ---
@@ -53,14 +49,18 @@ service cloud.firestore {
     }
 
     // --- Unified Recursive Message Access (Forwarding, Whispers & Lineage) ---
-    // This wildcard match handles both standard channels and deep recursive lineages.
-    // authorizes queries that use array-contains-any on 'visibleTo'
+    // Handles both standard channels and deep recursive lineages.
+    // Uses safe-default get() to prevent evaluation crashes on missing fields.
     match /{path=**}/messages/{messageId} {
       allow read: if isSignedIn() && (
-        resource.data.visibleTo.hasAny(['all', request.auth.uid])
+        request.auth.uid == resource.data.senderId ||
+        resource.data.get('visibleTo', ['all']).hasAny(['all', request.auth.uid])
       );
       allow create: if isSignedIn();
-      allow update, delete: if isSignedIn() && resource.data.senderId == request.auth.uid;
+      allow update, delete: if isSignedIn() && (
+        resource.data.senderId == request.auth.uid ||
+        request.auth.uid in get(/databases/$(database)/documents/communities/$(resource.data.serverId)).data.get('admins', [])
+      );
     }
 
     // --- Invitations ---
