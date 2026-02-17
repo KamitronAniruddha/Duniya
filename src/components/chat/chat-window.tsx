@@ -89,6 +89,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
   const messagesQuery = useMemoFirebase(() => {
     if (!db || !basePath || !user) return null;
     // CRITICAL: Query MUST use array-contains-any on visibleTo to match the Security Rules exactly
+    // This alignment is required by Firestore to authorize list operations.
     return query(
       collection(db, basePath, "messages"), 
       where("visibleTo", "array-contains-any", ["all", user.uid]),
@@ -424,19 +425,19 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
     return (
       <div className="flex-1 flex flex-col items-center justify-center bg-background h-full p-6 text-center overflow-hidden font-body">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center">
-          <div className="relative mb-12">
-            <motion.div animate={{ scale: [1, 1.05, 1] }} transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }} className="p-12 bg-primary/5 rounded-[3.5rem] relative z-10">
-              <MessageCircle className="h-24 w-24 text-primary" />
+          <div className="relative mb-8">
+            <motion.div animate={{ scale: [1, 1.05, 1] }} transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }} className="p-8 bg-primary/5 rounded-[2.5rem] relative z-10">
+              <MessageCircle className="h-16 w-16 text-primary" />
             </motion.div>
             <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full opacity-30" />
           </div>
-          <div className="space-y-6 max-w-lg">
-            <h2 className="text-7xl font-black tracking-tighter uppercase text-foreground leading-none">DUNIYA</h2>
-            <div className="flex flex-col items-center gap-4">
-              <span className="font-['Playfair_Display'] italic text-5xl text-primary flex items-center gap-4 lowercase">
-                Karo Chutiyapaa <Heart className="h-10 w-10 fill-red-500 text-red-500 animate-pulse" />
+          <div className="space-y-4 max-w-lg">
+            <h2 className="text-4xl font-black tracking-tighter uppercase text-foreground leading-none">DUNIYA</h2>
+            <div className="flex flex-col items-center gap-2">
+              <span className="font-['Playfair_Display'] italic text-2xl text-primary flex items-center gap-2 lowercase">
+                Karo Chutiyapaa <Heart className="h-5 w-5 fill-red-500 text-red-500 animate-pulse" />
               </span>
-              <p className="text-muted-foreground text-[11px] font-black uppercase tracking-[0.5em] opacity-40 mt-6">Enter a community to begin your journey</p>
+              <p className="text-muted-foreground text-[9px] font-black uppercase tracking-[0.4em] opacity-40 mt-4">Enter a community to begin your journey</p>
             </div>
           </div>
         </motion.div>
@@ -456,8 +457,8 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
             <motion.div key="selection-header" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.1, ease: "easeOut" }} className="flex items-center gap-4 w-full h-full">
               <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full h-8 w-8" onClick={handleCancelSelection}><X className="h-4 w-4" /></Button>
               <div className="flex-1 flex flex-col">
-                <span className="font-black text-base tracking-tighter leading-none">{selectedMessagesCount} SELECTED</span>
-                <span className="text-[9px] font-bold uppercase tracking-widest opacity-60">Verse Operations</span>
+                <span className="font-black text-sm tracking-tighter leading-none">{selectedMessagesCount} SELECTED</span>
+                <span className="text-[8px] font-bold uppercase tracking-widest opacity-60">Verse Operations</span>
               </div>
               <div className="flex items-center gap-1">
                 <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-full h-9 w-9" onClick={() => setIsForwardOpen(true)}><Forward className="h-4 w-4" /></Button>
@@ -468,19 +469,19 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
             <motion.div key="normal-header" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} transition={{ duration: 0.1, ease: "easeOut" }} className="flex items-center justify-between w-full h-full">
               <div className="flex items-center gap-3 min-w-0 flex-1">
                 <div className="p-2 bg-primary/5 rounded-xl shrink-0">
-                  <Hash className="h-5 w-5 text-primary" />
+                  <Hash className="h-4 w-4 text-primary" />
                 </div>
                 <div className="flex flex-col min-w-0">
-                  <h2 className="font-black text-xl truncate leading-none tracking-tighter text-foreground uppercase">#{headerTitle}</h2>
-                  <span className="text-[9px] text-muted-foreground font-black uppercase tracking-widest mt-1">Sync Active</span>
+                  <h2 className="font-black text-lg truncate leading-none tracking-tighter text-foreground uppercase">#{headerTitle}</h2>
+                  <span className="text-[8px] text-muted-foreground font-black uppercase tracking-widest mt-1">Sync Active</span>
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <ThemeToggle />
-                <Button variant="ghost" size="icon" className={cn("h-9 w-9 rounded-xl transition-all duration-200", showMembers ? "bg-primary/10 text-primary" : "text-muted-foreground")} onClick={onToggleMembers}><Users className="h-5 w-5" /></Button>
+                <Button variant="ghost" size="icon" className={cn("h-9 w-9 rounded-xl transition-all duration-200", showMembers ? "bg-primary/10 text-primary" : "text-muted-foreground")} onClick={onToggleMembers}><Users className="h-4 w-4" /></Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-muted-foreground"><MoreVertical className="h-5 w-5" /></Button>
+                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-muted-foreground"><MoreVertical className="h-4 w-4" /></Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56 font-black uppercase text-[10px] tracking-widest p-1 border-none shadow-2xl bg-popover/95 backdrop-blur-md">
                     {isAdmin && <DropdownMenuItem onClick={() => setIsChannelSettingsOpen(true)} className="gap-2 p-3 rounded-xl"><Settings className="h-4 w-4 text-primary" /> Edit Channel</DropdownMenuItem>}
@@ -498,13 +499,13 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
           <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-1 custom-scrollbar min-h-0">
             {messagesLoading ? (
               <div className="flex flex-col items-center justify-center py-20 opacity-30 gap-3">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="text-xs font-black uppercase tracking-widest text-primary">Syncing Verse</p>
+                <Loader2 className="h-6 w-6 animate-spin text-primary" /><p className="text-[9px] font-black uppercase tracking-widest text-primary">Syncing Verse</p>
               </div>
             ) : messages.length === 0 ? (
               <div className="py-24 text-center opacity-30 flex flex-col items-center">
-                <div className="h-20 w-20 bg-muted/50 rounded-[2.5rem] flex items-center justify-center mb-6"><Hash className="h-10 w-10 text-muted-foreground" /></div>
-                <h3 className="text-2xl font-black mb-1 tracking-tighter uppercase text-foreground">WELCOME TO #{headerTitle}</h3>
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Start something legendary.</p>
+                <div className="h-16 w-16 bg-muted/50 rounded-[2rem] flex items-center justify-center mb-4"><Hash className="h-8 w-8 text-muted-foreground" /></div>
+                <h3 className="text-xl font-black mb-1 tracking-tighter uppercase text-foreground">WELCOME TO #{headerTitle}</h3>
+                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground">Start something legendary.</p>
               </div>
             ) : (
               <div className="flex flex-col justify-end min-h-full">
@@ -563,12 +564,12 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
       <AlertDialog open={isClearChatDialogOpen} onOpenChange={setIsClearChatDialogOpen}>
         <AlertDialogContent className="rounded-[2.5rem] border-none shadow-2xl p-8">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-2xl font-black tracking-tighter uppercase">CLEAR CHAT?</AlertDialogTitle>
+            <AlertDialogTitle className="text-xl font-black tracking-tighter uppercase">CLEAR CHAT?</AlertDialogTitle>
             <AlertDialogDescription className="font-medium text-muted-foreground">This will remove all messages from your view. This operation is synchronized.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="gap-3 mt-4">
-            <AlertDialogCancel className="rounded-2xl font-bold h-12 flex-1">Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleClearChat} className="rounded-2xl font-black h-12 flex-1 bg-destructive hover:bg-destructive/90 shadow-lg shadow-destructive/20 uppercase tracking-widest">Wipe Verse</AlertDialogAction>
+            <AlertDialogCancel className="rounded-xl font-bold h-11 flex-1">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleClearChat} className="rounded-xl font-black h-11 flex-1 bg-destructive hover:bg-destructive/90 shadow-lg shadow-destructive/20 uppercase tracking-widest">Wipe Verse</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

@@ -162,12 +162,11 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[850px] w-[98vw] rounded-[2.5rem] overflow-hidden p-0 border-none shadow-[0_32px_128px_rgba(0,0,0,0.4)] bg-background h-[90vh] max-h-[750px] flex flex-col font-body">
-        {/* Simplified Header */}
         <DialogHeader className="px-6 py-4 border-b bg-card shrink-0 flex flex-row items-center justify-between">
           <div className="flex flex-col">
             <div className="flex items-center gap-2 mb-0.5">
               <Fingerprint className="h-3.5 w-3.5 text-primary" />
-              <span className="text-[8px] font-black uppercase tracking-[0.3em] text-primary/60">Verse Identity Suite v4.0</span>
+              <span className="text-[8px] font-black uppercase tracking-[0.3em] text-primary/60">Verse Identity Suite</span>
             </div>
             <DialogTitle className="text-xl font-black tracking-tighter uppercase leading-none">
               Identity <span className="text-primary italic">Node</span>
@@ -175,13 +174,12 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
           </div>
           <div className="hidden sm:flex items-center gap-3">
             <div className="px-3 py-1 bg-primary/10 rounded-full border border-primary/20">
-              <span className="text-[8px] font-black text-primary uppercase tracking-widest">Sovereign Protocol Active</span>
+              <span className="text-[8px] font-black text-primary uppercase tracking-widest">Protocol Active</span>
             </div>
           </div>
         </DialogHeader>
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 flex flex-col md:flex-row overflow-hidden">
-          {/* LEFT SIDEBAR NAVIGATION */}
           <TabsList className="flex flex-row md:flex-col w-full md:w-[160px] md:h-full bg-muted/20 border-b md:border-b-0 md:border-r border-border/50 shrink-0 p-2 md:p-3 gap-1 overflow-x-auto custom-scrollbar md:justify-start">
             <TabsTrigger value="profile" className="flex-1 md:w-full justify-start gap-2.5 px-3 py-2 rounded-xl font-bold text-[9px] uppercase tracking-widest data-[state=active]:bg-background data-[state=active]:shadow-lg transition-all text-left">
               <User className="h-3.5 w-3.5" /> <span className="hidden md:inline">Identity</span>
@@ -204,7 +202,6 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
             </TabsTrigger>
           </TabsList>
           
-          {/* RIGHT SIDE CONTENT AREA */}
           <div className="flex-1 h-full overflow-hidden bg-card/30">
             <ScrollArea className="h-full">
               <AnimatePresence mode="wait">
@@ -216,11 +213,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
                           <AvatarImage src={photoURL || undefined} className="object-cover" />
                           <AvatarFallback className="text-xl bg-primary text-white font-black">{username?.[0]?.toUpperCase()}</AvatarFallback>
                         </Avatar>
-                        <button 
-                          type="button" 
-                          onClick={() => fileInputRef.current?.click()} 
-                          className="absolute -bottom-1 -right-1 p-1.5 bg-primary rounded-xl shadow-lg border-2 border-background text-white z-20 hover:scale-110 active:scale-95 transition-all"
-                        >
+                        <button type="button" onClick={() => fileInputRef.current?.click()} className="absolute -bottom-1 -right-1 p-1.5 bg-primary rounded-xl shadow-lg border-2 border-background text-white z-20 hover:scale-110 active:scale-95 transition-all">
                           <Camera className="h-3 w-3" />
                         </button>
                         <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={(e) => {
@@ -244,33 +237,17 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
                     <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label className="text-[9px] font-black uppercase tracking-[0.2em] text-primary ml-1">Identity Signature</Label>
-                        <Input 
-                          className="bg-background border-none rounded-xl h-10 font-bold text-sm px-4 focus:ring-2 focus:ring-primary/10 shadow-sm transition-all" 
-                          value={username} 
-                          onChange={(e) => setUsername(e.target.value)} 
-                          placeholder="Your identity..."
-                        />
+                        <Input className="bg-background border-none rounded-xl h-10 font-bold text-sm px-4 focus:ring-2 focus:ring-primary/10 shadow-sm transition-all" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Your identity..." />
                       </div>
-
                       <div className="space-y-2">
-                        <Label className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Identity Node Media</Label>
-                        <Input 
-                          className="bg-background/50 border-none rounded-xl h-10 font-medium text-xs px-4 focus:ring-2 focus:ring-primary/10 shadow-inner transition-all" 
-                          value={photoURL} 
-                          onChange={(e) => setPhotoURL(e.target.value)} 
-                          placeholder="https://..."
-                        />
+                        <Label className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Media Node URL</Label>
+                        <Input className="bg-background/50 border-none rounded-xl h-10 font-medium text-xs px-4 focus:ring-2 focus:ring-primary/10 shadow-inner transition-all" value={photoURL} onChange={(e) => setPhotoURL(e.target.value)} placeholder="https://..." />
                       </div>
                     </motion.div>
 
                     <motion.div variants={itemVariants} className="space-y-2">
                       <Label className="text-[9px] font-black uppercase tracking-[0.2em] text-primary ml-1">Persona Manifesto</Label>
-                      <Textarea 
-                        className="bg-background border-none rounded-2xl font-medium min-h-[80px] px-5 py-3 focus:ring-2 focus:ring-primary/10 shadow-sm transition-all resize-none text-sm leading-relaxed" 
-                        value={bio} 
-                        onChange={(e) => setBio(e.target.value)} 
-                        placeholder="Share your prime directive..."
-                      />
+                      <Textarea className="bg-background border-none rounded-2xl font-medium min-h-[80px] px-5 py-3 focus:ring-2 focus:ring-primary/10 shadow-sm transition-all resize-none text-sm leading-relaxed" value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Share your prime directive..." />
                     </motion.div>
                   </motion.div>
                 </TabsContent>
@@ -291,28 +268,10 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
                 <TabsContent key="tab-interface" value="interface" className="p-4 md:p-6 m-0 outline-none">
                   <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-4">
                     {INTERFACE_MODES.map((m) => (
-                      <motion.button 
-                        key={m.id}
-                        variants={itemVariants}
-                        onClick={() => setInterfaceMode(m.id)} 
-                        className={cn(
-                          "w-full flex items-center gap-4 p-4 rounded-2xl border transition-all text-left",
-                          interfaceMode === m.id ? "border-primary bg-primary/5 shadow-md" : "border-transparent bg-background/50 hover:bg-muted/50"
-                        )}
-                      >
-                        <div className={cn(
-                          "h-10 w-10 rounded-xl flex items-center justify-center transition-all",
-                          interfaceMode === m.id ? "bg-primary text-white scale-105 shadow-lg shadow-primary/20" : "bg-muted text-muted-foreground"
-                        )}>
-                          {m.icon}
-                        </div>
-                        <div className="flex-1">
-                          <span className="text-xs font-black uppercase tracking-tight block leading-none">{m.label} Protocol</span>
-                          <span className="text-[10px] text-muted-foreground font-medium italic mt-1 block">{m.desc}</span>
-                        </div>
-                        {interfaceMode === m.id && (
-                          <Check className="h-4 w-4 text-primary animate-in zoom-in" />
-                        )}
+                      <motion.button key={m.id} variants={itemVariants} onClick={() => setInterfaceMode(m.id)} className={cn("w-full flex items-center gap-4 p-4 rounded-2xl border transition-all text-left", interfaceMode === m.id ? "border-primary bg-primary/5 shadow-md" : "border-transparent bg-background/50 hover:bg-muted/50")}>
+                        <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center transition-all", interfaceMode === m.id ? "bg-primary text-white scale-105 shadow-lg shadow-primary/20" : "bg-muted text-muted-foreground")}>{m.icon}</div>
+                        <div className="flex-1"><span className="text-xs font-black uppercase tracking-tight block leading-none">{m.label} Protocol</span><span className="text-[10px] text-muted-foreground font-medium italic mt-1 block">{m.desc}</span></div>
+                        {interfaceMode === m.id && <Check className="h-4 w-4 text-primary animate-in zoom-in" />}
                       </motion.button>
                     ))}
                   </motion.div>
@@ -322,36 +281,17 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
                   <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-6">
                     <motion.div variants={itemVariants} className="p-6 bg-background/60 backdrop-blur-xl rounded-2xl border border-border/50 space-y-5 shadow-lg">
                       <div className="flex items-center justify-between">
-                        <div className="flex flex-col gap-1">
-                          <Label className="text-xs font-black uppercase tracking-tight flex items-center gap-2">
-                            <Lock className="h-3.5 w-3.5 text-rose-500" /> Identity Encryption
-                          </Label>
-                          <p className="text-[9px] text-muted-foreground italic">Vanish from public node directories.</p>
-                        </div>
+                        <div className="flex flex-col gap-1"><Label className="text-xs font-black uppercase tracking-tight flex items-center gap-2"><Lock className="h-3.5 w-3.5 text-rose-500" /> Identity Encryption</Label><p className="text-[9px] text-muted-foreground italic">Vanish from public node directories.</p></div>
                         <Switch checked={isProfileHidden} onCheckedChange={setIsProfileHidden} />
                       </div>
-                      
                       <Separator className="opacity-20" />
-
                       <div className="flex items-center justify-between">
-                        <div className="flex flex-col gap-1">
-                          <Label className="text-xs font-black uppercase tracking-tight flex items-center gap-2">
-                            <EyeOff className="h-3.5 w-3.5 text-amber-500" /> Blur Field Intensity
-                          </Label>
-                          <p className="text-[9px] text-muted-foreground italic">Force transient keys for masking.</p>
-                        </div>
+                        <div className="flex flex-col gap-1"><Label className="text-xs font-black uppercase tracking-tight flex items-center gap-2"><EyeOff className="h-3.5 w-3.5 text-amber-500" /> Blur Field Intensity</Label><p className="text-[9px] text-muted-foreground italic">Force transient keys for masking.</p></div>
                         <Switch checked={isProfileBlurred} onCheckedChange={setIsProfileBlurred} />
                       </div>
-
                       <Separator className="opacity-20" />
-
                       <div className="flex items-center justify-between">
-                        <div className="flex flex-col gap-1">
-                          <Label className="text-xs font-black uppercase tracking-tight flex items-center gap-2">
-                            <Activity className="h-3.5 w-3.5 text-primary" /> Live Presence Pulse
-                          </Label>
-                          <p className="text-[9px] text-muted-foreground italic">Show 'On Screen' live status.</p>
-                        </div>
+                        <div className="flex flex-col gap-1"><Label className="text-xs font-black uppercase tracking-tight flex items-center gap-2"><Activity className="h-3.5 w-3.5 text-primary" /> Live Presence Pulse</Label><p className="text-[9px] text-muted-foreground italic">Show 'On Screen' live status.</p></div>
                         <Switch checked={showOnlineStatus} onCheckedChange={setShowOnlineStatus} />
                       </div>
                     </motion.div>
@@ -366,19 +306,12 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
                           <motion.div key={req.uid} variants={itemVariants} className="p-5 bg-background border border-border/50 rounded-2xl flex flex-col gap-4 shadow-md">
                             <div className="flex items-center gap-3">
                               <Avatar className="h-10 w-10 border shadow-sm"><AvatarImage src={req.photoURL} /><AvatarFallback className="bg-primary text-white font-black text-xs">{req.username?.[0]?.toUpperCase()}</AvatarFallback></Avatar>
-                              <div className="flex-1 min-w-0">
-                                <span className="text-xs font-black uppercase tracking-tighter block truncate">@{req.username}</span>
-                                <p className="text-[9px] text-muted-foreground italic truncate">Requesting review access.</p>
-                              </div>
+                              <div className="flex-1 min-w-0"><span className="text-xs font-black uppercase tracking-tighter block truncate">@{req.username}</span><p className="text-[9px] text-muted-foreground italic truncate">Requesting review access.</p></div>
                             </div>
                             <div className="flex items-center gap-2">
                               <Select onValueChange={(val) => handleApproveRequest(req, parseInt(val))}>
-                                <SelectTrigger className="flex-1 bg-primary/5 hover:bg-primary/10 border-none rounded-xl h-10 text-[9px] font-black uppercase tracking-widest transition-all">
-                                  <SelectValue placeholder="GRANT ACCESS WINDOW" />
-                                </SelectTrigger>
-                                <SelectContent className="rounded-xl border-none shadow-2xl">
-                                  {DURATIONS.map(d => <SelectItem key={d.value} value={d.value.toString()} className="text-[9px] font-black uppercase tracking-widest p-2.5">{d.label}</SelectItem>)}
-                                </SelectContent>
+                                <SelectTrigger className="flex-1 bg-primary/5 hover:bg-primary/10 border-none rounded-xl h-10 text-[9px] font-black uppercase tracking-widest transition-all"><SelectValue placeholder="GRANT ACCESS WINDOW" /></SelectTrigger>
+                                <SelectContent className="rounded-xl border-none shadow-2xl">{DURATIONS.map(d => <SelectItem key={d.value} value={d.value.toString()} className="text-[9px] font-black uppercase tracking-widest p-2.5">{d.label}</SelectItem>)}</SelectContent>
                               </Select>
                               <Button size="icon" variant="ghost" className="h-10 w-10 rounded-xl text-destructive hover:bg-destructive/10" onClick={() => handleDenyRequest(req)}><X className="h-4 w-4 stroke-[3px]" /></Button>
                             </div>
@@ -386,10 +319,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
                         ))}
                       </div>
                     ) : (
-                      <div className="flex flex-col items-center justify-center py-20 opacity-20 text-center gap-4">
-                        <Shield className="h-12 w-12" />
-                        <p className="text-[10px] font-black uppercase tracking-[0.3em]">Zero Pending Handshakes</p>
-                      </div>
+                      <div className="flex flex-col items-center justify-center py-20 opacity-20 text-center gap-4"><Shield className="h-12 w-12" /><p className="text-[10px] font-black uppercase tracking-[0.3em]">Zero Pending Handshakes</p></div>
                     )}
                   </motion.div>
                 </TabsContent>
@@ -398,19 +328,11 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
           </div>
         </Tabs>
 
-        {/* Unified Footer */}
         <DialogFooter className="px-6 py-4 bg-muted/10 border-t shrink-0 flex flex-row items-center justify-between gap-4">
           <CreatorFooter className="hidden sm:flex opacity-60 scale-90 origin-left" />
           <div className="flex items-center gap-3 w-full sm:w-auto">
             <Button variant="ghost" className="rounded-xl font-bold h-10 text-[9px] px-4 uppercase tracking-widest" onClick={() => onOpenChange(false)} disabled={isLoading}>Cancel</Button>
-            <Button 
-              onClick={handleUpdateProfile} 
-              className="flex-1 sm:flex-none rounded-xl font-black h-10 text-[9px] px-8 shadow-lg shadow-primary/20 uppercase tracking-[0.15em] gap-2.5 bg-primary hover:bg-primary/90 text-white transition-all active:scale-95" 
-              disabled={isLoading}
-            >
-              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4 stroke-[2.5px]" />}
-              Commit Node Sync
-            </Button>
+            <Button onClick={handleUpdateProfile} className="flex-1 sm:flex-none rounded-xl font-black h-10 text-[9px] px-8 shadow-lg shadow-primary/20 uppercase tracking-[0.15em] gap-2.5 bg-primary hover:bg-primary/90 text-white transition-all active:scale-95" disabled={isLoading}>{isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4 stroke-[2.5px]" />}Commit Node Sync</Button>
           </div>
         </DialogFooter>
       </DialogContent>

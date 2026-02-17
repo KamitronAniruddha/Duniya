@@ -3,16 +3,20 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * Duniya Verse Security Rules v10.0
+     * Duniya Verse Security Rules v11.0
      * 
      * CORE PHILOSOPHY:
-     * - Explicit path matching for core collections to ensure robust listing.
-     * - Safe data access using .get() with defaults to prevent rule engine crashes.
-     * - Unified Whisper Protocol for privacy across all contexts.
+     * - Resilient path matching for all digital contexts.
+     * - Safeguarded data access with defaults to prevent runtime denials.
+     * - Unified Whisper Protocol for high-fidelity privacy.
      */
 
     function isSignedIn() {
       return request.auth != null;
+    }
+
+    function isMember(communityId) {
+      return isSignedIn() && exists(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid));
     }
 
     // --- User Profiles & Identity Node ---
@@ -40,15 +44,6 @@ service cloud.firestore {
         match /typing/{userId} {
           allow read, write: if isSignedIn();
         }
-
-        // Explicit message path for high-fidelity listing
-        match /messages/{messageId} {
-          allow read: if isSignedIn() && (
-            resource.data.get('visibleTo', ['all']).hasAny(['all', request.auth.uid])
-          );
-          allow create: if isSignedIn();
-          allow update, delete: if isSignedIn() && resource.data.senderId == request.auth.uid;
-        }
       }
 
       match /members/{memberId} {
@@ -57,7 +52,8 @@ service cloud.firestore {
       }
     }
 
-    // --- Unified Recursive Message Access (Forwarding & Lineage) ---
+    // --- Unified Recursive Message Access (Forwarding, Whispers & Lineage) ---
+    // This wildcard match handles both standard channels and deep recursive lineages.
     match /{path=**}/messages/{messageId} {
       allow read: if isSignedIn() && (
         resource.data.get('visibleTo', ['all']).hasAny(['all', request.auth.uid])
@@ -72,7 +68,7 @@ service cloud.firestore {
       allow write: if isSignedIn();
     }
 
-    // --- Support & Support Node ---
+    // --- Support ---
     match /contact_form_submissions/{id} {
       allow create: if isSignedIn();
       allow get, list: if isSignedIn();
