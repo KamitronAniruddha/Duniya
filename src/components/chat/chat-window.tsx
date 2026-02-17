@@ -60,6 +60,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
   const [isForwardOpen, setIsForwardOpen] = useState(false);
   const [isClearChatDialogOpen, setIsClearChatDialogOpen] = useState(false);
   const [isChannelSettingsOpen, setIsChannelSettingsOpen] = useState(false);
+  const [isGameDismissed, setIsGameDismissed] = useState(false);
 
   const basePath = useMemo(() => {
     if (serverId && channelId) return `communities/${serverId}/channels/${channelId}`;
@@ -72,6 +73,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
     setReplyingTo(null);
     setWhisperingTo(null);
     setProfileReplyTarget(null);
+    setIsGameDismissed(false);
   }, [basePath]);
 
   const contextRef = useMemoFirebase(() => (basePath ? doc(db, basePath) : null), [db, basePath]);
@@ -87,6 +89,13 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
     if (!user || !server) return false;
     return server.ownerId === user.uid || server.admins?.includes(user.uid);
   }, [user?.uid, server]);
+
+  // Reset game dismissal if a new game starts (tracked by startedAt)
+  useEffect(() => {
+    if (contextData?.activeGame?.startedAt) {
+      setIsGameDismissed(false);
+    }
+  }, [contextData?.activeGame?.startedAt]);
 
   const messagesQuery = useMemoFirebase(() => {
     if (!db || !basePath || !user) return null;
@@ -324,7 +333,8 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
             digits,
             min,
             max,
-            reward
+            reward,
+            creatorId: user!.uid
           }
         });
         handleSendMessage(`initialized a new **Guess Master** node! Guess a **${digits}-digit** number (**${min}-${max}**) to win **${reward} XP**.`, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, false, undefined, false, "game_start");
@@ -332,11 +342,12 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
       }
 
       if (subCmd === "end") {
-        if (isAdmin) {
+        const game = contextData?.activeGame;
+        if (isAdmin || (game && game.creatorId === user?.uid)) {
           updateDocumentNonBlocking(contextRef!, { activeGame: deleteField() });
           toast({ title: "Node Terminated", description: "Game has been ended manually." });
         } else {
-          toast({ variant: "destructive", title: "Access Denied", description: "Only admins can terminate game nodes." });
+          toast({ variant: "destructive", title: "Access Denied", description: "Only the creator or admins can terminate game nodes." });
         }
         return true;
       }
@@ -609,8 +620,14 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
       <div className="flex-1 flex min-h-0 overflow-hidden bg-background">
         <div className="flex-1 flex flex-col min-w-0 h-full relative">
           <AnimatePresence>
-            {contextData?.activeGame && (
-              <GuessGameOverlay activeGame={contextData.activeGame} />
+            {contextData?.activeGame && !isGameDismissed && (
+              <GuessGameOverlay 
+                activeGame={contextData.activeGame} 
+                onClose={() => setIsGameDismissed(true)}
+                onEnd={() => handleCommand("guess", ["end"])}
+                isAdmin={isAdmin}
+                currentUserId={user?.uid}
+              />
             )}
           </AnimatePresence>
 

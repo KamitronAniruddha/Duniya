@@ -1,10 +1,11 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { Zap, Trophy, TrendingUp, TrendingDown, Target, HelpCircle, Activity, Heart, Star, Sparkles } from "lucide-react";
+import { Zap, Trophy, TrendingUp, TrendingDown, Target, HelpCircle, Activity, Heart, Star, Sparkles, X, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 
 interface GuessGameOverlayProps {
   activeGame?: {
@@ -20,12 +21,19 @@ interface GuessGameOverlayProps {
     min?: number;
     max?: number;
     reward?: number;
+    creatorId?: string;
   };
   onClose?: () => void;
+  onEnd?: () => void;
+  isAdmin?: boolean;
+  currentUserId?: string;
 }
 
-export function GuessGameOverlay({ activeGame, onClose }: GuessGameOverlayProps) {
+export function GuessGameOverlay({ activeGame, onClose, onEnd, isAdmin, currentUserId }: GuessGameOverlayProps) {
   if (!activeGame || activeGame.status === "won") return null;
+
+  const isCreator = currentUserId === activeGame.creatorId;
+  const canTerminate = isAdmin || isCreator;
 
   return (
     <motion.div 
@@ -47,9 +55,35 @@ export function GuessGameOverlay({ activeGame, onClose }: GuessGameOverlayProps)
                 Guess Master Node ({activeGame.digits || 2}D)
               </span>
             </div>
-            <Badge variant="secondary" className="bg-primary/5 text-primary text-[8px] font-black uppercase px-2 h-5 border-primary/10">
-              Attempts: {activeGame.attempts || 0}
-            </Badge>
+            
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="bg-primary/5 text-primary text-[8px] font-black uppercase px-2 h-5 border-primary/10">
+                Attempts: {activeGame.attempts || 0}
+              </Badge>
+              
+              <div className="flex items-center gap-1">
+                {canTerminate && (
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-6 w-6 rounded-lg text-rose-500 hover:bg-rose-500/10 transition-colors"
+                    onClick={onEnd}
+                    title="Terminate Game (Authority)"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                )}
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-6 w-6 rounded-lg text-muted-foreground hover:bg-muted transition-colors"
+                  onClick={onClose}
+                  title="Leave Game (Local)"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
           </div>
 
           <div className="flex items-center gap-4 p-3 bg-muted/30 rounded-2xl border border-border/50">
