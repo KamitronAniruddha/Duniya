@@ -3,16 +3,20 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * Duniya Verse Security Rules v16.0
+     * Duniya Verse Security Rules v18.0
      * 
      * CORE PHILOSOPHY:
-     * - Resilient recursive matching for deep Verse hierarchies.
-     * - Safe-default field access to prevent evaluate crashes.
+     * - Explicit path matching for robust collection listing.
+     * - Safe-default field access to prevent evaluation crashes.
      * - Unified Whisper Protocol for high-fidelity privacy.
      */
 
     function isSignedIn() {
       return request.auth != null;
+    }
+
+    function isCommunityAdmin(communityId) {
+      return request.auth.uid in get(/databases/$(database)/documents/communities/$(communityId)).data.get('admins', []);
     }
 
     // --- User Profiles & Identity Node ---
@@ -40,6 +44,19 @@ service cloud.firestore {
         match /typing/{userId} {
           allow read, write: if isSignedIn();
         }
+
+        // EXPLICIT MESSAGE PATH - Required for standard listing authorization
+        match /messages/{messageId} {
+          allow read: if isSignedIn() && (
+            resource.data.senderId == request.auth.uid ||
+            resource.data.get('visibleTo', ['all']).hasAny(['all', request.auth.uid])
+          );
+          allow create: if isSignedIn();
+          allow update, delete: if isSignedIn() && (
+            resource.data.senderId == request.auth.uid ||
+            isCommunityAdmin(communityId)
+          );
+        }
       }
 
       match /members/{memberId} {
@@ -48,9 +65,7 @@ service cloud.firestore {
       }
     }
 
-    // --- Unified Recursive Message Access (Forwarding, Whispers & Lineage) ---
-    // Handles standard channels, forwards, and deep recursive lineages.
-    // Uses safe-default get() to prevent evaluation crashes on missing fields.
+    // --- Unified Recursive Message Access (Forwarding & Lineage) ---
     match /{path=**}/messages/{messageId} {
       allow read: if isSignedIn() && (
         resource.data.senderId == request.auth.uid ||
@@ -58,8 +73,7 @@ service cloud.firestore {
       );
       allow create: if isSignedIn();
       allow update, delete: if isSignedIn() && (
-        resource.data.senderId == request.auth.uid ||
-        request.auth.uid in get(/databases/$(database)/documents/communities/$(resource.data.serverId)).data.get('admins', [])
+        resource.data.senderId == request.auth.uid
       );
     }
 

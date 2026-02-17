@@ -89,6 +89,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
   const messagesQuery = useMemoFirebase(() => {
     if (!db || !basePath || !user) return null;
     // CRITICAL: Explicit visibility filter to match security rules and authorize listing
+    // Alignment between query and rules is required for authorized collection listing.
     return query(
       collection(db, basePath, "messages"), 
       where("visibleTo", "array-contains-any", ["all", user.uid]),
