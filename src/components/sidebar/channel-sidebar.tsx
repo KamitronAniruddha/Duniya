@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -72,7 +71,8 @@ export function ChannelSidebar({ serverId, activeChannelId, onSelectChannel }: C
   const isAdmin = isOwner || community?.admins?.includes(user?.uid);
 
   const handleLogout = async () => {
-    if (user?.uid && db) {
+    // PROOF: Verify auth still exists before attempting presence update
+    if (user?.uid && db && auth.currentUser) {
       updateDocumentNonBlocking(doc(db, "users", user.uid), {
         onlineStatus: "offline",
         lastOnlineAt: new Date().toISOString()

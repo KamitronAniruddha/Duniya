@@ -85,12 +85,12 @@ export default function DuniyaApp() {
   useEffect(() => {
     if (!user?.uid || !db) return;
     const interval = setInterval(() => {
-      if (document.visibilityState === 'visible') {
+      if (document.visibilityState === 'visible' && auth.currentUser) {
         awardXP(db, user.uid, XP_REWARDS.PASSIVE_HEARTBEAT, 'presence', "Verse Pulse Synchronization");
       }
     }, 300000); // 5 minutes
     return () => clearInterval(interval);
-  }, [user?.uid, db]);
+  }, [user?.uid, db, auth]);
 
   // Fetch communities for circular switcher
   const communitiesQuery = useMemoFirebase(() => {
@@ -122,6 +122,7 @@ export default function DuniyaApp() {
     if (!user?.uid || !db || !auth.currentUser) return;
 
     const setPresence = (status: "online" | "idle" | "offline") => {
+      if (!auth.currentUser) return; // PROOF: Prevent update if auth is gone
       const showStatus = userData?.showOnlineStatus !== false;
       const finalStatus = showStatus ? status : "offline";
       
@@ -154,9 +155,9 @@ export default function DuniyaApp() {
       window.removeEventListener('focus', handleFocus);
       window.removeEventListener('blur', handleBlur);
       clearInterval(heartbeat);
-      setPresence("offline");
+      // Removed setPresence("offline") from cleanup to avoid auth context race conditions
     };
-  }, [user?.uid, db, auth.currentUser, userData?.showOnlineStatus]);
+  }, [user?.uid, db, auth, userData?.showOnlineStatus]);
 
   const handleSelectServer = useCallback((id: string | "duniya") => {
     if (id === "duniya") {
