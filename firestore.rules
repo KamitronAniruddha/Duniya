@@ -28,7 +28,8 @@ service cloud.firestore {
           request.auth.uid != userId
         ) ||
         (
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['authorizedViewers'])
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['authorizedViewers']) &&
+          request.auth.uid == userId
         )
       );
       allow delete: if isSignedIn() && request.auth.uid == userId;
@@ -46,7 +47,12 @@ service cloud.firestore {
       allow update: if isSignedIn() && (
         resource.data.ownerId == request.auth.uid ||
         request.auth.uid in resource.data.get('admins', []) ||
-        (request.resource.data.members.hasOnly(resource.data.members.removeAll([request.auth.uid])))
+        (
+          // Allow any member to remove themselves from members and admins (Graceful Exit)
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'admins']) &&
+          request.resource.data.members.hasOnly(resource.data.members.removeAll([request.auth.uid])) &&
+          request.resource.data.get('admins', []).hasOnly(resource.data.get('admins', []).removeAll([request.auth.uid]))
+        )
       );
       allow delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
 
@@ -59,6 +65,7 @@ service cloud.firestore {
         }
 
         match /messages/{messageId} {
+          // Explicit list/get separation for provable synchronization
           allow list: if isSignedIn() && resource.data.get('visibleTo', ['all']).hasAny(['all', request.auth.uid]);
           allow get: if isSignedIn() && (
             resource.data.get('visibleTo', ['all']).hasAny(['all', request.auth.uid]) ||
@@ -87,6 +94,7 @@ service cloud.firestore {
       }
     }
 
+    // Global tracing node for recursive lineage
     match /{path=**}/messages/{messageId} {
       allow list: if isSignedIn() && resource.data.get('visibleTo', ['all']).hasAny(['all', request.auth.uid]);
       allow get: if isSignedIn() && (

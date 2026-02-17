@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useCollection, useFirestore, useUser, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy, limit } from "firebase/firestore";
 import { motion, AnimatePresence } from "framer-motion";
@@ -18,6 +18,7 @@ export function GlobalLeaderboard() {
   const { user: currentUser } = useUser();
   const [inspectUserId, setInspectUserId] = useState<string | null>(null);
   
+  // SECURE QUERY DECLARATION
   const leadersQuery = useMemoFirebase(() => {
     if (!db) return null;
     return query(
@@ -56,6 +57,7 @@ export function GlobalLeaderboard() {
 
   return (
     <div className="space-y-8 pb-10">
+      {/* Interactive Sovereign Podium */}
       <div className="flex flex-col md:flex-row items-center md:items-end justify-center gap-6 pt-6 px-4">
         {topThree[1] && (
           <PodiumItem 
@@ -132,6 +134,7 @@ export function GlobalLeaderboard() {
         </ScrollArea>
       </div>
 
+      {/* Shared Intelligence Deep-Dive */}
       <SharedIntelligenceDialog 
         open={!!inspectUserId} 
         onOpenChange={(open) => !open && setInspectUserId(null)} 
