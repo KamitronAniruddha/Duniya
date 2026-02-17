@@ -3,7 +3,7 @@
 
 import { useRef, useEffect, useState, useMemo, useCallback } from "react";
 import { useCollection, useFirestore, useUser, useDoc, useMemoFirebase, useAuth } from "@/firebase";
-import { collection, query, limit, doc, arrayUnion, writeBatch, deleteField, where, getDocs, updateDoc, setDoc } from "firebase/firestore";
+import { collection, query, limit, doc, arrayUnion, writeBatch, deleteField, where, getDocs, updateDoc, setDoc, increment } from "firebase/firestore";
 import { MessageBubble } from "./message-bubble";
 import { MessageInput } from "./message-input";
 import { TypingIndicator } from "./typing-indicator";
@@ -316,16 +316,14 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
           return true;
         }
         
-        const selectedDigits = parseInt(args[1]);
+        const requestedDigits = parseInt(args[1]);
         let digits = 2;
-        if (selectedDigits === 1) digits = 1;
-        else if (selectedDigits === 3) digits = 3;
+        if (requestedDigits === 1) digits = 1;
+        else if (requestedDigits === 3) digits = 3;
         
         let min = 10, max = 99, reward = XP_REWARDS.GUESS_WIN_2;
-        
         if (digits === 1) { min = 0; max = 9; reward = XP_REWARDS.GUESS_WIN_1; }
         else if (digits === 3) { min = 100; max = 999; reward = XP_REWARDS.GUESS_WIN_3; }
-        else { min = 10; max = 99; reward = XP_REWARDS.GUESS_WIN_2; }
 
         const secret = Math.floor(Math.random() * (max - min + 1)) + min;
         
@@ -371,11 +369,12 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
         }
 
         const secret = Number(game.secretNumber);
-        const attempts = (game.attempts || 0) + 1;
+        const nextAttempts = (game.attempts || 0) + 1;
         
         let hint: "higher" | "lower" | "correct" = "correct";
         if (num < secret) hint = "higher";
         else if (num > secret) hint = "lower";
+        else hint = "correct";
 
         if (hint === "correct") {
           updateDocumentNonBlocking(contextRef!, {
@@ -385,7 +384,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
               lastGuess: num,
               lastGuesserName: userData?.username || user?.displayName || "User",
               lastGuesserPhoto: userData?.photoURL || user?.photoURL || "",
-              attempts,
+              attempts: nextAttempts,
               winnerName: userData?.username || user?.displayName || "User",
               hint: "correct"
             }
@@ -394,20 +393,16 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
           handleSendMessage(`cracked the Guess Master node! The secret number was **${num}**. Won **${game.reward} XP**!`, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, false, undefined, false, "game_win");
           awardXP(db, user!.uid, game.reward, "gaming", `Guess Master Victory: Node ${num} (${game.digits} digits)`);
           
-          // Clear game after a delay to allow citizens to see the victory state
           setTimeout(() => {
             if (contextRef) updateDocumentNonBlocking(contextRef, { activeGame: deleteField() });
           }, 6000);
         } else {
           updateDocumentNonBlocking(contextRef!, {
-            activeGame: {
-              ...game,
-              attempts,
-              lastGuess: num,
-              lastGuesserName: userData?.username || user?.displayName || "User",
-              lastGuesserPhoto: userData?.photoURL || user?.photoURL || "",
-              hint
-            }
+            "activeGame.attempts": increment(1),
+            "activeGame.lastGuess": num,
+            "activeGame.lastGuesserName": userData?.username || user?.displayName || "User",
+            "activeGame.lastGuesserPhoto": userData?.photoURL || user?.photoURL || "",
+            "activeGame.hint": hint
           });
           awardXP(db, user!.uid, 2, "gaming", `Guess Attempt: ${num} (${hint})`);
         }
