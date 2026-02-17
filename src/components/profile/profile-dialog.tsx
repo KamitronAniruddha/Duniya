@@ -1,9 +1,10 @@
+
 "use client";
 
 import { useState, useEffect, useRef } from "react";
 import { useAuth, useFirestore, useUser, useDoc, useMemoFirebase } from "@/firebase";
 import { updateProfile } from "firebase/auth";
-import { doc, arrayRemove, arrayUnion } from "firebase/firestore";
+import { doc, arrayRemove, arrayUnion, writeBatch, collection, getDocs, query, where } from "firebase/firestore";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,9 +17,9 @@ import {
   Sparkles, Trash2, Download, Heart, Maximize2, Shield, UserCheck, 
   X, Key, ImagePlus, Clock, Zap, Activity, Fingerprint, Globe, Waves, 
   ShieldCheck, Milestone, Trophy, MessageSquare, Star, ListOrdered, History,
-  Crown
+  Crown, AlertTriangle, Power
 } from "lucide-react";
-import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
@@ -32,6 +33,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { XPVisualizer } from "@/components/xp/xp-visualizer";
 import { XPHistoryList } from "@/components/xp/xp-history-list";
 import { GlobalLeaderboard } from "@/components/xp/global-leaderboard";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 interface ProfileDialogProps {
   open: boolean;
@@ -53,6 +55,7 @@ const INTERFACE_MODES = [
 
 export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
   const { user } = useUser();
+  const auth = useAuth();
   const db = useFirestore();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -61,6 +64,8 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
   const { data: userData } = useDoc(userDocRef);
 
   const [isLoading, setIsLoading] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [photoURL, setPhotoURL] = useState("");
   const [username, setUsername] = useState("");
   const [bio, setBio] = useState("");
@@ -130,6 +135,47 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
     }
   };
 
+  const handleTerminalReset = async () => {
+    if (!user || !db || !userData) return;
+    setIsDeleting(true);
+
+    try {
+      const batch = writeBatch(db);
+      const serverIds = userData.serverIds || [];
+
+      // 1. Leave all communities
+      for (const sId of serverIds) {
+        const commRef = doc(db, "communities", sId);
+        const memRef = doc(db, "communities", sId, "members", user.uid);
+        batch.update(commRef, { 
+          members: arrayRemove(user.uid),
+          admins: arrayRemove(user.uid)
+        });
+        batch.delete(memRef);
+      }
+
+      // 2. Delete root user document
+      batch.delete(doc(db, "users", user.uid));
+
+      await batch.commit();
+      
+      toast({ 
+        title: "Lineage Terminated", 
+        description: "Your digital existence has been purged from the Verse." 
+      });
+
+      await auth.signOut();
+      window.location.reload();
+    } catch (e: any) {
+      toast({ 
+        variant: "destructive", 
+        title: "Terminal Error", 
+        description: e.message 
+      });
+      setIsDeleting(false);
+    }
+  };
+
   const handleApproveRequest = (req: any, durationMs: number) => {
     if (!user || !db) return;
     const userRef = doc(db, "users", user.uid);
@@ -163,236 +209,312 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[850px] w-[98vw] rounded-[3rem] overflow-hidden p-0 border-none shadow-[0_32px_128px_rgba(0,0,0,0.4)] bg-background h-[90vh] max-h-[750px] flex flex-col font-body">
-        <DialogHeader className="px-8 py-5 border-b bg-card shrink-0 flex flex-row items-center justify-between">
-          <div className="flex flex-col">
-            <div className="flex items-center gap-2 mb-0.5">
-              <Fingerprint className="h-4 w-4 text-primary animate-pulse" />
-              <span className="text-[9px] font-black uppercase tracking-[0.4em] text-primary/60">Verse Identity Suite v2.0</span>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-[850px] w-[98vw] rounded-[3rem] overflow-hidden p-0 border-none shadow-[0_32px_128px_rgba(0,0,0,0.4)] bg-background h-[90vh] max-h-[750px] flex flex-col font-body">
+          <DialogHeader className="px-8 py-5 border-b bg-card shrink-0 flex flex-row items-center justify-between">
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2 mb-0.5">
+                <Fingerprint className="h-4 w-4 text-primary animate-pulse" />
+                <span className="text-[9px] font-black uppercase tracking-[0.4em] text-primary/60">Verse Identity Suite v2.0</span>
+              </div>
+              <DialogTitle className="text-2xl font-[900] tracking-tighter uppercase leading-none">
+                Identity <span className="text-primary italic">Node</span>
+              </DialogTitle>
             </div>
-            <DialogTitle className="text-2xl font-[900] tracking-tighter uppercase leading-none">
-              Identity <span className="text-primary italic">Node</span>
-            </DialogTitle>
-          </div>
-          <div className="hidden sm:flex items-center gap-3">
-            <Badge variant="secondary" className="bg-primary/10 text-primary border-none text-[8px] font-black uppercase tracking-[0.2em] px-3 h-6">Node Active</Badge>
-          </div>
-        </DialogHeader>
-        
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 flex flex-col md:flex-row overflow-hidden">
-          <TabsList className="flex flex-row md:flex-col w-full md:w-[180px] md:h-full bg-muted/20 border-b md:border-b-0 md:border-r border-border/50 shrink-0 p-3 gap-1.5 overflow-x-auto custom-scrollbar md:justify-start">
-            <TabsTrigger value="profile" className="flex-1 md:w-full justify-start gap-3 px-4 py-2.5 rounded-2xl font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-background data-[state=active]:shadow-xl transition-all text-left relative group">
-              <User className="h-4 w-4 group-data-[state=active]:text-primary" /> <span>Identity</span>
-              {activeTab === 'profile' && <motion.div layoutId="tab-pill" className="absolute inset-0 bg-primary/5 rounded-2xl -z-10" />}
-            </TabsTrigger>
-            <TabsTrigger value="ascension" className="flex-1 md:w-full justify-start gap-3 px-4 py-2.5 rounded-2xl font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-background data-[state=active]:shadow-xl transition-all text-left relative group">
-              <Trophy className="h-4 w-4 group-data-[state=active]:text-primary" /> <span>Ascension</span>
-              {activeTab === 'ascension' && <motion.div layoutId="tab-pill" className="absolute inset-0 bg-primary/5 rounded-2xl -z-10" />}
-            </TabsTrigger>
-            <TabsTrigger value="leaderboard" className="flex-1 md:w-full justify-start gap-3 px-4 py-2.5 rounded-2xl font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-background data-[state=active]:shadow-xl transition-all text-left relative group">
-              <ListOrdered className="h-4 w-4 group-data-[state=active]:text-primary" /> <span>Sovereigns</span>
-              {activeTab === 'leaderboard' && <motion.div layoutId="tab-pill" className="absolute inset-0 bg-primary/5 rounded-2xl -z-10" />}
-            </TabsTrigger>
-            <TabsTrigger value="interface" className="flex-1 md:w-full justify-start gap-3 px-4 py-2.5 rounded-2xl font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-background data-[state=active]:shadow-xl transition-all text-left relative group">
-              <Palette className="h-4 w-4 group-data-[state=active]:text-primary" /> <span>Interface</span>
-              {activeTab === 'interface' && <motion.div layoutId="tab-pill" className="absolute inset-0 bg-primary/5 rounded-2xl -z-10" />}
-            </TabsTrigger>
-            <TabsTrigger value="privacy" className="flex-1 md:w-full justify-start gap-3 px-4 py-2.5 rounded-2xl font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-background data-[state=active]:shadow-xl transition-all text-left relative group">
-              <ShieldCheck className="h-4 w-4 group-data-[state=active]:text-primary" /> <span>Shield</span>
-              {activeTab === 'privacy' && <motion.div layoutId="tab-pill" className="absolute inset-0 bg-primary/5 rounded-2xl -z-10" />}
-            </TabsTrigger>
-            <TabsTrigger value="keys" className="flex-1 md:w-full justify-start gap-3 px-4 py-2.5 rounded-2xl font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-background data-[state=active]:shadow-xl transition-all text-left relative group">
-              <Key className="h-4 w-4 group-data-[state=active]:text-primary" /> <span>Access</span>
-              {userData?.pendingProfileRequests?.length > 0 && <span className="absolute top-2.5 right-2.5 h-2.5 w-2.5 bg-rose-500 rounded-full animate-ping border-2 border-background" />}
-              {activeTab === 'keys' && <motion.div layoutId="tab-pill" className="absolute inset-0 bg-primary/5 rounded-2xl -z-10" />}
-            </TabsTrigger>
-          </TabsList>
+            <div className="hidden sm:flex items-center gap-3">
+              <Badge variant="secondary" className="bg-primary/10 text-primary border-none text-[8px] font-black uppercase tracking-[0.2em] px-3 h-6">Node Active</Badge>
+            </div>
+          </DialogHeader>
           
-          <div className="flex-1 h-full overflow-hidden bg-card/30 backdrop-blur-sm relative">
-            {/* Synapse Background Animation */}
-            <div className="absolute inset-0 pointer-events-none opacity-20 overflow-hidden">
-              <motion.div animate={{ rotate: 360 }} transition={{ duration: 30, repeat: Infinity, ease: "linear" }} className="absolute -top-1/2 -left-1/2 w-full h-full border-[1px] border-primary/20 rounded-full border-dashed" />
-              <motion.div animate={{ rotate: -360 }} transition={{ duration: 40, repeat: Infinity, ease: "linear" }} className="absolute -bottom-1/2 -right-1/2 w-full h-full border-[1px] border-accent/20 rounded-full border-dashed" />
-            </div>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 flex flex-col md:flex-row overflow-hidden">
+            <TabsList className="flex flex-row md:flex-col w-full md:w-[180px] md:h-full bg-muted/20 border-b md:border-b-0 md:border-r border-border/50 shrink-0 p-3 gap-1.5 overflow-x-auto custom-scrollbar md:justify-start">
+              <TabsTrigger value="profile" className="flex-1 md:w-full justify-start gap-3 px-4 py-2.5 rounded-2xl font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-background data-[state=active]:shadow-xl transition-all text-left relative group">
+                <User className="h-4 w-4 group-data-[state=active]:text-primary" /> <span>Identity</span>
+                {activeTab === 'profile' && <motion.div layoutId="tab-pill" className="absolute inset-0 bg-primary/5 rounded-2xl -z-10" />}
+              </TabsTrigger>
+              <TabsTrigger value="ascension" className="flex-1 md:w-full justify-start gap-3 px-4 py-2.5 rounded-2xl font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-background data-[state=active]:shadow-xl transition-all text-left relative group">
+                <Trophy className="h-4 w-4 group-data-[state=active]:text-primary" /> <span>Ascension</span>
+                {activeTab === 'ascension' && <motion.div layoutId="tab-pill" className="absolute inset-0 bg-primary/5 rounded-2xl -z-10" />}
+              </TabsTrigger>
+              <TabsTrigger value="leaderboard" className="flex-1 md:w-full justify-start gap-3 px-4 py-2.5 rounded-2xl font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-background data-[state=active]:shadow-xl transition-all text-left relative group">
+                <ListOrdered className="h-4 w-4 group-data-[state=active]:text-primary" /> <span>Sovereigns</span>
+                {activeTab === 'leaderboard' && <motion.div layoutId="tab-pill" className="absolute inset-0 bg-primary/5 rounded-2xl -z-10" />}
+              </TabsTrigger>
+              <TabsTrigger value="interface" className="flex-1 md:w-full justify-start gap-3 px-4 py-2.5 rounded-2xl font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-background data-[state=active]:shadow-xl transition-all text-left relative group">
+                <Palette className="h-4 w-4 group-data-[state=active]:text-primary" /> <span>Interface</span>
+                {activeTab === 'interface' && <motion.div layoutId="tab-pill" className="absolute inset-0 bg-primary/5 rounded-2xl -z-10" />}
+              </TabsTrigger>
+              <TabsTrigger value="privacy" className="flex-1 md:w-full justify-start gap-3 px-4 py-2.5 rounded-2xl font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-background data-[state=active]:shadow-xl transition-all text-left relative group">
+                <ShieldCheck className="h-4 w-4 group-data-[state=active]:text-primary" /> <span>Shield</span>
+                {activeTab === 'privacy' && <motion.div layoutId="tab-pill" className="absolute inset-0 bg-primary/5 rounded-2xl -z-10" />}
+              </TabsTrigger>
+              <TabsTrigger value="keys" className="flex-1 md:w-full justify-start gap-3 px-4 py-2.5 rounded-2xl font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-background data-[state=active]:shadow-xl transition-all text-left relative group">
+                <Key className="h-4 w-4 group-data-[state=active]:text-primary" /> <span>Access</span>
+                {userData?.pendingProfileRequests?.length > 0 && <span className="absolute top-2.5 right-2.5 h-2.5 w-2.5 bg-rose-500 rounded-full animate-ping border-2 border-background" />}
+                {activeTab === 'keys' && <motion.div layoutId="tab-pill" className="absolute inset-0 bg-primary/5 rounded-2xl -z-10" />}
+              </TabsTrigger>
+              <TabsTrigger value="terminal" className="flex-1 md:w-full justify-start gap-3 px-4 py-2.5 rounded-2xl font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-rose-500/10 data-[state=active]:text-rose-500 data-[state=active]:shadow-xl transition-all text-left relative group mt-auto">
+                <Power className="h-4 w-4" /> <span>Terminal</span>
+                {activeTab === 'terminal' && <motion.div layoutId="tab-pill" className="absolute inset-0 bg-rose-500/5 rounded-2xl -z-10" />}
+              </TabsTrigger>
+            </TabsList>
+            
+            <div className="flex-1 h-full overflow-hidden bg-card/30 backdrop-blur-sm relative">
+              {/* Synapse Background Animation */}
+              <div className="absolute inset-0 pointer-events-none opacity-20 overflow-hidden">
+                <motion.div animate={{ rotate: 360 }} transition={{ duration: 30, repeat: Infinity, ease: "linear" }} className="absolute -top-1/2 -left-1/2 w-full h-full border-[1px] border-primary/20 rounded-full border-dashed" />
+                <motion.div animate={{ rotate: -360 }} transition={{ duration: 40, repeat: Infinity, ease: "linear" }} className="absolute -bottom-1/2 -right-1/2 w-full h-full border-[1px] border-accent/20 rounded-full border-dashed" />
+              </div>
 
-            <ScrollArea className="h-full relative z-10">
-              <AnimatePresence mode="wait">
-                <TabsContent key="tab-profile" value="profile" className="p-6 md:p-8 m-0 outline-none">
-                  <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-8">
-                    <motion.div variants={itemVariants} className="flex flex-col sm:flex-row items-center gap-8 p-8 bg-background/80 backdrop-blur-2xl rounded-[2.5rem] border border-border/50 shadow-2xl relative overflow-hidden group">
-                      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-                      <div className="relative shrink-0">
-                        <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full scale-125 animate-pulse" />
-                        <Avatar className="h-24 w-24 ring-8 ring-background shadow-2xl relative z-10 transition-transform duration-700 group-hover:scale-105">
-                          <AvatarImage src={photoURL || undefined} className="object-cover" />
-                          <AvatarFallback className="text-3xl bg-primary text-white font-black">{username?.[0]?.toUpperCase()}</AvatarFallback>
-                        </Avatar>
-                        <button type="button" onClick={() => fileInputRef.current?.click()} className="absolute -bottom-1 -right-1 p-2 bg-primary rounded-2xl shadow-xl border-4 border-background text-white z-20 hover:scale-110 active:scale-95 transition-all">
-                          <Camera className="h-4 w-4" />
-                        </button>
-                        <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            const reader = new FileReader();
-                            reader.onloadend = () => setPhotoURL(reader.result as string);
-                            reader.readAsDataURL(file);
-                          }
-                        }} />
-                      </div>
-                      <div className="flex-1 min-w-0 text-center sm:text-left relative z-10">
-                        <div className="flex flex-col sm:flex-row items-center gap-3 mb-1.5">
-                          <h4 className="font-black text-2xl tracking-tighter text-foreground truncate uppercase">@{userData?.username || username}</h4>
-                          <Badge className="bg-primary text-white border-none text-[9px] font-black uppercase px-3 h-6 shadow-lg shadow-primary/20">Level {userData?.level || 1}</Badge>
+              <ScrollArea className="h-full relative z-10">
+                <AnimatePresence mode="wait">
+                  <TabsContent key="tab-profile" value="profile" className="p-6 md:p-8 m-0 outline-none">
+                    <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-8">
+                      <motion.div variants={itemVariants} className="flex flex-col sm:flex-row items-center gap-8 p-8 bg-background/80 backdrop-blur-2xl rounded-[2.5rem] border border-border/50 shadow-2xl relative overflow-hidden group">
+                        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                        <div className="relative shrink-0">
+                          <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full scale-125 animate-pulse" />
+                          <Avatar className="h-24 w-24 ring-8 ring-background shadow-2xl relative z-10 transition-transform duration-700 group-hover:scale-105">
+                            <AvatarImage src={photoURL || undefined} className="object-cover" />
+                            <AvatarFallback className="text-3xl bg-primary text-white font-black">{username?.[0]?.toUpperCase()}</AvatarFallback>
+                          </Avatar>
+                          <button type="button" onClick={() => fileInputRef.current?.click()} className="absolute -bottom-1 -right-1 p-2 bg-primary rounded-2xl shadow-xl border-4 border-background text-white z-20 hover:scale-110 active:scale-95 transition-all">
+                            <Camera className="h-4 w-4" />
+                          </button>
+                          <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onloadend = () => setPhotoURL(reader.result as string);
+                              reader.readAsDataURL(file);
+                            }
+                          }} />
                         </div>
-                        <p className="text-xs text-muted-foreground font-bold uppercase tracking-[0.2em] opacity-60 truncate">{user?.email}</p>
-                      </div>
-                    </motion.div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <motion.div variants={itemVariants} className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-primary ml-1">Identity Signature</Label>
-                        <Input className="bg-background/60 border-none rounded-2xl h-12 font-[900] text-base px-6 focus:ring-4 focus:ring-primary/10 shadow-xl transition-all" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Enter signature..." />
-                      </motion.div>
-                      <motion.div variants={itemVariants} className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground ml-1">Media Node URL</Label>
-                        <Input className="bg-background/40 border-none rounded-2xl h-12 font-medium text-xs px-6 focus:ring-4 focus:ring-primary/10 shadow-inner transition-all" value={photoURL} onChange={(e) => setPhotoURL(e.target.value)} placeholder="https://..." />
-                      </motion.div>
-                    </div>
-
-                    <motion.div variants={itemVariants} className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-primary ml-1">Persona Manifesto</Label>
-                      <Textarea className="bg-background/60 border-none rounded-[2rem] font-medium min-h-[120px] px-8 py-5 focus:ring-4 focus:ring-primary/10 shadow-xl transition-all resize-none text-base leading-relaxed italic" value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Define your existence..." />
-                    </motion.div>
-                  </motion.div>
-                </TabsContent>
-
-                <TabsContent key="tab-ascension" value="ascension" className="p-6 md:p-8 m-0 outline-none">
-                  <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-10">
-                    <XPVisualizer xp={userData?.xp || 0} />
-                    <XPHistoryList userId={user?.uid || ""} />
-                  </motion.div>
-                </TabsContent>
-
-                <TabsContent key="tab-leaderboard" value="leaderboard" className="p-0 m-0 outline-none h-full">
-                  <motion.div variants={containerVariants} initial="hidden" animate="visible">
-                    <GlobalLeaderboard />
-                  </motion.div>
-                </TabsContent>
-
-                <TabsContent key="tab-interface" value="interface" className="p-6 md:p-8 m-0 outline-none">
-                  <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-5">
-                    {INTERFACE_MODES.map((m) => (
-                      <motion.button 
-                        key={m.id} 
-                        variants={itemVariants} 
-                        onClick={() => setInterfaceMode(m.id)} 
-                        className={cn(
-                          "w-full flex items-center gap-6 p-6 rounded-[2rem] border transition-all text-left relative overflow-hidden group", 
-                          interfaceMode === m.id ? "border-primary bg-primary/5 shadow-2xl scale-[1.02]" : "border-transparent bg-background/40 hover:bg-muted/50"
-                        )}
-                      >
-                        <div className={cn(
-                          "h-14 w-14 rounded-2xl flex items-center justify-center transition-all duration-500", 
-                          interfaceMode === m.id ? "bg-primary text-white shadow-xl shadow-primary/20 rotate-3" : "bg-muted text-muted-foreground group-hover:rotate-2"
-                        )}>{m.icon}</div>
-                        <div className="flex-1">
-                          <span className="text-sm font-black uppercase tracking-[0.1em] block leading-none">{m.label} Protocol</span>
-                          <span className="text-[11px] text-muted-foreground font-medium italic mt-1.5 block opacity-70">{m.desc}</span>
-                        </div>
-                        {interfaceMode === m.id && <Check className="h-6 w-6 text-primary animate-in zoom-in" />}
-                      </motion.button>
-                    ))}
-                  </motion.div>
-                </TabsContent>
-
-                <TabsContent key="tab-privacy" value="privacy" className="p-6 md:p-8 m-0 outline-none">
-                  <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-8">
-                    <motion.div variants={itemVariants} className="p-8 bg-background/80 backdrop-blur-2xl rounded-[3rem] border border-border/50 space-y-6 shadow-2xl relative overflow-hidden">
-                      <PrivacyToggle label="Identity Encryption" desc="Vanish from public node directories." icon={<Lock className="h-4 w-4 text-rose-500" />} checked={isProfileHidden} onChange={setIsProfileHidden} />
-                      <Separator className="opacity-20" />
-                      <PrivacyToggle label="Blur Field Intensity" desc="Force transient keys for profile masking." icon={<EyeOff className="h-4 w-4 text-amber-500" />} checked={isProfileBlurred} onChange={setIsProfileBlurred} />
-                      <Separator className="opacity-20" />
-                      <PrivacyToggle label="Live Presence Pulse" desc="Show 'On Screen' live synchronization status." icon={<Activity className="h-4 w-4 text-primary" />} checked={showOnlineStatus} onChange={setShowOnlineStatus} />
-                      <Separator className="opacity-20" />
-                      <PrivacyToggle label="Portal Manifestation" desc="Allow background community enlistments." icon={<Users className="h-4 w-4 text-blue-500" />} checked={allowGroupInvites} onChange={setAllowGroupInvites} />
-                      <Separator className="opacity-20" />
-                      <PrivacyToggle label="External Tuning" desc="Permit gifted identity looks from others." icon={<Sparkles className="h-4 w-4 text-cyan-500" />} checked={allowExternalAvatarEdit} onChange={setAllowExternalAvatarEdit} />
-                      
-                      <div className="pt-4 mt-4 bg-primary/5 rounded-[2rem] p-6 border border-primary/10">
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="flex flex-col gap-1">
-                            <Label className="text-xs font-black uppercase tracking-tight flex items-center gap-2">
-                              <ShieldAlert className="h-4 w-4 text-emerald-500" /> Global Override
-                            </Label>
-                            <p className="text-[10px] text-muted-foreground italic">Temporarily bypass all masking protocols.</p>
+                        <div className="flex-1 min-w-0 text-center sm:text-left relative z-10">
+                          <div className="flex flex-col sm:flex-row items-center gap-3 mb-1.5">
+                            <h4 className="font-black text-2xl tracking-tighter text-foreground truncate uppercase">@{userData?.username || username}</h4>
+                            <Badge className="bg-primary text-white border-none text-[9px] font-black uppercase px-3 h-6 shadow-lg shadow-primary/20">Level {userData?.level || 1}</Badge>
                           </div>
-                          <Switch checked={isGlobalAccessActive} onCheckedChange={setIsGlobalAccessActive} />
+                          <p className="text-xs text-muted-foreground font-bold uppercase tracking-[0.2em] opacity-60 truncate">{user?.email}</p>
                         </div>
-                        {isGlobalAccessActive && (
-                          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="pl-6 space-y-2">
-                            <Label className="text-[9px] font-black uppercase text-primary/60 tracking-widest">Handshake Duration</Label>
-                            <Select value={globalDuration} onValueChange={setGlobalDuration}>
-                              <SelectTrigger className="bg-background border-none h-11 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl">
-                                <SelectValue placeholder="DURATION" />
-                              </SelectTrigger>
-                              <SelectContent className="rounded-2xl border-none shadow-2xl bg-popover/95 backdrop-blur-xl">
-                                {DURATIONS.map(d => (
-                                  <SelectItem key={d.value} value={d.value.toString()} className="text-[10px] font-black uppercase p-3">
-                                    {d.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </motion.div>
-                        )}
+                      </motion.div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <motion.div variants={itemVariants} className="space-y-2">
+                          <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-primary ml-1">Identity Signature (Name)</Label>
+                          <Input className="bg-background/60 border-none rounded-2xl h-12 font-[900] text-base px-6 focus:ring-4 focus:ring-primary/10 shadow-xl transition-all" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Enter signature..." />
+                        </motion.div>
+                        <motion.div variants={itemVariants} className="space-y-2">
+                          <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground ml-1">Media Node URL</Label>
+                          <Input className="bg-background/40 border-none rounded-2xl h-12 font-medium text-xs px-6 focus:ring-4 focus:ring-primary/10 shadow-inner transition-all" value={photoURL} onChange={(e) => setPhotoURL(e.target.value)} placeholder="https://..." />
+                        </motion.div>
                       </div>
+
+                      <motion.div variants={itemVariants} className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-primary ml-1">Persona Manifesto</Label>
+                        <Textarea className="bg-background/60 border-none rounded-[2rem] font-medium min-h-[120px] px-8 py-5 focus:ring-4 focus:ring-primary/10 shadow-xl transition-all resize-none text-base leading-relaxed italic" value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Define your existence..." />
+                      </motion.div>
                     </motion.div>
-                  </motion.div>
-                </TabsContent>
+                  </TabsContent>
 
-                <TabsContent key="tab-keys" value="keys" className="p-6 md:p-8 m-0 outline-none">
-                  <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-6">
-                    {userData?.pendingProfileRequests?.length > 0 ? (
-                      <div className="grid grid-cols-1 gap-4">
-                        {userData.pendingProfileRequests.map((req: any) => (
-                          <motion.div key={req.uid} variants={itemVariants} className="p-6 bg-background/80 border border-border/50 rounded-[2rem] flex flex-col gap-5 shadow-xl group">
-                            <div className="flex items-center gap-4">
-                              <div className="relative">
-                                <Avatar className="h-12 w-12 border-2 border-primary/20 shadow-md group-hover:scale-105 transition-transform"><AvatarImage src={req.photoURL} /><AvatarFallback className="bg-primary text-white font-black text-sm">{req.username?.[0]?.toUpperCase()}</AvatarFallback></Avatar>
-                                <div className="absolute -bottom-1 -right-1 h-4 w-4 bg-primary rounded-full border-2 border-background flex items-center justify-center animate-pulse"><Zap className="h-2 w-2 text-white" /></div>
-                              </div>
-                              <div className="flex-1 min-w-0"><span className="text-sm font-black uppercase tracking-tight block truncate">@{req.username}</span><p className="text-[10px] text-muted-foreground italic truncate">Requesting review access.</p></div>
+                  <TabsContent key="tab-ascension" value="ascension" className="p-6 md:p-8 m-0 outline-none">
+                    <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-10">
+                      <XPVisualizer xp={userData?.xp || 0} />
+                      <XPHistoryList userId={user?.uid || ""} />
+                    </motion.div>
+                  </TabsContent>
+
+                  <TabsContent key="tab-leaderboard" value="leaderboard" className="p-0 m-0 outline-none h-full">
+                    <motion.div variants={containerVariants} initial="hidden" animate="visible">
+                      <GlobalLeaderboard />
+                    </motion.div>
+                  </TabsContent>
+
+                  <TabsContent key="tab-interface" value="interface" className="p-6 md:p-8 m-0 outline-none">
+                    <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-5">
+                      {INTERFACE_MODES.map((m) => (
+                        <motion.button 
+                          key={m.id} 
+                          variants={itemVariants} 
+                          onClick={() => setInterfaceMode(m.id)} 
+                          className={cn(
+                            "w-full flex items-center gap-6 p-6 rounded-[2rem] border transition-all text-left relative overflow-hidden group", 
+                            interfaceMode === m.id ? "border-primary bg-primary/5 shadow-2xl scale-[1.02]" : "border-transparent bg-background/40 hover:bg-muted/50"
+                          )}
+                        >
+                          <div className={cn(
+                            "h-14 w-14 rounded-2xl flex items-center justify-center transition-all duration-500", 
+                            interfaceMode === m.id ? "bg-primary text-white shadow-xl shadow-primary/20 rotate-3" : "bg-muted text-muted-foreground group-hover:rotate-2"
+                          )}>{m.icon}</div>
+                          <div className="flex-1">
+                            <span className="text-sm font-black uppercase tracking-[0.1em] block leading-none">{m.label} Protocol</span>
+                            <span className="text-[11px] text-muted-foreground font-medium italic mt-1.5 block opacity-70">{m.desc}</span>
+                          </div>
+                          {interfaceMode === m.id && <Check className="h-6 w-6 text-primary animate-in zoom-in" />}
+                        </motion.button>
+                      ))}
+                    </motion.div>
+                  </TabsContent>
+
+                  <TabsContent key="tab-privacy" value="privacy" className="p-6 md:p-8 m-0 outline-none">
+                    <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-8">
+                      <motion.div variants={itemVariants} className="p-8 bg-background/80 backdrop-blur-2xl rounded-[3rem] border border-border/50 space-y-6 shadow-2xl relative overflow-hidden">
+                        <PrivacyToggle label="Identity Encryption" desc="Vanish from public node directories." icon={<Lock className="h-4 w-4 text-rose-500" />} checked={isProfileHidden} onChange={setIsProfileHidden} />
+                        <Separator className="opacity-20" />
+                        <PrivacyToggle label="Blur Field Intensity" desc="Force transient keys for profile masking." icon={<EyeOff className="h-4 w-4 text-amber-500" />} checked={isProfileBlurred} onChange={setIsProfileBlurred} />
+                        <Separator className="opacity-20" />
+                        <PrivacyToggle label="Live Presence Pulse" desc="Show 'On Screen' live synchronization status." icon={<Activity className="h-4 w-4 text-primary" />} checked={showOnlineStatus} onChange={setShowOnlineStatus} />
+                        <Separator className="opacity-20" />
+                        <PrivacyToggle label="Portal Manifestation" desc="Allow background community enlistments." icon={<Users className="h-4 w-4 text-blue-500" />} checked={allowGroupInvites} onChange={setAllowGroupInvites} />
+                        <Separator className="opacity-20" />
+                        <PrivacyToggle label="External Tuning" desc="Permit gifted identity looks from others." icon={<Sparkles className="h-4 w-4 text-cyan-500" />} checked={allowExternalAvatarEdit} onChange={setAllowExternalAvatarEdit} />
+                        
+                        <div className="pt-4 mt-4 bg-primary/5 rounded-[2rem] p-6 border border-primary/10">
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="flex flex-col gap-1">
+                              <Label className="text-xs font-black uppercase tracking-tight flex items-center gap-2">
+                                <ShieldAlert className="h-4 w-4 text-emerald-500" /> Global Override
+                              </Label>
+                              <p className="text-[10px] text-muted-foreground italic">Temporarily bypass all masking protocols.</p>
                             </div>
-                            <div className="flex items-center gap-3">
-                              <Select onValueChange={(val) => handleApproveRequest(req, parseInt(val))}>
-                                <SelectTrigger className="flex-1 bg-primary/10 hover:bg-primary/20 text-primary border-none rounded-2xl h-11 text-[10px] font-black uppercase tracking-widest transition-all"><SelectValue placeholder="GRANT ACCESS WINDOW" /></SelectTrigger>
-                                <SelectContent className="rounded-2xl border-none shadow-2xl bg-popover/95 backdrop-blur-xl">{DURATIONS.map(d => <SelectItem key={d.value} value={d.value.toString()} className="text-[10px] font-black uppercase tracking-widest p-3">{d.label}</SelectItem>)}</SelectContent>
+                            <Switch checked={isGlobalAccessActive} onCheckedChange={setIsGlobalAccessActive} />
+                          </div>
+                          {isGlobalAccessActive && (
+                            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="pl-6 space-y-2">
+                              <Label className="text-[9px] font-black uppercase text-primary/60 tracking-widest">Handshake Duration</Label>
+                              <Select value={globalDuration} onValueChange={setGlobalDuration}>
+                                <SelectTrigger className="bg-background border-none h-11 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl">
+                                  <SelectValue placeholder="DURATION" />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-2xl border-none shadow-2xl bg-popover/95 backdrop-blur-xl">
+                                  {DURATIONS.map(d => (
+                                    <SelectItem key={d.value} value={d.value.toString()} className="text-[10px] font-black uppercase p-3">
+                                      {d.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
                               </Select>
-                              <Button size="icon" variant="ghost" className="h-11 w-11 rounded-2xl text-destructive hover:bg-destructive/10 bg-destructive/5" onClick={() => handleDenyRequest(req)}><X className="h-5 w-5 stroke-[3px]" /></Button>
-                            </div>
-                          </motion.div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-center justify-center py-24 opacity-30 text-center gap-6"><Shield className="h-16 w-16 text-primary/40 animate-pulse" /><div className="space-y-1"><h4 className="text-xl font-[900] uppercase tracking-tighter">Zero Pending</h4><p className="text-[10px] font-black uppercase tracking-[0.3em]">Identity Handshake Void</p></div></div>
-                    )}
-                  </motion.div>
-                </TabsContent>
-              </AnimatePresence>
-            </ScrollArea>
-          </div>
-        </Tabs>
+                            </motion.div>
+                          )}
+                        </div>
+                      </motion.div>
+                    </motion.div>
+                  </TabsContent>
 
-        <DialogFooter className="px-8 py-5 bg-card border-t shrink-0 flex flex-row items-center justify-between gap-4">
-          <CreatorFooter className="hidden sm:flex opacity-60 scale-95 origin-left" />
-          <div className="flex items-center gap-3 w-full sm:w-auto">
-            <Button variant="ghost" className="rounded-2xl font-[900] h-11 text-[10px] px-6 uppercase tracking-widest hover:bg-muted" onClick={() => onOpenChange(false)} disabled={isLoading}>Cancel</Button>
-            <Button onClick={handleUpdateProfile} className="flex-1 sm:flex-none rounded-2xl font-[900] h-11 text-[10px] px-10 shadow-2xl shadow-primary/30 uppercase tracking-[0.2em] gap-3 bg-primary hover:bg-primary/90 text-white transition-all active:scale-95" disabled={isLoading}>{isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-5 w-5 stroke-[2.5px]" />}Sync Node</Button>
-          </div>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+                  <TabsContent key="tab-keys" value="keys" className="p-6 md:p-8 m-0 outline-none">
+                    <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-6">
+                      {userData?.pendingProfileRequests?.length > 0 ? (
+                        <div className="grid grid-cols-1 gap-4">
+                          {userData.pendingProfileRequests.map((req: any) => (
+                            <motion.div key={req.uid} variants={itemVariants} className="p-6 bg-background/80 border border-border/50 rounded-[2rem] flex flex-col gap-5 shadow-xl group">
+                              <div className="flex items-center gap-4">
+                                <div className="relative">
+                                  <Avatar className="h-12 w-12 border-2 border-primary/20 shadow-md group-hover:scale-105 transition-transform"><AvatarImage src={req.photoURL} /><AvatarFallback className="bg-primary text-white font-black text-sm">{req.username?.[0]?.toUpperCase()}</AvatarFallback></Avatar>
+                                  <div className="absolute -bottom-1 -right-1 h-4 w-4 bg-primary rounded-full border-2 border-background flex items-center justify-center animate-pulse"><Zap className="h-2 w-2 text-white" /></div>
+                                </div>
+                                <div className="flex-1 min-w-0"><span className="text-sm font-black uppercase tracking-tight block truncate">@{req.username}</span><p className="text-[10px] text-muted-foreground italic truncate">Requesting review access.</p></div>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <Select onValueChange={(val) => handleApproveRequest(req, parseInt(val))}>
+                                  <SelectTrigger className="flex-1 bg-primary/10 hover:bg-primary/20 text-primary border-none rounded-2xl h-11 text-[10px] font-black uppercase tracking-widest transition-all"><SelectValue placeholder="GRANT ACCESS WINDOW" /></SelectTrigger>
+                                  <SelectContent className="rounded-2xl border-none shadow-2xl bg-popover/95 backdrop-blur-xl">{DURATIONS.map(d => <SelectItem key={d.value} value={d.value.toString()} className="text-[10px] font-black uppercase tracking-widest p-3">{d.label}</SelectItem>)}</SelectContent>
+                                </Select>
+                                <Button size="icon" variant="ghost" className="h-11 w-11 rounded-2xl text-destructive hover:bg-destructive/10 bg-destructive/5" onClick={() => handleDenyRequest(req)}><X className="h-5 w-5 stroke-[3px]" /></Button>
+                              </div>
+                            </motion.div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center py-24 opacity-30 text-center gap-6"><Shield className="h-16 w-16 text-primary/40 animate-pulse" /><div className="space-y-1"><h4 className="text-xl font-[900] uppercase tracking-tighter">Zero Pending</h4><p className="text-[10px] font-black uppercase tracking-[0.3em]">Identity Handshake Void</p></div></div>
+                      )}
+                    </motion.div>
+                  </TabsContent>
+
+                  <TabsContent key="tab-terminal" value="terminal" className="p-6 md:p-8 m-0 outline-none">
+                    <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-8">
+                      <motion.div variants={itemVariants} className="p-10 bg-rose-500/5 rounded-[3rem] border border-rose-500/20 text-center space-y-8 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-10 opacity-5"><AlertTriangle className="h-32 w-32 text-rose-500" /></div>
+                        
+                        <div className="relative z-10 flex flex-col items-center gap-6">
+                          <div className="h-24 w-24 rounded-[2rem] bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-500 shadow-2xl shadow-rose-500/20">
+                            <Trash2 className="h-12 w-12 animate-pulse" />
+                          </div>
+                          
+                          <div className="space-y-3">
+                            <h3 className="text-3xl font-[900] tracking-tighter text-rose-500 uppercase leading-none italic">Terminate Lineage</h3>
+                            <p className="text-sm font-medium text-rose-500/60 leading-relaxed max-w-sm mx-auto italic">
+                              This action permanently purges your Identity Node, root signature, and all digital lineage from the Verse.
+                            </p>
+                          </div>
+
+                          <div className="grid grid-cols-1 gap-3 w-full max-w-xs pt-4">
+                            <div className="flex items-center gap-3 p-4 bg-background/40 rounded-2xl border border-rose-500/10 text-left">
+                              <Users className="h-4 w-4 text-rose-500" />
+                              <span className="text-[10px] font-black uppercase tracking-widest text-rose-500/70">Exit all communities</span>
+                            </div>
+                            <div className="flex items-center gap-3 p-4 bg-background/40 rounded-2xl border border-rose-500/10 text-left">
+                              <History className="h-4 w-4 text-rose-500" />
+                              <span className="text-[10px] font-black uppercase tracking-widest text-rose-500/70">Wipe XP & History</span>
+                            </div>
+                            <div className="flex items-center gap-3 p-4 bg-background/40 rounded-2xl border border-rose-500/10 text-left">
+                              <Fingerprint className="h-4 w-4 text-rose-500" />
+                              <span className="text-[10px] font-black uppercase tracking-widest text-rose-500/70">Purge root signature</span>
+                            </div>
+                          </div>
+
+                          <Button 
+                            variant="destructive" 
+                            size="lg" 
+                            className="w-full h-16 rounded-[1.5rem] font-[900] uppercase tracking-[0.2em] shadow-2xl shadow-rose-500/30 text-base italic transition-all active:scale-95"
+                            onClick={() => setShowDeleteConfirm(true)}
+                          >
+                            Execute Terminal Protocol
+                          </Button>
+                        </div>
+                      </motion.div>
+                    </motion.div>
+                  </TabsContent>
+                </AnimatePresence>
+              </ScrollArea>
+            </div>
+          </Tabs>
+
+          <DialogFooter className="px-8 py-5 bg-card border-t shrink-0 flex flex-row items-center justify-between gap-4">
+            <CreatorFooter className="hidden sm:flex opacity-60 scale-95 origin-left" />
+            <div className="flex items-center gap-3 w-full sm:w-auto">
+              <Button variant="ghost" className="rounded-2xl font-[900] h-11 text-[10px] px-6 uppercase tracking-widest hover:bg-muted" onClick={() => onOpenChange(false)} disabled={isLoading}>Cancel</Button>
+              <Button onClick={handleUpdateProfile} className="flex-1 sm:flex-none rounded-2xl font-[900] h-11 text-[10px] px-10 shadow-2xl shadow-primary/30 uppercase tracking-[0.2em] gap-3 bg-primary hover:bg-primary/90 text-white transition-all active:scale-95" disabled={isLoading}>{isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-5 w-5 stroke-[2.5px]" />}Sync Node</Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent className="rounded-[3rem] border-none shadow-[0_32px_128px_rgba(244,63,94,0.4)] p-10 bg-slate-950 text-white font-body">
+          <AlertDialogHeader className="flex flex-col items-center text-center gap-6">
+            <div className="h-20 w-24 rounded-[2rem] bg-rose-500 flex items-center justify-center shadow-2xl shadow-rose-500/40 rotate-3">
+              <AlertTriangle className="h-10 w-10 text-white fill-white" />
+            </div>
+            <AlertDialogTitle className="text-4xl font-[900] tracking-tighter uppercase leading-none italic">Confirm <span className="text-rose-500 not-italic">Purge</span></AlertDialogTitle>
+            <AlertDialogDescription className="text-sm font-medium text-rose-200/60 leading-relaxed italic">
+              "You are about to disconnect permanently from the Duniya Verse. Your lineage, rank, and social connections will be lost to the void."
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex flex-col sm:flex-row gap-4 mt-10">
+            <AlertDialogCancel className="flex-1 rounded-[1.25rem] h-14 font-black border-white/10 bg-white/5 hover:bg-white/10 text-white uppercase tracking-widest">Abort Protocol</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleTerminalReset}
+              disabled={isDeleting}
+              className="flex-1 rounded-[1.25rem] h-14 font-black bg-rose-500 hover:bg-rose-600 shadow-2xl shadow-rose-500/20 uppercase tracking-widest gap-2"
+            >
+              {isDeleting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Power className="h-5 w-5" />}
+              Purge Lineage
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
 
