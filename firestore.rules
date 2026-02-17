@@ -3,7 +3,7 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * Duniya Verse Security Rules v11.0
+     * Duniya Verse Security Rules v12.0
      * 
      * CORE PHILOSOPHY:
      * - Resilient path matching for all digital contexts.
@@ -54,9 +54,10 @@ service cloud.firestore {
 
     // --- Unified Recursive Message Access (Forwarding, Whispers & Lineage) ---
     // This wildcard match handles both standard channels and deep recursive lineages.
+    // authorizes queries that use array-contains-any on 'visibleTo'
     match /{path=**}/messages/{messageId} {
       allow read: if isSignedIn() && (
-        resource.data.get('visibleTo', ['all']).hasAny(['all', request.auth.uid])
+        resource.data.visibleTo.hasAny(['all', request.auth.uid])
       );
       allow create: if isSignedIn();
       allow update, delete: if isSignedIn() && resource.data.senderId == request.auth.uid;
