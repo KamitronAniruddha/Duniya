@@ -2,15 +2,6 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    /**
-     * Duniya Verse Security Rules v26.0
-     * 
-     * CORE PHILOSOPHY:
-     * - Strict 'list' and 'get' alignment for provable queries.
-     * - Authorized viewer sync for read-receipts and Ghost Mode.
-     * - Resilient field access to prevent permission crashes.
-     */
-
     function isSignedIn() {
       return request.auth != null;
     }
@@ -22,24 +13,20 @@ service cloud.firestore {
       );
     }
 
-    // --- User Profiles & Identity Node ---
     match /users/{userId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && request.auth.uid == userId;
       allow update: if isSignedIn() && (
         request.auth.uid == userId ||
         (
-          // External Identity Tuning (Gift a Look)
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['photoURL', 'updatedAt']) &&
           resource.data.get('allowExternalAvatarEdit', false) == true
         ) ||
         (
-          // Profile Access Handshakes (Request Key)
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['pendingProfileRequests']) &&
           request.auth.uid != userId
         ) ||
         (
-          // Authorized Viewer updates
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['authorizedViewers'])
         )
       );
@@ -50,7 +37,6 @@ service cloud.firestore {
       }
     }
 
-    // --- Communities & Contexts ---
     match /communities/{communityId} {
       allow read, list: if isSignedIn();
       allow create: if isSignedIn();
@@ -69,7 +55,7 @@ service cloud.firestore {
 
         match /messages/{messageId} {
           // 'list' MUST strictly match the client query filter for provability
-          allow list: if isSignedIn() && resource.data.visibleTo.hasAny(['all', request.auth.uid]);
+          allow list: if isSignedIn() && resource.data.get('visibleTo', ['all']).hasAny(['all', request.auth.uid]);
           
           // 'get' allows senders or authorized viewers
           allow get: if isSignedIn() && (
@@ -83,9 +69,8 @@ service cloud.firestore {
             resource.data.senderId == request.auth.uid ||
             isCommunityAdmin(communityId) ||
             (
-              // Authorized sync for read receipts and Ghost timers
               request.resource.data.diff(resource.data).affectedKeys().hasOnly(['seenBy', 'viewerExpireAt']) &&
-              resource.data.visibleTo.hasAny(['all', request.auth.uid])
+              resource.data.get('visibleTo', ['all']).hasAny(['all', request.auth.uid])
             )
           );
           
@@ -102,9 +87,8 @@ service cloud.firestore {
       }
     }
 
-    // --- Unified Recursive Message Access (Lineage & Forwards) ---
     match /{path=**}/messages/{messageId} {
-      allow list: if isSignedIn() && resource.data.visibleTo.hasAny(['all', request.auth.uid]);
+      allow list: if isSignedIn() && resource.data.get('visibleTo', ['all']).hasAny(['all', request.auth.uid]);
       
       allow get: if isSignedIn() && (
         resource.data.get('visibleTo', ['all']).hasAny(['all', request.auth.uid]) ||
@@ -117,7 +101,7 @@ service cloud.firestore {
         resource.data.senderId == request.auth.uid ||
         (
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['seenBy', 'viewerExpireAt']) &&
-          resource.data.visibleTo.hasAny(['all', request.auth.uid])
+          resource.data.get('visibleTo', ['all']).hasAny(['all', request.auth.uid])
         )
       );
       
