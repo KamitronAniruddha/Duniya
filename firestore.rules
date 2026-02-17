@@ -25,10 +25,10 @@ service cloud.firestore {
       return resource != null && isOwner(userId);
     }
 
-    // Helper to check if a user is in a community's members sub-collection
+    // Helper to check if a user is in a community's members array
     function isCommunityMember(communityId) {
       return isSignedIn() && 
-             exists(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid));
+             get(/databases/$(database)/documents/communities/$(communityId)).data.members.hasAny([request.auth.uid]);
     }
 
     function isPublicCommunity(communityId) {
@@ -103,7 +103,7 @@ service cloud.firestore {
         match /messages/{messageId} {
           allow get, list: if isSignedIn() && 
                            (isPublicCommunity(communityId) || isCommunityMember(communityId)) &&
-                           (!('visibleTo' in resource.data) || resource.data.visibleTo.hasAny(['all', request.auth.uid]));
+                           (request.auth.uid in resource.data.visibleTo || 'all' in resource.data.visibleTo);
           allow create: if isSignedIn() && isCommunityMember(communityId) && request.resource.data.senderId == request.auth.uid;
           allow update, delete: if isSignedIn() && (resource.data.senderId == request.auth.uid || get(/databases/$(database)/documents/communities/$(communityId)).data.ownerId == request.auth.uid);
         }
@@ -116,21 +116,18 @@ service cloud.firestore {
       }
 
       match /members/{memberId} {
-        // Members list is accessible to all signed in users if they belong to the community or it's public
         allow get, list: if isSignedIn() && (isPublicCommunity(communityId) || isCommunityMember(communityId));
         allow create, update, delete: if isSignedIn() && (get(/databases/$(database)/documents/communities/$(communityId)).data.ownerId == request.auth.uid || request.auth.uid == memberId);
       }
     }
 
     /**
-     * @description Support for collectionGroup queries on messages (e.g. for unread badges).
-     * This is critical for cross-channel unread counts.
+     * @description Explicit support for collectionGroup queries on messages.
+     * Required for cross-channel features.
      */
     match /{path=**}/messages/{messageId} {
       allow read: if isSignedIn() && 
-                    // Verify the message is either public or intended for the current user
-                    (resource.data.visibleTo.hasAny(['all', request.auth.uid])) &&
-                    // Verify membership in the specific community this message belongs to
+                    (request.auth.uid in resource.data.visibleTo || 'all' in resource.data.visibleTo) &&
                     ('serverId' in resource.data && isCommunityMember(resource.data.serverId));
     }
   }

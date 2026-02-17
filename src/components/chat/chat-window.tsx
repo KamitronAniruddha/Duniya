@@ -89,7 +89,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
 
   const messagesQuery = useMemoFirebase(() => {
     if (!db || !basePath || !user) return null;
-    // CRITICAL: Filter by visibility using array-contains-any to comply with security rules and avoid permission denials
+    // CRITICAL: Scope the query correctly with visibility filters to align with security rules
     return query(
       collection(db, basePath, "messages"), 
       where("visibleTo", "array-contains-any", ["all", user.uid]),

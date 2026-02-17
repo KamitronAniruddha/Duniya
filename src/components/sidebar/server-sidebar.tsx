@@ -3,7 +3,7 @@
 
 import { useState, useMemo } from "react";
 import { useCollection, useFirestore, useUser, useMemoFirebase } from "@/firebase";
-import { collection, query, where, doc, arrayUnion, getDocs, limit, writeBatch, collectionGroup, orderBy } from "firebase/firestore";
+import { collection, query, where, doc, arrayUnion, getDocs, limit, writeBatch, orderBy } from "firebase/firestore";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -97,7 +97,6 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive }
                             <AvatarImage src={s.icon} className="object-cover" />
                             <AvatarFallback className="bg-primary text-white font-black text-lg">{s.name?.[0]?.toUpperCase()}</AvatarFallback>
                           </Avatar>
-                          <UnreadBadge serverId={s.id} />
                         </div>
                       </button>
                     </TooltipTrigger>
@@ -143,48 +142,5 @@ export function ServerSidebar({ activeServerId, onSelectServer, isDuniyaActive }
       {editingServerId && <ServerSettingsDialog open={!!editingServerId} onOpenChange={(open) => !open && setEditingServerId(null)} serverId={editingServerId} />}
       {viewingProfileId && <CommunityProfileDialog open={!!viewingProfileId} onOpenChange={(open) => !open && setViewingProfileId(null)} serverId={viewingProfileId} />}
     </aside>
-  );
-}
-
-function UnreadBadge({ serverId }: { serverId: string }) {
-  const db = useFirestore();
-  const { user } = useUser();
-  
-  const messagesQuery = useMemoFirebase(() => {
-    if (!db || !user || !serverId) return null;
-    // CRITICAL FIX: To resolve "Missing or insufficient permissions" at root,
-    // the query must strictly match the security rules logic.
-    // Use array-contains-any for visibility filtering.
-    return query(
-      collectionGroup(db, "messages"),
-      where("serverId", "==", serverId),
-      where("visibleTo", "array-contains-any", ["all", user.uid]),
-      orderBy("sentAt", "desc"),
-      limit(20)
-    );
-  }, [db, user?.uid, serverId]);
-
-  const { data: messages } = useCollection(messagesQuery);
-
-  const unreadCount = useMemo(() => {
-    if (!messages || !user) return 0;
-    return messages.filter(msg => 
-      !msg.seenBy?.includes(user.uid) && 
-      msg.senderId !== user.uid &&
-      !msg.fullyDeleted &&
-      !msg.isDeleted
-    ).length;
-  }, [messages, user?.uid]);
-
-  if (unreadCount === 0) return null;
-
-  return (
-    <motion.div 
-      initial={{ scale: 0, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      className="absolute -top-1 -right-1 h-5 min-w-[20px] px-1.5 bg-destructive text-white text-[9px] font-[1000] rounded-full border-2 border-sidebar flex items-center justify-center shadow-lg z-10 animate-pulse"
-    >
-      {unreadCount > 9 ? "9+" : unreadCount}
-    </motion.div>
   );
 }
