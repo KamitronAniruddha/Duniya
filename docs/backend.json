@@ -7,387 +7,24 @@
       "type": "object",
       "description": "Represents a user profile within the ConnectVerse application, including personal details, social connections, and gamification attributes.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the User entity."
-        },
-        "username": {
-          "type": "string",
-          "description": "Unique username chosen by the user."
-        },
-        "displayName": {
-          "type": "string",
-          "description": "The name displayed to other users."
-        },
-        "profilePictureUrl": {
-          "type": "string",
-          "description": "URL to the user's avatar image.",
-          "format": "uri"
-        },
-        "bio": {
-          "type": "string",
-          "description": "A short biographical description provided by the user."
-        },
-        "statusMessage": {
-          "type": "string",
-          "description": "A custom status message set by the user."
-        },
-        "onlineStatus": {
-          "type": "string",
-          "description": "User's current online presence status (e.g., 'online', 'idle', 'offline', 'do-not-disturb')."
-        },
-        "lastOnlineAt": {
-          "type": "string",
-          "description": "Timestamp of the user's last known online activity.",
-          "format": "date-time"
-        },
-        "totalExperiencePoints": {
-          "type": "number",
-          "description": "Accumulated experience points for the user, contributing to their level and leaderboard ranking."
-        },
-        "blockedUserIds": {
-          "type": "array",
-          "description": "References to Users that this user has blocked. (Relationship: User N:N User)",
-          "items": {
-            "type": "string"
-          }
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the user account was created.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp of the last update to the user's profile.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "username",
-        "displayName",
-        "onlineStatus",
-        "totalExperiencePoints",
-        "createdAt"
-      ]
-    },
-    "Invitation": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Invitation",
-      "type": "object",
-      "description": "Represents a direct invitation for a user to join a community.",
-      "properties": {
         "id": { "type": "string" },
-        "targetUserId": { "type": "string" },
-        "targetUsername": { "type": "string" },
-        "targetUserPhoto": { "type": "string", "format": "uri" },
-        "senderId": { "type": "string" },
-        "senderName": { "type": "string" },
-        "communityId": { "type": "string" },
-        "communityName": { "type": "string" },
-        "communityIcon": { "type": "string", "format": "uri" },
-        "status": { "type": "string", "enum": ["pending", "accepted", "declined"] },
-        "type": { "type": "string" },
-        "role": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "username": { "type": "string" },
+        "displayName": { "type": "string" },
+        "profilePictureUrl": { "type": "string", "format": "uri" },
+        "bio": { "type": "string" },
+        "statusMessage": { "type": "string" },
+        "onlineStatus": { "type": "string" },
+        "lastOnlineAt": { "type": "string", "format": "date-time" },
+        "xp": { "type": "number" },
+        "level": { "type": "number" },
+        "xpBreakdown": { "type": "object" },
+        "loginStreak": { "type": "number" },
+        "lastLoginDate": { "type": "string" },
+        "blockedUserIds": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["id", "targetUserId", "senderId", "communityId", "status", "createdAt"]
-    },
-    "ContactFormSubmission": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "ContactFormSubmission",
-      "type": "object",
-      "description": "Represents a message sent to the admin team via the contact form.",
-      "properties": {
-        "id": { "type": "string" },
-        "submitterId": { "type": "string" },
-        "senderName": { "type": "string" },
-        "senderEmail": { "type": "string" },
-        "subject": { "type": "string" },
-        "message": { "type": "string" },
-        "submittedAt": { "type": "string", "format": "date-time" },
-        "status": { "type": "string" },
-        "resolvedAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["id", "senderName", "senderEmail", "subject", "message", "submittedAt", "status"]
-    },
-    "Conversation": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Conversation",
-      "type": "object",
-      "description": "Represents a private direct message conversation between users.",
-      "properties": {
-        "id": { "type": "string" },
-        "participantIds": { "type": "array", "items": { "type": "string" } },
-        "lastMessage": { "type": "string" },
-        "updatedAt": { "type": "string", "format": "date-time" },
-        "createdAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["id", "participantIds", "updatedAt", "createdAt"]
-    },
-    "Friendship": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Friendship",
-      "type": "object",
-      "description": "Represents a friendship or follow relationship between two users, including its status.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Friendship entity."
-        },
-        "requesterId": {
-          "type": "string",
-          "description": "Reference to the User who initiated the friendship request. (Relationship: User 1:N Friendship)"
-        },
-        "addresseeId": {
-          "type": "string",
-          "description": "Reference to the User who received the friendship request. (Relationship: User 1:N Friendship)"
-        },
-        "status": {
-          "type": "string",
-          "description": "The current status of the friendship request (e.g., 'pending', 'accepted', 'rejected', 'unfriended')."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the friendship request was initiated.",
-          "format": "date-time"
-        },
-        "respondedAt": {
-          "type": "string",
-          "description": "Timestamp when the friendship request was accepted or rejected.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "requesterId",
-        "addresseeId",
-        "status",
-        "createdAt"
-      ]
-    },
-    "Community": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Community",
-      "type": "object",
-      "description": "Represents a server or community where users can interact through channels.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Community entity."
-        },
-        "name": {
-          "type": "string",
-          "description": "Name of the community."
-        },
-        "description": {
-          "type": "string",
-          "description": "Description of the community."
-        },
-        "ownerId": {
-          "type": "string",
-          "description": "Reference to the User who owns the community. (Relationship: User 1:N Community)"
-        },
-        "members": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "List of user IDs who are members of this community."
-        },
-        "isPublic": {
-          "type": "boolean",
-          "description": "Indicates if the community is public or private."
-        },
-        "communityIconUrl": {
-          "type": "string",
-          "description": "URL to the community's icon or logo.",
-          "format": "uri"
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the community was created.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "name",
-        "ownerId",
-        "isPublic",
-        "members",
-        "createdAt"
-      ]
-    },
-    "Channel": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Channel",
-      "type": "object",
-      "description": "Represents a communication channel within a community, used for text, voice, or video.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Channel entity."
-        },
-        "communityId": {
-          "type": "string",
-          "description": "Reference to the Community this channel belongs to. (Relationship: Community 1:N Channel)"
-        },
-        "name": {
-          "type": "string",
-          "description": "Name of the channel."
-        },
-        "topic": {
-          "type": "string",
-          "description": "A brief topic or description for the channel."
-        },
-        "type": {
-          "type": "string",
-          "description": "Type of channel (e.g., 'text', 'voice', 'video', 'announcement')."
-        },
-        "isPrivate": {
-          "type": "boolean",
-          "description": "Indicates if the channel is private and only accessible to specific roles/members."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the channel was created.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "communityId",
-        "name",
-        "type",
-        "isPrivate",
-        "createdAt"
-      ]
-    },
-    "Role": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Role",
-      "type": "object",
-      "description": "Defines a set of permissions within a specific community.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Role entity."
-        },
-        "communityId": {
-          "type": "string",
-          "description": "Reference to the Community this role belongs to. (Relationship: Community 1:N Role)"
-        },
-        "name": {
-          "type": "string",
-          "description": "Name of the role (e.g., 'Admin', 'Moderator', 'Member')."
-        },
-        "permissions": {
-          "type": "array",
-          "description": "A list of permission strings granted by this role (e.g., 'sendMessage', 'kickUser', 'manageChannels').",
-          "items": {
-            "type": "string"
-          }
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the role was created.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "communityId",
-        "name",
-        "permissions",
-        "createdAt"
-      ]
-    },
-    "UserRole": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "UserRole",
-      "type": "object",
-      "description": "Junction entity representing a user's assigned role within a specific community.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the UserRole entity."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to the User. (Relationship: User N:N Role)"
-        },
-        "roleId": {
-          "type": "string",
-          "description": "Reference to the Role. (Relationship: User N:N Role)"
-        },
-        "communityId": {
-          "type": "string",
-          "description": "Reference to the Community where this role assignment applies. (Relationship: Community 1:N UserRole)"
-        },
-        "assignedAt": {
-          "type": "string",
-          "description": "Timestamp when the role was assigned to the user.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "userId",
-        "roleId",
-        "communityId",
-        "assignedAt"
-      ]
-    },
-    "InviteLink": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "InviteLink",
-      "type": "object",
-      "description": "Represents an invite link for a community, allowing new users to join.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the InviteLink entity."
-        },
-        "communityId": {
-          "type": "string",
-          "description": "Reference to the Community this invite link is for. (Relationship: Community 1:N InviteLink)"
-        },
-        "creatorId": {
-          "type": "string",
-          "description": "Reference to the User who created this invite link. (Relationship: User 1:N InviteLink)"
-        },
-        "code": {
-          "type": "string",
-          "description": "The unique code for the invite link."
-        },
-        "expiresAt": {
-          "type": "string",
-          "description": "Timestamp when the invite link will expire.",
-          "format": "date-time"
-        },
-        "maxUses": {
-          "type": "number",
-          "description": "Maximum number of times this invite link can be used."
-        },
-        "currentUses": {
-          "type": "number",
-          "description": "Current number of times this invite link has been used."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the invite link was created.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "communityId",
-        "creatorId",
-        "code",
-        "maxUses",
-        "currentUses",
-        "createdAt"
-      ]
+      "required": ["id", "username", "displayName", "onlineStatus", "createdAt"]
     },
     "Message": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -395,159 +32,38 @@
       "type": "object",
       "description": "Represents a single message sent in a channel or direct message.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Message entity."
-        },
-        "serverId": {
-          "type": "string",
-          "description": "Reference to the Community (Server) this message belongs to."
-        },
-        "channelId": {
-          "type": "string",
-          "description": "Reference to the Channel where the message was sent. (Relationship: Channel 1:N Message)"
-        },
-        "senderId": {
-          "type": "string",
-          "description": "Reference to the User who sent the message. (Relationship: User 1:N Message)"
-        },
-        "content": {
-          "type": "string",
-          "description": "The text content of the message, potentially including rich text formatting (e.g., Markdown)."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the message was sent.",
-          "format": "date-time"
-        },
-        "status": {
-          "type": "string",
-          "description": "Current status of the message (e.g., 'sent', 'delivered', 'read')."
-        },
-        "readBy": {
-          "type": "array",
-          "description": "References to Users who have read this message. (Relationship: Message N:N User)",
-          "items": {
-            "type": "string"
-          }
-        },
-        "editedAt": {
-          "type": "string",
-          "description": "Timestamp when the message was last edited.",
-          "format": "date-time"
-        },
-        "deletedAt": {
-          "type": "string",
-          "description": "Timestamp when the message was deleted.",
-          "format": "date-time"
-        },
-        "replyToMessageId": {
-          "type": "string",
-          "description": "Reference to another Message this message is a reply to, if applicable. (Relationship: Message 1:N Message)"
-        },
-        "quotedMessageId": {
-          "type": "string",
-          "description": "Reference to another Message this message is quoting, if applicable. (Relationship: Message 1:N Message)"
-        },
-        "mediaAttachmentIds": {
-          "type": "array",
-          "description": "References to MediaAttachment entities associated with this message. (Relationship: Message N:N MediaAttachment)",
-          "items": {
-            "type": "string"
-          }
-        },
-        "mentionUserIds": {
-          "type": "array",
-          "description": "References to Users explicitly mentioned in this message. (Relationship: Message N:N User)",
-          "items": {
-            "type": "string"
-          }
-        },
-        "hashtags": {
-          "type": "array",
-          "description": "A list of hashtags used in the message content.",
-          "items": {
-            "type": "string"
-          }
-        },
-        "isPinned": {
-          "type": "boolean",
-          "description": "Indicates if the message is pinned in the channel."
-        }
+        "id": { "type": "string" },
+        "serverId": { "type": "string", "description": "Reference to the Community (Server) this message belongs to." },
+        "channelId": { "type": "string" },
+        "senderId": { "type": "string" },
+        "senderName": { "type": "string" },
+        "content": { "type": "string" },
+        "sentAt": { "type": "string", "format": "date-time" },
+        "type": { "type": "string" },
+        "visibleTo": { "type": "array", "items": { "type": "string" }, "description": "Privacy filter: ['all'] or [uid, uid]" },
+        "seenBy": { "type": "array", "items": { "type": "string" } },
+        "isForwarded": { "type": "boolean" },
+        "forwardingChain": { "type": "array" }
       },
-      "required": [
-        "id",
-        "channelId",
-        "senderId",
-        "content",
-        "createdAt",
-        "status"
-      ]
+      "required": ["id", "senderId", "content", "sentAt", "visibleTo"]
     },
-    "MessageReaction": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "MessageReaction",
+    "Community": {
+      "title": "Community",
       "type": "object",
-      "description": "Represents a user's reaction (emoji) to a specific message.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the MessageReaction entity."
-        },
-        "messageId": {
-          "type": "string",
-          "description": "Reference to the Message being reacted to. (Relationship: Message 1:N MessageReaction)"
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to the User who added the reaction. (Relationship: User 1:N MessageReaction)"
-        },
-        "emoji": {
-          "type": "string",
-          "description": "The emoji character used for the reaction (e.g., '👍', '❤️')."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the reaction was added.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "messageId",
-        "userId",
-        "emoji",
-        "createdAt"
-      ]
-    },
-    "ExperiencePointActivity": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "ExperiencePointActivity",
-      "type": "object",
-      "description": "Records individual instances of a user gaining experience points, serving as an XP history.",
       "properties": {
         "id": { "type": "string" },
-        "userId": { "type": "string" },
-        "type": { "type": "string" },
-        "amount": { "type": "number" },
-        "reason": { "type": "string" },
-        "timestamp": { "type": "string", "format": "date-time" }
+        "name": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "members": { "type": "array", "items": { "type": "string" } },
+        "isPublic": { "type": "boolean" },
+        "icon": { "type": "string", "format": "uri" },
+        "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": [
-        "id",
-        "userId",
-        "type",
-        "amount",
-        "reason",
-        "timestamp"
-      ]
+      "required": ["id", "name", "ownerId", "members", "createdAt"]
     }
   },
   "auth": {
-    "providers": [
-      "password",
-      "anonymous"
-    ]
+    "providers": ["password", "anonymous"]
   },
   "firestore": {
     "structure": [
@@ -555,93 +71,26 @@
         "path": "/users/{userId}",
         "definition": {
           "entityName": "User",
-          "schema": {
-            "$ref": "#/backend/entities/User"
-          },
+          "schema": { "$ref": "#/backend/entities/User" },
           "description": "Root collection for user profiles."
-        }
-      },
-      {
-        "path": "/invitations/{inviteId}",
-        "definition": {
-          "entityName": "Invitation",
-          "schema": {
-            "$ref": "#/backend/entities/Invitation"
-          },
-          "description": "Root collection for community invitations."
-        }
-      },
-      {
-        "path": "/contact_form_submissions/{submissionId}",
-        "definition": {
-          "entityName": "ContactFormSubmission",
-          "schema": {
-            "$ref": "#/backend/entities/ContactFormSubmission"
-          },
-          "description": "Root collection for support messages."
-        }
-      },
-      {
-        "path": "/conversations/{conversationId}",
-        "definition": {
-          "entityName": "Conversation",
-          "schema": {
-            "$ref": "#/backend/entities/Conversation"
-          },
-          "description": "Root collection for DM conversations."
-        }
-      },
-      {
-        "path": "/users/{userId}/xp_history/{xpActivityId}",
-        "definition": {
-          "entityName": "ExperiencePointActivity",
-          "schema": {
-            "$ref": "#/backend/entities/ExperiencePointActivity"
-          },
-          "description": "Detailed XP gain history."
         }
       },
       {
         "path": "/communities/{communityId}",
         "definition": {
           "entityName": "Community",
-          "schema": {
-            "$ref": "#/backend/entities/Community"
-          },
+          "schema": { "$ref": "#/backend/entities/Community" },
           "description": "Main community document."
-        }
-      },
-      {
-        "path": "/communities/{communityId}/channels/{channelId}",
-        "definition": {
-          "entityName": "Channel",
-          "schema": {
-            "$ref": "#/backend/entities/Channel"
-          },
-          "description": "Communication channels within a community."
         }
       },
       {
         "path": "/communities/{communityId}/channels/{channelId}/messages/{messageId}",
         "definition": {
           "entityName": "Message",
-          "schema": {
-            "$ref": "#/backend/entities/Message"
-          },
+          "schema": { "$ref": "#/backend/entities/Message" },
           "description": "Messages sent within a channel."
         }
-      },
-      {
-        "path": "/communities/{communityId}/channels/{channelId}/typing/{userId}",
-        "definition": {
-          "entityName": "User",
-          "schema": {
-            "$ref": "#/backend/entities/User"
-          },
-          "description": "Real-time typing indicators."
-        }
       }
-    ],
-    "reasoning": "Standardizing root collections and sub-collections for high-fidelity social features."
+    ]
   }
 }

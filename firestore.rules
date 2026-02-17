@@ -4,31 +4,38 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * ConnectVerse Security Rules v6.0
+     * Duniya Verse Security Rules v7.5
      * 
      * CORE PHILOSOPHY:
-     * - Authenticated users can browse the Verse directory.
-     * - Message visibility is strictly governed by the 'visibleTo' field (Whisper Privacy).
-     * - Profile privacy (Blur/Hidden) is handled at the application rendering level.
+     * - Consolidate message rules to handle both channel and recursive (Genealogy) access.
+     * - Strict "Whisper" privacy enforced via the 'visibleTo' array.
+     * - High-fidelity synchronization for all Verse nodes.
      */
 
     function isSignedIn() {
       return request.auth != null;
     }
 
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
+    // --- Unified Message Access (The Sovereign Heart) ---
+    // This recursive match handles all message collections at any depth.
+    match /{path=**}/messages/{messageId} {
+      allow read: if isSignedIn() && (
+        !('visibleTo' in resource.data) || 
+        resource.data.visibleTo.hasAny(['all', request.auth.uid])
+      );
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn() && resource.data.senderId == request.auth.uid;
     }
 
-    // --- User Profiles ---
+    // --- User Profiles & Identity Node ---
     match /users/{userId} {
       allow read: if isSignedIn();
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId);
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow update: if isSignedIn() && request.auth.uid == userId;
       
       match /xp_history/{activityId} {
-        allow read: if isOwner(userId);
-        allow create: if isOwner(userId);
+        allow read: if isSignedIn() && request.auth.uid == userId;
+        allow create: if isSignedIn() && request.auth.uid == userId;
       }
     }
 
@@ -41,15 +48,8 @@ service cloud.firestore {
       match /channels/{channelId} {
         allow read: if isSignedIn();
         allow write: if isSignedIn();
-
-        match /messages/{messageId} {
-          allow read: if isSignedIn() && (
-            !('visibleTo' in resource.data) || 
-            resource.data.visibleTo.hasAny(['all', request.auth.uid])
-          );
-          allow create: if isSignedIn();
-          allow update, delete: if isSignedIn() && resource.data.senderId == request.auth.uid;
-        }
+        
+        // Note: Message rules are handled by the global recursive match above.
         
         match /typing/{userId} {
           allow read, write: if isSignedIn();
@@ -61,25 +61,18 @@ service cloud.firestore {
       }
     }
 
-    // --- Global Message Access (Genealogy & History) ---
-    match /{path=**}/messages/{messageId} {
-      allow read: if isSignedIn() && (
-        !('visibleTo' in resource.data) || 
-        resource.data.visibleTo.hasAny(['all', request.auth.uid])
-      );
-    }
-
     // --- Invitations ---
     match /invitations/{inviteId} {
       allow read, write: if isSignedIn();
     }
 
-    // --- Support & Conversations ---
+    // --- Support & Support Node ---
     match /contact_form_submissions/{id} {
       allow create: if isSignedIn();
       allow read: if isSignedIn();
     }
 
+    // --- Private Direct Conversations ---
     match /conversations/{conversationId} {
       allow read, write: if isSignedIn() && (
         !('participantIds' in resource.data) || 
