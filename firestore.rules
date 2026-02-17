@@ -27,12 +27,14 @@ service cloud.firestore {
 
     // Helper to check if a user is in a community's members array
     function isCommunityMember(communityId) {
-      let community = get(/databases/$(database)/documents/communities/$(communityId)).data;
-      return isSignedIn() && (request.auth.uid in community.members);
+      return isSignedIn() && 
+             exists(/databases/$(database)/documents/communities/$(communityId)) && 
+             (request.auth.uid in get(/databases/$(database)/documents/communities/$(communityId)).data.members);
     }
 
     function isPublicCommunity(communityId) {
-      return get(/databases/$(database)/documents/communities/$(communityId)).data.isPublic == true;
+      return exists(/databases/$(database)/documents/communities/$(communityId)) && 
+             get(/databases/$(database)/documents/communities/$(communityId)).data.isPublic == true;
     }
 
     // --- Collection Rules ---
@@ -167,13 +169,14 @@ service cloud.firestore {
 
     /**
      * @description Support for collectionGroup queries on messages (e.g. for unread badges).
+     * This is critical for cross-channel unread counts.
      */
     match /{path=**}/messages/{messageId} {
       allow read: if isSignedIn() && (
-        // Ensure user is allowed to see the message (whisper check)
-        (resource.data.visibleTo.hasAny(['all', request.auth.uid])) &&
-        // Ensure user is a member of the community the message belongs to
-        (resource.data.serverId == null || isCommunityMember(resource.data.serverId))
+        // Whisper check: only allow if user is a participant or it's public
+        (!('visibleTo' in resource.data) || resource.data.visibleTo.hasAny(['all', request.auth.uid])) &&
+        // Community check: allow if serverId is missing (DMs) or if user is member of that specific server
+        (!('serverId' in resource.data) || resource.data.serverId == null || isCommunityMember(resource.data.serverId))
       );
     }
 
