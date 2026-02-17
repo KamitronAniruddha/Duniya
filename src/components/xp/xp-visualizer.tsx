@@ -62,7 +62,7 @@ export function XPVisualizer({ xp, className, isMini = false }: XPVisualizerProp
               </div>
               <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.3em] text-primary/80">Digital Evolution Status</span>
             </div>
-            <h3 className="text-2xl md:text-3xl font-black tracking-tighter uppercase leading-none text-foreground italic">
+            <h3 className="text-xl md:text-2xl font-black tracking-tighter uppercase leading-none text-foreground italic">
               LEVEL <span className="text-primary not-italic">{level}</span>
             </h3>
             <div className="mt-2.5 flex items-center gap-2">
@@ -74,7 +74,7 @@ export function XPVisualizer({ xp, className, isMini = false }: XPVisualizerProp
           
           <div className="h-12 w-12 md:h-16 md:w-16 rounded-2xl bg-muted/30 border border-border/50 flex flex-col items-center justify-center relative shadow-inner group-hover:border-primary/20 transition-all shrink-0">
             <span className="text-[7px] md:text-[8px] font-black uppercase tracking-widest text-muted-foreground">Sync</span>
-            <span className="text-lg md:text-xl font-black text-foreground italic">{Math.floor(progress)}%</span>
+            <span className="text-base md:text-lg font-black text-foreground italic">{Math.floor(progress)}%</span>
             <motion.div 
               animate={{ rotate: 360 }}
               transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
@@ -112,7 +112,7 @@ export function XPVisualizer({ xp, className, isMini = false }: XPVisualizerProp
               <Zap className="h-4 w-4 md:h-5 md:w-5 fill-current" />
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="text-lg md:text-xl font-black text-foreground leading-none tracking-tighter truncate">{xp || 0}</span>
+              <span className="text-base md:text-lg font-black text-foreground leading-none tracking-tighter truncate">{xp || 0}</span>
               <span className="text-[7px] md:text-[8px] font-black uppercase tracking-widest text-muted-foreground mt-1">Total Lineage</span>
             </div>
           </div>
@@ -121,7 +121,7 @@ export function XPVisualizer({ xp, className, isMini = false }: XPVisualizerProp
               <Star className="h-4 w-4 md:h-5 md:w-5 fill-current" />
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="text-lg md:text-xl font-black text-foreground leading-none tracking-tighter truncate">#{level}</span>
+              <span className="text-base md:text-lg font-black text-foreground leading-none tracking-tighter truncate">#{level}</span>
               <span className="text-[7px] md:text-[8px] font-black uppercase tracking-widest text-muted-foreground mt-1">Node Rank</span>
             </div>
           </div>

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useCollection, useFirestore, useUser, useMemoFirebase } from "@/firebase";
@@ -73,13 +72,13 @@ export function GlobalLeaderboard() {
               </div>
             </div>
             <div className="text-center">
-              <h4 className="text-xs font-black uppercase tracking-tight text-foreground truncate max-w-[100px]">@{topThree[1].username}</h4>
-              <div className="flex items-center justify-center gap-1 text-[9px] font-black text-primary uppercase">
+              <h4 className="text-[10px] md:text-xs font-black uppercase tracking-tight text-foreground truncate max-w-[100px]">@{topThree[1].username}</h4>
+              <div className="flex items-center justify-center gap-1 text-[8px] md:text-[9px] font-black text-primary uppercase">
                 <Zap className="h-2.5 w-2.5 fill-current" /> {topThree[1].xp} XP
               </div>
             </div>
             <div className="h-10 md:h-14 w-20 md:w-24 bg-gradient-to-b from-slate-100 to-transparent dark:from-slate-900 rounded-t-2xl border-x border-t border-slate-300/50 flex flex-col items-center justify-center shadow-inner">
-              <span className="text-lg md:text-xl font-black text-slate-400">#2</span>
+              <span className="text-base md:text-lg font-black text-slate-400">#2</span>
             </div>
           </motion.div>
         )}
@@ -93,22 +92,22 @@ export function GlobalLeaderboard() {
           >
             <div className="relative">
               <div className="absolute inset-0 bg-primary/20 blur-[30px] rounded-full scale-125 animate-pulse" />
-              <Avatar className="h-24 w-24 md:h-28 md:w-28 border-[6px] border-primary shadow-2xl transition-all group-hover:scale-105">
+              <Avatar className="h-20 w-20 md:h-24 md:w-24 border-[6px] border-primary shadow-2xl transition-all group-hover:scale-105">
                 <AvatarImage src={topThree[0].photoURL} className="object-cover" />
-                <AvatarFallback className="bg-primary text-white font-black text-3xl md:text-4xl">{topThree[0].username?.[0]}</AvatarFallback>
+                <AvatarFallback className="bg-primary text-white font-black text-2xl md:text-3xl">{topThree[0].username?.[0]}</AvatarFallback>
               </Avatar>
-              <div className="absolute -top-4 -right-4 h-10 w-10 md:h-12 md:w-12 bg-primary rounded-2xl flex items-center justify-center shadow-2xl border-4 border-background -rotate-6 group-hover:rotate-0 transition-transform">
-                <Crown className="h-5 w-5 md:h-6 md:w-6 text-white fill-white" />
+              <div className="absolute -top-4 -right-4 h-8 w-8 md:h-10 md:w-10 bg-primary rounded-2xl flex items-center justify-center shadow-2xl border-4 border-background -rotate-6 group-hover:rotate-0 transition-transform">
+                <Crown className="h-4 w-4 md:h-5 md:w-5 text-white fill-white" />
               </div>
             </div>
             <div className="text-center">
-              <h4 className="text-sm md:text-base font-black uppercase tracking-tighter text-foreground truncate max-w-[150px]">@{topThree[0].username}</h4>
-              <div className="flex items-center justify-center gap-1 text-[10px] md:text-xs font-black text-primary uppercase">
+              <h4 className="text-xs md:text-base font-black uppercase tracking-tighter text-foreground truncate max-w-[150px]">@{topThree[0].username}</h4>
+              <div className="flex items-center justify-center gap-1 text-[9px] md:text-[10px] font-black text-primary uppercase">
                 <Sparkles className="h-3 w-3 fill-current" /> {topThree[0].xp} XP
               </div>
             </div>
-            <div className="h-16 md:h-20 w-28 md:w-32 bg-gradient-to-b from-primary/20 to-transparent rounded-t-3xl border-x border-t border-primary/40 flex flex-col items-center justify-center relative overflow-hidden shadow-inner">
-              <span className="text-3xl md:text-4xl font-black text-primary italic">#1</span>
+            <div className="h-14 md:h-16 w-24 md:w-28 bg-gradient-to-b from-primary/20 to-transparent rounded-t-3xl border-x border-t border-primary/40 flex flex-col items-center justify-center relative overflow-hidden shadow-inner">
+              <span className="text-2xl md:text-3xl font-black text-primary italic">#1</span>
             </div>
           </motion.div>
         )}
@@ -137,7 +136,7 @@ export function GlobalLeaderboard() {
               </div>
             </div>
             <div className="h-10 md:h-12 w-16 md:w-20 bg-gradient-to-b from-amber-50 to-transparent dark:from-amber-950/30 rounded-t-xl border-x border-t border-amber-600/30 flex flex-col items-center justify-center shadow-inner">
-              <span className="text-base md:text-lg font-black text-amber-700">#3</span>
+              <span className="text-sm md:text-base font-black text-amber-700">#3</span>
             </div>
           </motion.div>
         )}
@@ -150,7 +149,7 @@ export function GlobalLeaderboard() {
           <Activity className="h-3 w-3 text-primary/40" />
         </div>
         
-        <ScrollArea className="h-[300px] md:h-[350px] px-2">
+        <ScrollArea className="h-[250px] md:h-[300px] px-2">
           <motion.div variants={container} initial="hidden" animate="show" className="space-y-2 pb-6">
             {others.map((leader, idx) => {
               const rank = idx + 4;
