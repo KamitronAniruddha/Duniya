@@ -53,6 +53,7 @@ interface MessageBubbleProps {
     sentAt: any;
     isDeleted?: boolean;
     isSensitive?: boolean;
+    isVibe?: boolean;
     replyTo?: {
       messageId: string;
       senderName: string;
@@ -217,7 +218,7 @@ export const MessageBubble = memo(function MessageBubble({
             className={cn(
               "underline font-bold decoration-2 underline-offset-2 hover:opacity-70 transition-all break-all", 
               isMe ? "text-white" : "text-primary",
-              message.whisperTo && "text-indigo-200"
+              (message.whisperTo || message.type === 'vibe') && "text-rose-200"
             )}
             onClick={(e) => e.stopPropagation()}
           >
@@ -387,12 +388,19 @@ export const MessageBubble = memo(function MessageBubble({
               "px-3 py-2 rounded-[1.25rem] shadow-sm transition-all duration-150 relative group/bubble",
               isMe ? "bg-primary text-primary-foreground rounded-br-none shadow-primary/10" : "bg-card text-foreground rounded-bl-none border border-border shadow-black/5",
               message.whisperTo && (isMe ? "bg-gradient-to-br from-indigo-600 to-indigo-800 shadow-indigo-500/20 text-white" : "bg-indigo-50 dark:bg-indigo-950/40 border-indigo-200 dark:border-indigo-800 backdrop-blur-md"),
+              message.type === 'vibe' && (isMe ? "bg-gradient-to-br from-rose-600 via-crimson-700 to-rose-900 text-white border-rose-400/20 shadow-[0_10px_30px_rgba(225,29,72,0.3)] animate-pulse-subtle" : "bg-rose-50/80 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800 backdrop-blur-xl text-rose-950 dark:text-rose-100 shadow-[0_10px_20px_rgba(225,29,72,0.1)]"),
               selectionMode && !isActuallyDeleted && "cursor-pointer active:scale-[0.98]",
               (message.imageUrl || message.type === 'file') && "p-1 pb-2"
             )}>
               {message.whisperTo && (
                 <div className={cn("flex items-center gap-1.5 mb-1.5 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-[0.2em] w-fit border border-white/20", isMe ? "bg-white/10 text-white" : "bg-indigo-500 text-white")}>
                   <Lock className="h-2.5 w-2.5" /> PRIVATE WHISPER {isMe ? `@${message.whisperToUsername}` : "TO YOU"}
+                </div>
+              )}
+
+              {message.type === 'vibe' && (
+                <div className={cn("flex items-center gap-1.5 mb-1.5 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-[0.3em] w-fit border shadow-sm", isMe ? "bg-white/10 text-rose-100 border-white/20" : "bg-rose-500/10 text-rose-600 border-rose-500/20")}>
+                  <motion.div animate={{ scale: [1, 1.3, 1] }} transition={{ repeat: Infinity, duration: 0.8 }}><Heart className="h-2.5 w-2.5 fill-current" /></motion.div> INTIMATE SYNC {isMe ? `@${message.whisperToUsername}` : "RECEIVED"}
                 </div>
               )}
 
@@ -478,8 +486,9 @@ export const MessageBubble = memo(function MessageBubble({
                 </div>
               ) : (
                 <div className={cn(
-                  "whitespace-pre-wrap break-words leading-snug text-sm font-medium tracking-tight px-2",
-                  message.whisperTo && "font-mono text-xs opacity-90"
+                  "whitespace-pre-wrap break-words leading-relaxed text-sm tracking-tight px-2",
+                  (message.whisperTo || message.type === 'vibe') && "font-medium opacity-95",
+                  message.type === 'vibe' && "font-['Playfair_Display'] italic text-base leading-snug tracking-normal"
                 )}>
                   {renderContent(message.content)}
                 </div>
@@ -492,7 +501,7 @@ export const MessageBubble = memo(function MessageBubble({
                     {timeRemaining !== null ? <span>{timeRemaining}S</span> : <span>...</span>}
                   </div>
                 )}
-                <div className={cn("text-[8px] font-black ml-auto flex items-center gap-1 tracking-widest opacity-60", isMe ? "text-primary-foreground" : "text-muted-foreground")}>
+                <div className={cn("text-[8px] font-black ml-auto flex items-center gap-1 tracking-widest opacity-60", isMe ? "text-rose-100" : "text-muted-foreground")}>
                   {formattedTime}
                   {isMe && <div className="flex items-center">{message.seenBy && message.seenBy.length > 0 ? <CheckCheck className="h-3 w-3 text-cyan-400" /> : <Check className="h-3 w-3 text-primary-foreground/40" />}</div>}
                 </div>

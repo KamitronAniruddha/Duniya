@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -40,7 +41,8 @@ interface MessageInputProps {
     replySenderPhotoURL?: string,
     isProfileReply?: boolean,
     profileContext?: any,
-    isSensitive?: boolean
+    isSensitive?: boolean,
+    customType?: string
   ) => void;
   onExecuteCommand?: (cmd: string, args: string[]) => Promise<boolean>;
   inputRef?: React.RefObject<HTMLInputElement>;
@@ -61,6 +63,7 @@ const CHEAT_CODES = [
   { icon: <Eraser className="h-4 w-4 text-orange-500" />, label: "clr", description: "Clear current chat history", usage: "@clr" },
   { icon: <Trash2 className="h-4 w-4 text-red-500" />, label: "del", description: "Delete last X messages", usage: "@del 5" },
   { icon: <Lock className="h-4 w-4 text-indigo-500" />, label: "whisper", description: "Toggle private whisper mode", usage: "@whisper @username" },
+  { icon: <Heart className="h-4 w-4 text-rose-500 fill-rose-500" />, label: "vibe", description: "Send an intimate digital pulse", usage: "@vibe @username I adore you" },
   { icon: <Activity className="h-4 w-4 text-emerald-500" />, label: "ping", description: "Verse sync latency", usage: "@ping" },
   { icon: <Palette className="h-4 w-4 text-pink-500" />, label: "theme", description: "Cycle visual vibes", usage: "@theme" },
   { icon: <UserIcon className="h-4 w-4 text-blue-500" />, label: "profile", description: "Modify identity signature", usage: "@profile" },
@@ -115,7 +118,6 @@ export function MessageInput({
   const userDocRef = useMemoFirebase(() => (user ? doc(db, "users", user.uid) : null), [db, user?.uid]);
   const { data: userData } = useDoc(userDocRef);
 
-  // UNIVERSAL PRIVACY PREVIEW SYNC
   const replyTargetId = profileReplyTarget?.id || replyingTo?.senderId;
   const targetRef = useMemoFirebase(() => (replyTargetId ? doc(db, "users", replyTargetId) : null), [db, replyTargetId]);
   const { data: targetPrivacyData } = useDoc(targetRef);
@@ -196,7 +198,6 @@ export function MessageInput({
       joinedAt: profileReplyTarget.joinedAt || new Date().toISOString()
     } : undefined;
 
-    // AWARD XP FOR MESSAGE DISPATCH
     const xpReward = Math.floor(XP_REWARDS.MESSAGE_BASE + (text.length * XP_REWARDS.MESSAGE_PER_CHAR));
     awardXP(db, user!.uid, xpReward, 'chatting', `Creative Dispatch: ${text.slice(0, 30)}${text.length > 30 ? '...' : ''}`);
 

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useRef, useEffect, useState, useMemo, useCallback } from "react";
@@ -88,8 +89,6 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
 
   const messagesQuery = useMemoFirebase(() => {
     if (!db || !basePath || !user) return null;
-    // CRITICAL FIX: Removed orderBy("sentAt") to avoid composite index requirement when filtering by array.
-    // Sorting is handled client-side in the messages useMemo.
     return query(
       collection(db, basePath, "messages"), 
       where("visibleTo", "array-contains-any", ["all", user.uid]),
@@ -107,7 +106,6 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
         return true;
       })
       .sort((a, b) => {
-        // High Fidelity In-Memory Chronological Sorting
         const dateA = a.sentAt ? new Date(a.sentAt).getTime() : 0;
         const dateB = b.sentAt ? new Date(b.sentAt).getTime() : 0;
         return dateA - dateB;
@@ -126,15 +124,18 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
     replySenderPhotoURL?: string,
     isProfileReply?: boolean,
     profileContext?: any,
-    isSensitive?: boolean
+    isSensitive?: boolean,
+    customType?: string
   ) => {
     if (!db || !basePath || !user) return;
     const messageRef = doc(collection(db, basePath, "messages"));
     const sentAt = new Date();
     
-    let messageType = "text";
-    if (videoUrl || audioUrl || imageUrl) messageType = "media";
-    if (file) messageType = "file";
+    let messageType = customType || "text";
+    if (!customType) {
+      if (videoUrl || audioUrl || imageUrl) messageType = "media";
+      if (file) messageType = "file";
+    }
 
     const finalWhisper = whisperTarget !== undefined ? whisperTarget : whisperingTo;
     const cleanReplyName = replySenderName ? replySenderName.replace(/^@/, '') : "";
@@ -234,10 +235,10 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
       toast({ title: `Wiped last ${lastCountMessages.length} message(s)` });
       return true;
     }
-    if (cmd === "whisper") {
+    if (cmd === "whisper" || cmd === "vibe") {
       const username = args[0]?.replace(/^@/, '');
       if (!username) {
-        toast({ title: "Whisper Protocol", description: "Usage: @whisper @username [message]" });
+        toast({ title: `${cmd.toUpperCase()} Protocol`, description: `Usage: @${cmd} @username [message]` });
         return true;
       }
       
@@ -249,11 +250,12 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
           return;
         }
         const target = snap.docs[0].data();
-        handleWhisper(target.id, target.username || "User");
         
         const msgText = args.slice(1).join(" ");
         if (msgText) {
-          handleSendMessage(msgText, undefined, undefined, undefined, undefined, undefined, undefined, { id: target.id, username: target.username || "User" });
+          handleSendMessage(msgText, undefined, undefined, undefined, undefined, undefined, undefined, { id: target.id, username: target.username || "User" }, undefined, false, undefined, false, cmd === "vibe" ? "vibe" : "text");
+        } else {
+          handleWhisper(target.id, target.username || "User");
         }
       };
       findUser();
@@ -297,7 +299,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
     if (cmd === "help") {
       toast({ 
         title: "Verse Command Hub", 
-        description: "Available: @clr, @del, @whisper, @phide, @porn, @ping, @theme, @profile, @explore, @invite, @trace, @logout, @id, @time, @version." 
+        description: "Available: @clr, @del, @whisper, @vibe, @phide, @porn, @ping, @theme, @profile, @explore, @invite, @trace, @logout, @id, @time, @version." 
       });
       return true;
     }
@@ -332,7 +334,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
       return true;
     }
     if (cmd === "version") {
-      toast({ title: "Verse Build", description: "Duniya Protocol v2.4.0 (High-Fidelity Stable)" });
+      toast({ title: "Verse Build", description: "Duniya Protocol v2.5.0 (High-Fidelity Stable)" });
       return true;
     }
     return false;
