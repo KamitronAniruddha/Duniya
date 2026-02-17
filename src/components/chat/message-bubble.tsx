@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { memo, useState, useRef, useEffect, useMemo, useCallback } from "react";
@@ -153,7 +152,7 @@ export const MessageBubble = memo(function MessageBubble({
       }
       updateDocumentNonBlocking(msgRef, updateData);
     }
-  }, [message.id, user?.uid, isMe, messagePath, db, message.seenBy, message.disappearingEnabled, message.disappearingEnabled, message.disappearDuration, message.isDeleted, message.fullyDeleted]);
+  }, [message.id, user?.uid, isMe, messagePath, db, message.seenBy, message.disappearingEnabled, message.disappearDuration, message.isDeleted, message.fullyDeleted]);
 
   useEffect(() => {
     if (!message.disappearingEnabled || !user || message.isDeleted || message.fullyDeleted) return;
@@ -598,8 +597,8 @@ function SharedIntelligenceDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[480px] rounded-[3rem] border-none shadow-[0_32px_128px_rgba(0,0,0,0.4)] p-0 overflow-hidden bg-background h-fit max-h-[90vh] flex flex-col z-[2000]">
-        <DialogHeader className="p-4 md:p-6 pb-2 bg-gradient-to-br from-primary/20 via-primary/5 to-transparent shrink-0 relative overflow-hidden">
+      <DialogContent className="sm:max-w-[480px] w-[95vw] rounded-[3rem] border-none shadow-[0_32px_128px_rgba(0,0,0,0.4)] p-0 overflow-hidden bg-background h-[90vh] max-h-[90vh] flex flex-col z-[2000]">
+        <DialogHeader className="p-5 md:p-6 pb-2 bg-gradient-to-br from-primary/20 via-primary/5 to-transparent shrink-0 relative overflow-hidden">
           <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary/10 rounded-full blur-3xl animate-pulse" />
           <div className="flex items-center justify-between mb-1 relative z-10">
             <div className="flex items-center gap-2">
@@ -610,7 +609,7 @@ function SharedIntelligenceDialog({
               <span className="text-[6px] font-black text-primary uppercase tracking-widest">v2.4.0</span>
             </div>
           </div>
-          <DialogTitle className="text-lg md:text-xl font-[900] tracking-tighter uppercase leading-tight text-foreground relative z-10">
+          <DialogTitle className="text-xl md:text-2xl font-[900] tracking-tighter uppercase leading-tight text-foreground relative z-10">
             Social <span className="text-primary italic">Pulse</span>
           </DialogTitle>
           <DialogDescription className="font-medium text-muted-foreground/80 text-[9px] mt-0.5 italic relative z-10 leading-relaxed">
