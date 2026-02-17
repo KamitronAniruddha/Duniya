@@ -31,20 +31,24 @@ service cloud.firestore {
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['authorizedViewers'])
         )
       );
+      allow delete: if isSignedIn() && request.auth.uid == userId;
       
       match /xp_history/{activityId} {
         allow read: if isSignedIn() && request.auth.uid == userId;
         allow create: if isSignedIn() && request.auth.uid == userId;
+        allow delete: if isSignedIn() && request.auth.uid == userId;
       }
     }
 
     match /communities/{communityId} {
       allow read, list: if isSignedIn();
       allow create: if isSignedIn();
-      allow update, delete: if isSignedIn() && (
+      allow update: if isSignedIn() && (
         resource.data.ownerId == request.auth.uid ||
-        request.auth.uid in resource.data.get('admins', [])
+        request.auth.uid in resource.data.get('admins', []) ||
+        (request.resource.data.members.hasOnly(resource.data.members.removeAll([request.auth.uid])))
       );
+      allow delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
 
       match /channels/{channelId} {
         allow read, list: if isSignedIn();
@@ -55,17 +59,12 @@ service cloud.firestore {
         }
 
         match /messages/{messageId} {
-          // 'list' MUST strictly match the client query filter for provability
           allow list: if isSignedIn() && resource.data.get('visibleTo', ['all']).hasAny(['all', request.auth.uid]);
-          
-          // 'get' allows senders or authorized viewers
           allow get: if isSignedIn() && (
             resource.data.get('visibleTo', ['all']).hasAny(['all', request.auth.uid]) ||
             resource.data.senderId == request.auth.uid
           );
-          
           allow create: if isSignedIn();
-          
           allow update: if isSignedIn() && (
             resource.data.senderId == request.auth.uid ||
             isCommunityAdmin(communityId) ||
@@ -74,7 +73,6 @@ service cloud.firestore {
               resource.data.get('visibleTo', ['all']).hasAny(['all', request.auth.uid])
             )
           );
-          
           allow delete: if isSignedIn() && (
             resource.data.senderId == request.auth.uid ||
             isCommunityAdmin(communityId)
@@ -85,19 +83,17 @@ service cloud.firestore {
       match /members/{memberId} {
         allow read, list: if isSignedIn();
         allow write: if isSignedIn();
+        allow delete: if isSignedIn() && (request.auth.uid == memberId || isCommunityAdmin(communityId));
       }
     }
 
     match /{path=**}/messages/{messageId} {
       allow list: if isSignedIn() && resource.data.get('visibleTo', ['all']).hasAny(['all', request.auth.uid]);
-      
       allow get: if isSignedIn() && (
         resource.data.get('visibleTo', ['all']).hasAny(['all', request.auth.uid]) ||
         resource.data.senderId == request.auth.uid
       );
-      
       allow create: if isSignedIn();
-      
       allow update: if isSignedIn() && (
         resource.data.senderId == request.auth.uid ||
         (
@@ -105,7 +101,6 @@ service cloud.firestore {
           resource.data.get('visibleTo', ['all']).hasAny(['all', request.auth.uid])
         )
       );
-      
       allow delete: if isSignedIn() && resource.data.senderId == request.auth.uid;
     }
 

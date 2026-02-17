@@ -261,7 +261,6 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
             </TabsList>
             
             <div className="flex-1 h-full overflow-hidden bg-card/30 backdrop-blur-sm relative">
-              {/* Synapse Background Animation */}
               <div className="absolute inset-0 pointer-events-none opacity-20 overflow-hidden">
                 <motion.div animate={{ rotate: 360 }} transition={{ duration: 30, repeat: Infinity, ease: "linear" }} className="absolute -top-1/2 -left-1/2 w-full h-full border-[1px] border-primary/20 rounded-full border-dashed" />
                 <motion.div animate={{ rotate: -360 }} transition={{ duration: 40, repeat: Infinity, ease: "linear" }} className="absolute -bottom-1/2 -right-1/2 w-full h-full border-[1px] border-accent/20 rounded-full border-dashed" />

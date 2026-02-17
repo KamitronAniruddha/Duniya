@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -55,9 +56,7 @@ export function GlobalLeaderboard() {
 
   return (
     <div className="space-y-8 pb-10">
-      {/* Podium - High Fidelity Interactions */}
       <div className="flex flex-col md:flex-row items-center md:items-end justify-center gap-6 pt-6 px-4">
-        {/* Rank 2 */}
         {topThree[1] && (
           <PodiumItem 
             user={topThree[1]} 
@@ -67,7 +66,6 @@ export function GlobalLeaderboard() {
           />
         )}
 
-        {/* Rank 1 */}
         {topThree[0] && (
           <PodiumItem 
             user={topThree[0]} 
@@ -78,7 +76,6 @@ export function GlobalLeaderboard() {
           />
         )}
 
-        {/* Rank 3 */}
         {topThree[2] && (
           <PodiumItem 
             user={topThree[2]} 
@@ -89,7 +86,6 @@ export function GlobalLeaderboard() {
         )}
       </div>
 
-      {/* Hierarchy List */}
       <div className="px-2">
         <div className="flex items-center justify-between px-4 mb-4">
           <div className="flex items-center gap-2">
