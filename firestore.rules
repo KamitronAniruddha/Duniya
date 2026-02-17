@@ -3,7 +3,7 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * Duniya Verse Security Rules v14.0
+     * Duniya Verse Security Rules v15.0
      * 
      * CORE PHILOSOPHY:
      * - Resilient path matching for all digital contexts.

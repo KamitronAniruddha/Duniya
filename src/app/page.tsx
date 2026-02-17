@@ -201,7 +201,7 @@ export default function DuniyaApp() {
               <div className="p-4 mt-auto border-t">
                 <Button 
                   variant={view === "admin" ? "default" : "outline"} 
-                  className="w-full h-12 rounded-xl font-black uppercase tracking-widest gap-2 shadow-lg transition-all"
+                  className="w-full h-11 rounded-xl font-black uppercase tracking-widest gap-2 shadow-lg transition-all"
                   onClick={() => setView(view === "admin" ? "chat" : "admin")}
                 >
                   <Shield className="h-4 w-4" />
@@ -245,7 +245,7 @@ export default function DuniyaApp() {
   const renderTabletLayout = () => (
     <div className="flex h-full w-full overflow-hidden bg-muted/5 relative z-10">
       <aside className="w-[72px] bg-sidebar border-r flex flex-col items-center py-6 gap-8 z-30 shrink-0 shadow-xl">
-        <div className="p-3 bg-primary/10 rounded-2xl animate-float">
+        <div className="p-3 bg-primary/10 rounded-2xl">
           <Logo size={24} />
         </div>
         
@@ -344,10 +344,10 @@ export default function DuniyaApp() {
                 <div className="flex-1 flex flex-col p-4">
                   <header className="py-6 flex items-center justify-between">
                     <div className="flex flex-col">
-                      <h1 className="text-3xl font-black uppercase tracking-tighter text-primary leading-none">Verse</h1>
-                      <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground mt-1">Duniya Messenger</span>
+                      <h1 className="text-2xl font-black uppercase tracking-tighter text-primary leading-none">Verse</h1>
+                      <span className="text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground mt-1">Duniya Messenger</span>
                     </div>
-                    <Button variant="ghost" size="icon" className="rounded-full h-12 w-12 bg-muted/30" onClick={() => setIsProfileOpen(true)}>
+                    <Button variant="ghost" size="icon" className="rounded-full h-11 w-11 bg-muted/30" onClick={() => setIsProfileOpen(true)}>
                       <Avatar className="h-full w-full">
                         <AvatarImage src={userData?.photoURL} />
                         <AvatarFallback className="bg-primary text-white font-black">{userData?.username?.[0]?.toUpperCase()}</AvatarFallback>
@@ -378,7 +378,7 @@ export default function DuniyaApp() {
                         <div className="relative">
                           {communities.map((community, index) => {
                             const angle = (index * (360 / Math.min(communities.length, 8))) * (Math.PI / 180);
-                            const radius = 85;
+                            const radius = 80;
                             const x = Math.cos(angle) * radius;
                             const y = Math.sin(angle) * radius;
 
@@ -391,7 +391,7 @@ export default function DuniyaApp() {
                                 transition={{ type: "spring", stiffness: 260, damping: 20, delay: index * 0.05 }}
                                 onClick={() => handleSelectServer(community.id)}
                                 className={cn(
-                                  "absolute h-14 w-14 rounded-full border-4 border-background shadow-2xl overflow-hidden transition-transform active:scale-90",
+                                  "absolute h-12 w-12 rounded-full border-4 border-background shadow-2xl overflow-hidden transition-transform active:scale-90",
                                   activeCommunityId === community.id ? "ring-4 ring-primary" : "grayscale-[0.3]"
                                 )}
                               >
@@ -409,12 +409,12 @@ export default function DuniyaApp() {
                     <Button
                       size="icon"
                       className={cn(
-                        "h-16 w-16 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.3)] transition-all duration-300",
+                        "h-14 w-14 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.3)] transition-all duration-300",
                         isCircularMenuOpen ? "bg-destructive rotate-45" : "bg-primary"
                       )}
                       onClick={() => setIsCircularMenuOpen(!isCircularMenuOpen)}
                     >
-                      {isCircularMenuOpen ? <X className="h-8 w-8" /> : <LayoutGrid className="h-8 w-8" />}
+                      {isCircularMenuOpen ? <X className="h-7 w-7" /> : <LayoutGrid className="h-7 w-7" />}
                     </Button>
                   </div>
                 </div>
