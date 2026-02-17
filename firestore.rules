@@ -4,13 +4,13 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * ConnectVerse Security Rules
-     *
+     * ConnectVerse Security Rules v6.0
+     * 
      * CORE PHILOSOPHY:
-     * Robust membership validation and resilient data access lookups.
+     * - Authenticated users can browse the Verse directory.
+     * - Message visibility is strictly governed by the 'visibleTo' field (Whisper Privacy).
+     * - Profile privacy (Blur/Hidden) is handled at the application rendering level.
      */
-
-    // --- Global Helper Functions ---
 
     function isSignedIn() {
       return request.auth != null;
@@ -20,106 +20,71 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    // Helper to check if a user is in a community's members array
-    function isCommunityMember(communityId) {
-      let communityDoc = get(/databases/$(database)/documents/communities/$(communityId));
-      return isSignedIn() && 
-             communityDoc != null && 
-             communityDoc.data.keys().contains('members') &&
-             request.auth.uid in communityDoc.data.members;
-    }
-
-    function isPublicCommunity(communityId) {
-      let communityDoc = get(/databases/$(database)/documents/communities/$(communityId));
-      return communityDoc != null && 
-             communityDoc.data.keys().contains('isPublic') && 
-             communityDoc.data.isPublic == true;
-    }
-
-    // --- Collection Rules ---
-
+    // --- User Profiles ---
     match /users/{userId} {
-      allow get, list: if isSignedIn();
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isOwner(userId) && request.resource.data.id == resource.data.id;
-      allow delete: if isOwner(userId);
-
-      match /notifications/{notificationId} {
-        allow get, list: if isOwner(userId);
+      allow read: if isSignedIn();
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
+      
+      match /xp_history/{activityId} {
+        allow read: if isOwner(userId);
         allow create: if isOwner(userId);
-        allow update, delete: if isOwner(userId);
-      }
-
-      match /xp_history/{xpActivityId} {
-        allow get, list: if isOwner(userId);
-        allow create: if isOwner(userId);
-        allow update, delete: if false;
       }
     }
 
-    match /invitations/{inviteId} {
-      allow read, write: if isSignedIn();
-    }
-
-    match /contact_form_submissions/{submissionId} {
-      allow read, write: if isSignedIn();
-    }
-
-    match /conversations/{conversationId} {
-      allow read, write: if isSignedIn() && (
-        !resource.data.keys().contains('participantIds') || 
-        request.auth.uid in resource.data.participantIds
-      );
-    }
-
+    // --- Communities & Contexts ---
     match /communities/{communityId} {
-      allow get: if isSignedIn() && (
-        (resource.data.keys().contains('isPublic') && resource.data.isPublic == true) || 
-        (resource.data.keys().contains('members') && request.auth.uid in resource.data.members)
-      );
-      allow list: if isSignedIn();
+      allow get, list: if isSignedIn();
       allow create: if isSignedIn();
       allow update, delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
 
       match /channels/{channelId} {
-        allow get, list: if isSignedIn() && (isPublicCommunity(communityId) || isCommunityMember(communityId));
-        allow create, update, delete: if isSignedIn() && (get(/databases/$(database)/documents/communities/$(communityId)).data.ownerId == request.auth.uid);
+        allow read: if isSignedIn();
+        allow write: if isSignedIn();
 
         match /messages/{messageId} {
-          allow get, list: if isSignedIn() && 
-                           (isPublicCommunity(communityId) || isCommunityMember(communityId)) &&
-                           (
-                             !resource.data.keys().contains('visibleTo') || 
-                             'all' in resource.data.visibleTo || 
-                             request.auth.uid in resource.data.visibleTo
-                           );
-          allow create: if isSignedIn() && isCommunityMember(communityId);
-          allow update, delete: if isSignedIn() && (resource.data.senderId == request.auth.uid || isCommunityMember(communityId));
+          allow read: if isSignedIn() && (
+            !('visibleTo' in resource.data) || 
+            resource.data.visibleTo.hasAny(['all', request.auth.uid])
+          );
+          allow create: if isSignedIn();
+          allow update, delete: if isSignedIn() && resource.data.senderId == request.auth.uid;
         }
         
         match /typing/{userId} {
-          allow get, list: if isSignedIn() && (isPublicCommunity(communityId) || isCommunityMember(communityId));
-          allow create, update, delete: if isSignedIn() && request.auth.uid == userId;
+          allow read, write: if isSignedIn();
         }
       }
 
       match /members/{memberId} {
-        allow get, list: if isSignedIn() && (isPublicCommunity(communityId) || isCommunityMember(communityId));
-        allow create, update, delete: if isSignedIn() && (get(/databases/$(database)/documents/communities/$(communityId)).data.ownerId == request.auth.uid || request.auth.uid == memberId);
+        allow read, write: if isSignedIn();
       }
     }
 
-    /**
-     * @description Explicit support for collectionGroup queries on messages.
-     * Required for cross-channel features and AI analysis.
-     */
+    // --- Global Message Access (Genealogy & History) ---
     match /{path=**}/messages/{messageId} {
-      allow read: if isSignedIn() && 
-                    (
-                      !resource.data.keys().contains('visibleTo') || 
-                      'all' in resource.data.visibleTo || 
-                      request.auth.uid in resource.data.visibleTo
-                    );
+      allow read: if isSignedIn() && (
+        !('visibleTo' in resource.data) || 
+        resource.data.visibleTo.hasAny(['all', request.auth.uid])
+      );
+    }
+
+    // --- Invitations ---
+    match /invitations/{inviteId} {
+      allow read, write: if isSignedIn();
+    }
+
+    // --- Support & Conversations ---
+    match /contact_form_submissions/{id} {
+      allow create: if isSignedIn();
+      allow read: if isSignedIn();
+    }
+
+    match /conversations/{conversationId} {
+      allow read, write: if isSignedIn() && (
+        !('participantIds' in resource.data) || 
+        request.auth.uid in resource.data.participantIds
+      );
     }
   }
 }
