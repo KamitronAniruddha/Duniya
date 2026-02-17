@@ -3,12 +3,12 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * Duniya Verse Security Rules v22.0
+     * Duniya Verse Security Rules v24.0
      * 
      * CORE PHILOSOPHY:
      * - Explicit 'list' and 'get' separation for query provability.
      * - Unified Whisper Protocol for high-fidelity privacy.
-     * - Resilience against missing fields using safe-default lookups.
+     * - Resilient field access using safe-default lookups.
      */
 
     function isSignedIn() {
@@ -16,7 +16,10 @@ service cloud.firestore {
     }
 
     function isCommunityAdmin(communityId) {
-      return isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/communities/$(communityId)).data.get('admins', []);
+      return isSignedIn() && (
+        request.auth.uid in get(/databases/$(database)/documents/communities/$(communityId)).data.get('admins', []) ||
+        request.auth.uid == get(/databases/$(database)/documents/communities/$(communityId)).data.ownerId
+      );
     }
 
     // --- User Profiles & Identity Node ---
@@ -33,25 +36,24 @@ service cloud.firestore {
 
     // --- Communities & Contexts ---
     match /communities/{communityId} {
-      allow read: if isSignedIn();
+      allow read, list: if isSignedIn();
       allow create: if isSignedIn();
       allow update, delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
 
       match /channels/{channelId} {
-        allow read: if isSignedIn();
+        allow read, list: if isSignedIn();
         allow write: if isSignedIn();
         
         match /typing/{userId} {
           allow read, write: if isSignedIn();
         }
 
-        // EXPLICIT MESSAGE PATH - Required for high-fidelity collection listing
         match /messages/{messageId} {
-          // 'list' must perfectly match the client-side query filters for provability
+          // 'list' must match the client-side query filters for provability
           allow list: if isSignedIn() && (
             resource.data.get('visibleTo', ['all']).hasAny(['all', request.auth.uid])
           );
-          // 'get' can be broader to allow senders to always see their own nodes
+          // 'get' allows senders or authorized viewers to see nodes
           allow get: if isSignedIn() && (
             resource.data.get('visibleTo', ['all']).hasAny(['all', request.auth.uid]) ||
             resource.data.senderId == request.auth.uid
@@ -65,12 +67,12 @@ service cloud.firestore {
       }
 
       match /members/{memberId} {
-        allow read: if isSignedIn();
+        allow read, list: if isSignedIn();
         allow write: if isSignedIn();
       }
     }
 
-    // --- Unified Recursive Message Access (Forwarding & Lineage Trace) ---
+    // --- Unified Recursive Message Access ---
     match /{path=**}/messages/{messageId} {
       allow list: if isSignedIn() && (
         resource.data.get('visibleTo', ['all']).hasAny(['all', request.auth.uid])
@@ -85,18 +87,8 @@ service cloud.firestore {
       );
     }
 
-    // --- Private Direct Conversations ---
-    match /conversations/{conversationId} {
-      allow read: if isSignedIn() && (
-        !('participantIds' in resource.data) || 
-        request.auth.uid in resource.data.participantIds
-      );
-      allow create, update: if isSignedIn();
-    }
-
-    // --- Invitations & Support ---
     match /invitations/{inviteId} {
-      allow read: if isSignedIn();
+      allow read, list: if isSignedIn();
       allow write: if isSignedIn();
     }
 

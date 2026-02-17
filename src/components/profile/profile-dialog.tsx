@@ -66,9 +66,10 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
   const [bio, setBio] = useState("");
   const [isProfileHidden, setIsProfileHidden] = useState(false);
   const [isProfileBlurred, setIsProfileBlurred] = useState(false);
-  const [interfaceMode, setInterfaceMode] = useState("laptop");
+  const [allowGroupInvites, setAllowGroupInvites] = useState(true);
   const [allowExternalAvatarEdit, setAllowExternalAvatarEdit] = useState(false);
   const [showOnlineStatus, setShowOnlineStatus] = useState(true);
+  const [interfaceMode, setInterfaceMode] = useState("laptop");
   
   const [isGlobalAccessActive, setIsGlobalAccessActive] = useState(false);
   const [globalDuration, setGlobalDuration] = useState("3600000");
@@ -82,9 +83,10 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
       setBio(userData.bio || "");
       setIsProfileHidden(!!userData.isProfileHidden);
       setIsProfileBlurred(!!userData.isProfileBlurred);
-      setInterfaceMode(userData.interfaceMode || "laptop");
+      setAllowGroupInvites(userData.allowGroupInvites !== false);
       setAllowExternalAvatarEdit(!!userData.allowExternalAvatarEdit);
       setShowOnlineStatus(userData.showOnlineStatus !== false);
+      setInterfaceMode(userData.interfaceMode || "laptop");
       
       const now = new Date();
       const expiry = userData.globalAccessExpiry ? new Date(userData.globalAccessExpiry) : null;
@@ -112,6 +114,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
         interfaceMode,
         isProfileHidden,
         isProfileBlurred,
+        allowGroupInvites,
         allowExternalAvatarEdit,
         showOnlineStatus,
         globalAccessExpiry: globalExpiry,
@@ -247,7 +250,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
 
                     <motion.div variants={itemVariants} className="space-y-2">
                       <Label className="text-[9px] font-black uppercase tracking-[0.2em] text-primary ml-1">Persona Manifesto</Label>
-                      <Textarea className="bg-background border-none rounded-2xl font-medium min-h-[80px] px-5 py-3 focus:ring-2 focus:ring-primary/10 shadow-sm transition-all resize-none text-sm leading-relaxed" value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Share your prime directive..." />
+                      <Textarea className="bg-background border-none rounded-[1.5rem] font-medium min-h-[80px] px-5 py-3 focus:ring-2 focus:ring-primary/10 shadow-sm transition-all resize-none text-sm leading-relaxed" value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Share your prime directive..." />
                     </motion.div>
                   </motion.div>
                 </TabsContent>
@@ -279,7 +282,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
 
                 <TabsContent key="tab-privacy" value="privacy" className="p-4 md:p-6 m-0 outline-none">
                   <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-6">
-                    <motion.div variants={itemVariants} className="p-6 bg-background/60 backdrop-blur-xl rounded-2xl border border-border/50 space-y-5 shadow-lg">
+                    <motion.div variants={itemVariants} className="p-6 bg-background/60 backdrop-blur-xl rounded-[2rem] border border-border/50 space-y-5 shadow-lg overflow-hidden">
                       <div className="flex items-center justify-between">
                         <div className="flex flex-col gap-1"><Label className="text-xs font-black uppercase tracking-tight flex items-center gap-2"><Lock className="h-3.5 w-3.5 text-rose-500" /> Identity Encryption</Label><p className="text-[9px] text-muted-foreground italic">Vanish from public node directories.</p></div>
                         <Switch checked={isProfileHidden} onCheckedChange={setIsProfileHidden} />
@@ -293,6 +296,44 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
                       <div className="flex items-center justify-between">
                         <div className="flex flex-col gap-1"><Label className="text-xs font-black uppercase tracking-tight flex items-center gap-2"><Activity className="h-3.5 w-3.5 text-primary" /> Live Presence Pulse</Label><p className="text-[9px] text-muted-foreground italic">Show 'On Screen' live status.</p></div>
                         <Switch checked={showOnlineStatus} onCheckedChange={setShowOnlineStatus} />
+                      </div>
+                      <Separator className="opacity-20" />
+                      <div className="flex items-center justify-between">
+                        <div className="flex flex-col gap-1"><Label className="text-xs font-black uppercase tracking-tight flex items-center gap-2"><Users className="h-3.5 w-3.5 text-blue-500" /> Portal Manifestation</Label><p className="text-[9px] text-muted-foreground italic">Allow random community enlistments.</p></div>
+                        <Switch checked={allowGroupInvites} onCheckedChange={setAllowGroupInvites} />
+                      </div>
+                      <Separator className="opacity-20" />
+                      <div className="flex items-center justify-between">
+                        <div className="flex flex-col gap-1"><Label className="text-xs font-black uppercase tracking-tight flex items-center gap-2"><Sparkles className="h-3.5 w-3.5 text-cyan-500" /> External Tuning protocol</Label><p className="text-[9px] text-muted-foreground italic">Permit others to gift identity looks.</p></div>
+                        <Switch checked={allowExternalAvatarEdit} onCheckedChange={setAllowExternalAvatarEdit} />
+                      </div>
+                      <Separator className="opacity-20" />
+                      <div className="space-y-4 pt-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex flex-col gap-1">
+                            <Label className="text-xs font-black uppercase tracking-tight flex items-center gap-2">
+                              <ShieldAlert className="h-3.5 w-3.5 text-emerald-500" /> Global override
+                            </Label>
+                            <p className="text-[9px] text-muted-foreground italic">Open all masking protocols for a period.</p>
+                          </div>
+                          <Switch checked={isGlobalAccessActive} onCheckedChange={setIsGlobalAccessActive} />
+                        </div>
+                        {isGlobalAccessActive && (
+                          <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="pl-5">
+                            <Select value={globalDuration} onValueChange={setGlobalDuration}>
+                              <SelectTrigger className="bg-background/50 border-none h-9 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-inner">
+                                <SelectValue placeholder="DURATION" />
+                              </SelectTrigger>
+                              <SelectContent className="rounded-xl border-none shadow-2xl">
+                                {DURATIONS.map(d => (
+                                  <SelectItem key={d.value} value={d.value.toString()} className="text-[9px] font-black uppercase p-2.5">
+                                    {d.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </motion.div>
+                        )}
                       </div>
                     </motion.div>
                   </motion.div>

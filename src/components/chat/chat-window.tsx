@@ -1,9 +1,8 @@
-
 "use client";
 
 import { useRef, useEffect, useState, useMemo, useCallback } from "react";
 import { useCollection, useFirestore, useUser, useDoc, useMemoFirebase, useAuth } from "@/firebase";
-import { collection, query, orderBy, limit, doc, arrayUnion, writeBatch, deleteField, where, getDocs } from "firebase/firestore";
+import { collection, query, limit, doc, arrayUnion, writeBatch, deleteField, where, getDocs } from "firebase/firestore";
 import { MessageBubble } from "./message-bubble";
 import { MessageInput } from "./message-input";
 import { TypingIndicator } from "./typing-indicator";
