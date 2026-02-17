@@ -89,7 +89,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
 
   const messagesQuery = useMemoFirebase(() => {
     if (!db || !basePath || !user) return null;
-    // CRITICAL: Query must explicitly match the visibility rules to be authorized
+    // CRITICAL: Query MUST use array-contains-any on visibleTo to match the Security Rules
     return query(
       collection(db, basePath, "messages"), 
       where("visibleTo", "array-contains-any", ["all", user.uid]),
@@ -388,7 +388,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
   const handleCancelProfileReply = useCallback(() => setProfileReplyTarget(null), []);
   const handleCancelWhisper = useCallback(() => setWhisperingTo(null), []);
 
-  const handleReplyToProfile = useCallback((id: string, username: string, photoURL: string, bio?: string, totalCommunities?: number, commonCommunities?: number, joinedAt?: string) => {
+  const handleReplyToProfile = useCallback((id: string, username: string, photoURL: string, bio?: string, totalCommunities: number, commonCommunities: number, joinedAt?: string) => {
     setProfileReplyTarget({ 
       id, 
       username: username.replace(/^@/, ''), 

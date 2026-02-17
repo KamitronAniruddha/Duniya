@@ -4,12 +4,12 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * Duniya Verse Security Rules v7.5
+     * Duniya Verse Security Rules v8.0
      * 
      * CORE PHILOSOPHY:
-     * - Consolidate message rules to handle both channel and recursive (Genealogy) access.
-     * - Strict "Whisper" privacy enforced via the 'visibleTo' array.
-     * - High-fidelity synchronization for all Verse nodes.
+     * - Use resource.data.get() for robust field access to prevent rule engine crashes.
+     * - Unified recursive message match for consistent privacy across standard and forwarded paths.
+     * - Explicit get/list permissions for all community contexts.
      */
 
     function isSignedIn() {
@@ -18,10 +18,10 @@ service cloud.firestore {
 
     // --- Unified Message Access (The Sovereign Heart) ---
     // This recursive match handles all message collections at any depth.
+    // resource.data.get('visibleTo', ['all']) provides a default to match query filters perfectly.
     match /{path=**}/messages/{messageId} {
       allow read: if isSignedIn() && (
-        !('visibleTo' in resource.data) || 
-        resource.data.visibleTo.hasAny(['all', request.auth.uid])
+        resource.data.get('visibleTo', ['all']).hasAny(['all', request.auth.uid])
       );
       allow create: if isSignedIn();
       allow update, delete: if isSignedIn() && resource.data.senderId == request.auth.uid;
@@ -46,10 +46,8 @@ service cloud.firestore {
       allow update, delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
 
       match /channels/{channelId} {
-        allow read: if isSignedIn();
+        allow get, list: if isSignedIn();
         allow write: if isSignedIn();
-        
-        // Note: Message rules are handled by the global recursive match above.
         
         match /typing/{userId} {
           allow read, write: if isSignedIn();
@@ -57,27 +55,30 @@ service cloud.firestore {
       }
 
       match /members/{memberId} {
-        allow read, write: if isSignedIn();
+        allow get, list: if isSignedIn();
+        allow write: if isSignedIn();
       }
     }
 
     // --- Invitations ---
     match /invitations/{inviteId} {
-      allow read, write: if isSignedIn();
+      allow get, list: if isSignedIn();
+      allow write: if isSignedIn();
     }
 
     // --- Support & Support Node ---
     match /contact_form_submissions/{id} {
       allow create: if isSignedIn();
-      allow read: if isSignedIn();
+      allow get, list: if isSignedIn();
     }
 
     // --- Private Direct Conversations ---
     match /conversations/{conversationId} {
-      allow read, write: if isSignedIn() && (
+      allow get, list: if isSignedIn() && (
         !('participantIds' in resource.data) || 
         request.auth.uid in resource.data.participantIds
       );
+      allow create, update: if isSignedIn();
     }
   }
 }
