@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useRef, useEffect, useState, useMemo, useCallback } from "react";
@@ -88,13 +89,11 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
 
   const messagesQuery = useMemoFirebase(() => {
     if (!db || !basePath || !user) return null;
-    // CRITICAL: Explicit visibility filter to match security rules and authorize listing
-    // Alignment between query and rules is required for authorized collection listing.
-    // We use ORDER BY sentAt DESC to get latest messages and then reverse in UI.
+    // CRITICAL FIX: Removed orderBy("sentAt") to avoid composite index requirement when filtering by array.
+    // Sorting is handled client-side in the messages useMemo.
     return query(
       collection(db, basePath, "messages"), 
       where("visibleTo", "array-contains-any", ["all", user.uid]),
-      orderBy("sentAt", "desc"), 
       limit(100)
     );
   }, [db, basePath, user?.uid]);
@@ -108,7 +107,12 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
         if (msg.fullyDeleted || msg.deletedFor?.includes(user.uid)) return false;
         return true;
       })
-      .reverse(); // Flip back to chronological for the chat stream
+      .sort((a, b) => {
+        // High Fidelity In-Memory Chronological Sorting
+        const dateA = a.sentAt ? new Date(a.sentAt).getTime() : 0;
+        const dateB = b.sentAt ? new Date(b.sentAt).getTime() : 0;
+        return dateA - dateB;
+      });
   }, [rawMessages, user?.uid]);
 
   const handleSendMessage = useCallback(async (
