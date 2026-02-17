@@ -152,11 +152,13 @@ function UnreadBadge({ serverId }: { serverId: string }) {
   
   const messagesQuery = useMemoFirebase(() => {
     if (!db || !user || !serverId) return null;
-    // CRITICAL: Filter by serverId and visibility to comply with security rules and avoid list errors
+    // CRITICAL FIX: To resolve "Missing or insufficient permissions" at root,
+    // the query must strictly match the security rules logic.
+    // Use array-contains-any for visibility filtering.
     return query(
       collectionGroup(db, "messages"),
       where("serverId", "==", serverId),
-      where("visibleTo", "array-contains", "all"),
+      where("visibleTo", "array-contains-any", ["all", user.uid]),
       orderBy("sentAt", "desc"),
       limit(20)
     );

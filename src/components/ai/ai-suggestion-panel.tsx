@@ -21,10 +21,10 @@ export function AISuggestionPanel({ serverId, channelId }: AISuggestionPanelProp
 
   const messagesQuery = useMemoFirebase(() => {
     if (!db || !serverId || !channelId || !user) return null;
-    // CRITICAL: Filter by visibility to comply with security rules and avoid list errors
+    // CRITICAL: Filter by visibility using array-contains-any to comply with security rules
     return query(
       collection(db, "communities", serverId, "channels", channelId, "messages"),
-      where("visibleTo", "array-contains", "all"),
+      where("visibleTo", "array-contains-any", ["all", user.uid]),
       orderBy("sentAt", "desc"),
       limit(10)
     );

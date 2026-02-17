@@ -7,7 +7,7 @@ service cloud.firestore {
      * ConnectVerse Security Rules
      *
      * CORE PHILOSOPHY:
-     * Strict user-ownership model for personal data and an array-based
+     * Strict user-ownership model for personal data and a sub-collection
      * membership model for community interactions.
      */
 
@@ -26,7 +26,6 @@ service cloud.firestore {
     }
 
     // Helper to check if a user is in a community's members sub-collection
-    // This is more performant and compatible with collectionGroup queries
     function isCommunityMember(communityId) {
       return isSignedIn() && 
              exists(/databases/$(database)/documents/communities/$(communityId)/members/$(request.auth.uid));
@@ -52,29 +51,10 @@ service cloud.firestore {
         allow delete: if isExistingOwner(userId);
       }
 
-      match /stories/{storyId} {
-        allow get: if isSignedIn() && (isOwner(userId) || resource.data.viewableByFriendIds[request.auth.uid] == true);
-        allow list: if isOwner(userId);
-        allow create: if isOwner(userId) && request.resource.data.userId == userId;
-        allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
-        allow delete: if isExistingOwner(userId);
-      }
-
       match /xp_history/{xpActivityId} {
         allow get, list: if isOwner(userId);
         allow create: if isOwner(userId) && request.resource.data.userId == userId;
         allow update, delete: if false;
-      }
-
-      match /achievements/{userAchievementId} {
-        allow get, list: if isSignedIn();
-        allow create, update, delete: if isOwner(userId);
-      }
-
-      match /ai_suggestions/{suggestionId} {
-        allow get, list: if isOwner(userId);
-        allow create: if isOwner(userId) && request.resource.data.userId == userId;
-        allow update, delete: if isExistingOwner(userId);
       }
     }
 
@@ -110,13 +90,6 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    match /friendships/{friendshipId} {
-      allow get: if isSignedIn() && (request.auth.uid == resource.data.requesterId || request.auth.uid == resource.data.addresseeId);
-      allow list: if isSignedIn();
-      allow create: if isSignedIn() && request.resource.data.requesterId == request.auth.uid;
-      allow update, delete: if isSignedIn() && (request.auth.uid == resource.data.requesterId || request.auth.uid == resource.data.addresseeId);
-    }
-
     match /communities/{communityId} {
       allow get: if isSignedIn() && (resource.data.isPublic == true || request.auth.uid in resource.data.members);
       allow list: if isSignedIn();
@@ -133,11 +106,6 @@ service cloud.firestore {
                            (!('visibleTo' in resource.data) || resource.data.visibleTo.hasAny(['all', request.auth.uid]));
           allow create: if isSignedIn() && isCommunityMember(communityId) && request.resource.data.senderId == request.auth.uid;
           allow update, delete: if isSignedIn() && (resource.data.senderId == request.auth.uid || get(/databases/$(database)/documents/communities/$(communityId)).data.ownerId == request.auth.uid);
-
-          match /reactions/{reactionId} {
-            allow get, list: if isSignedIn();
-            allow create, update, delete: if isSignedIn() && (request.resource.data.userId == request.auth.uid || resource.data.userId == request.auth.uid);
-          }
         }
         
         match /typing/{userId} {
@@ -148,24 +116,9 @@ service cloud.firestore {
       }
 
       match /members/{memberId} {
+        // Members list is accessible to all signed in users if they belong to the community or it's public
         allow get, list: if isSignedIn() && (isPublicCommunity(communityId) || isCommunityMember(communityId));
         allow create, update, delete: if isSignedIn() && (get(/databases/$(database)/documents/communities/$(communityId)).data.ownerId == request.auth.uid || request.auth.uid == memberId);
-      }
-
-      match /roles/{roleId} {
-        allow get, list: if isSignedIn() && isCommunityMember(communityId);
-        allow create, update, delete: if isSignedIn() && get(/databases/$(database)/documents/communities/$(communityId)).data.ownerId == request.auth.uid;
-      }
-
-      match /user_roles/{userRoleId} {
-        allow get, list: if isSignedIn() && isCommunityMember(communityId);
-        allow create, update, delete: if isSignedIn() && get(/databases/$(database)/documents/communities/$(communityId)).data.ownerId == request.auth.uid;
-      }
-
-      match /invite_links/{inviteId} {
-        allow get: if isSignedIn();
-        allow list: if isSignedIn() && isCommunityMember(communityId);
-        allow create, update, delete: if isSignedIn() && get(/databases/$(database)/documents/communities/$(communityId)).data.ownerId == request.auth.uid;
       }
     }
 
@@ -175,38 +128,10 @@ service cloud.firestore {
      */
     match /{path=**}/messages/{messageId} {
       allow read: if isSignedIn() && 
-                    // Whisper check
+                    // Verify the message is either public or intended for the current user
                     (resource.data.visibleTo.hasAny(['all', request.auth.uid])) &&
-                    // Membership check via sub-collection (indexable for group queries)
-                    exists(/databases/$(database)/documents/communities/$(resource.data.serverId)/members/$(request.auth.uid));
+                    // Verify membership in the specific community this message belongs to
+                    ('serverId' in resource.data && isCommunityMember(resource.data.serverId));
     }
-
-    match /media_attachments/{mediaId} {
-      allow get: if isSignedIn();
-      allow list: if false;
-      allow create: if isSignedIn() && request.resource.data.uploaderId == request.auth.uid;
-      allow update, delete: if isSignedIn() && request.resource.data.uploaderId == request.auth.uid;
-    }
-
-    match /calls/{callId} {
-      allow get: if isSignedIn() && (request.auth.uid == resource.data.initiatorId || request.auth.uid in resource.data.participantIds);
-      allow list: if false;
-      allow create: if isSignedIn() && request.resource.data.initiatorId == request.auth.uid;
-      allow update: if isSignedIn() && (request.auth.uid == resource.data.initiatorId || request.auth.uid in resource.data.participantIds);
-      allow delete: if false;
-    }
-
-    match /reports/{reportId} {
-      allow get: if isSignedIn() && resource.data.reporterId == request.auth.uid;
-      allow list: if isSignedIn();
-      allow create: if isSignedIn() && request.resource.data.reporterId == request.auth.uid;
-      allow update, delete: if false;
-    }
-
-    match /achievements/{achievementId} {
-      allow get, list: if isSignedIn();
-      allow create, update, delete: if false;
-    }
-
   }
 }
