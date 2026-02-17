@@ -3,11 +3,11 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * Duniya Verse Security Rules v15.0
+     * Duniya Verse Security Rules v16.0
      * 
      * CORE PHILOSOPHY:
-     * - Resilient path matching for all digital contexts.
-     * - Safe-default field access to prevent evaluation crashes.
+     * - Resilient recursive matching for deep Verse hierarchies.
+     * - Safe-default field access to prevent evaluate crashes.
      * - Unified Whisper Protocol for high-fidelity privacy.
      */
 
@@ -49,11 +49,11 @@ service cloud.firestore {
     }
 
     // --- Unified Recursive Message Access (Forwarding, Whispers & Lineage) ---
-    // Handles both standard channels and deep recursive lineages.
+    // Handles standard channels, forwards, and deep recursive lineages.
     // Uses safe-default get() to prevent evaluation crashes on missing fields.
     match /{path=**}/messages/{messageId} {
       allow read: if isSignedIn() && (
-        request.auth.uid == resource.data.senderId ||
+        resource.data.senderId == request.auth.uid ||
         resource.data.get('visibleTo', ['all']).hasAny(['all', request.auth.uid])
       );
       allow create: if isSignedIn();
@@ -63,18 +63,6 @@ service cloud.firestore {
       );
     }
 
-    // --- Invitations ---
-    match /invitations/{inviteId} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn();
-    }
-
-    // --- Support ---
-    match /contact_form_submissions/{id} {
-      allow create: if isSignedIn();
-      allow get, list: if isSignedIn();
-    }
-
     // --- Private Direct Conversations ---
     match /conversations/{conversationId} {
       allow read: if isSignedIn() && (
@@ -82,6 +70,18 @@ service cloud.firestore {
         request.auth.uid in resource.data.participantIds
       );
       allow create, update: if isSignedIn();
+    }
+
+    // --- Invitations ---
+    match /invitations/{inviteId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
+    }
+
+    // --- Support & Admin ---
+    match /contact_form_submissions/{id} {
+      allow create: if isSignedIn();
+      allow read: if isSignedIn();
     }
   }
 }
