@@ -61,7 +61,7 @@ export function getRankTitle(level: number): string {
  * - Passive Online (per 5 min): 5 XP
  * - Genesis Community Creation: 500 XP
  * - First Login of Day: 100 XP + (Streak * 10)
- * - Guess Master Win: 250 XP
+ * - Guess Master Win: Scaled by difficulty (50, 250, 750)
  */
 export const XP_REWARDS = {
   MESSAGE_BASE: 10,
@@ -71,6 +71,9 @@ export const XP_REWARDS = {
   DAILY_LOGIN_BASE: 100,
   STREAK_BONUS: 10,
   GUESS_MASTER_WIN: 250,
+  GUESS_WIN_1: 50,
+  GUESS_WIN_2: 250,
+  GUESS_WIN_3: 750,
 };
 
 /**

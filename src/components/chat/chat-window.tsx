@@ -305,16 +305,29 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
           toast({ title: "Node Busy", description: "A game is already active in this channel." });
           return true;
         }
-        const secret = Math.floor(Math.random() * 90) + 10;
+        
+        const digits = parseInt(args[1]) || 2;
+        let min = 10, max = 99, reward = XP_REWARDS.GUESS_WIN_2;
+        
+        if (digits === 1) { min = 0; max = 9; reward = XP_REWARDS.GUESS_WIN_1; }
+        else if (digits === 3) { min = 100; max = 999; reward = XP_REWARDS.GUESS_WIN_3; }
+        else { min = 10; max = 99; reward = XP_REWARDS.GUESS_WIN_2; }
+
+        const secret = Math.floor(Math.random() * (max - min + 1)) + min;
+        
         updateDocumentNonBlocking(contextRef!, {
           activeGame: {
             secretNumber: secret,
             attempts: 0,
             status: "active",
-            startedAt: new Date().toISOString()
+            startedAt: new Date().toISOString(),
+            digits,
+            min,
+            max,
+            reward
           }
         });
-        handleSendMessage("initialized a new **Guess Master** node! Guess a number between **10** and **99** to win XP.", undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, false, undefined, false, "game_start");
+        handleSendMessage(`initialized a new **Guess Master** node! Guess a **${digits}-digit** number (**${min}-${max}**) to win **${reward} XP**.`, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, false, undefined, false, "game_start");
         return true;
       }
 
@@ -329,13 +342,18 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
       }
 
       const num = parseInt(args[0]);
-      if (!isNaN(num) && num >= 10 && num <= 99) {
-        if (!contextData?.activeGame || contextData.activeGame.status !== "active") {
+      if (!isNaN(num)) {
+        const game = contextData?.activeGame;
+        if (!game || game.status !== "active") {
           toast({ title: "No Node Active", description: "Use `@guess start` to begin a game." });
           return true;
         }
 
-        const game = contextData.activeGame;
+        if (num < game.min || num > game.max) {
+          toast({ title: "Signal Out of Range", description: `Please guess between ${game.min} and ${game.max}.` });
+          return true;
+        }
+
         const secret = game.secretNumber;
         const attempts = (game.attempts || 0) + 1;
         
@@ -356,8 +374,8 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
             }
           });
           
-          handleSendMessage(`cracked the Guess Master node! The secret number was **${num}**. Won **${XP_REWARDS.GUESS_MASTER_WIN} XP**!`, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, false, undefined, false, "game_win");
-          awardXP(db, user!.uid, XP_REWARDS.GUESS_MASTER_WIN, "gaming", `Guess Master Victory: Node ${num}`);
+          handleSendMessage(`cracked the Guess Master node! The secret number was **${num}**. Won **${game.reward} XP**!`, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, false, undefined, false, "game_win");
+          awardXP(db, user!.uid, game.reward, "gaming", `Guess Master Victory: Node ${num} (${game.digits} digits)`);
           
           // Clear game after a delay
           setTimeout(() => {
@@ -379,7 +397,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
         return true;
       }
 
-      toast({ title: "Guess Master Hub", description: "Commands: `@guess start`, `@guess [10-99]`, `@guess end`." });
+      toast({ title: "Guess Master Hub", description: "Commands: `@guess start [1-3]`, `@guess [num]`, `@guess end`." });
       return true;
     }
     if (cmd === "help") {

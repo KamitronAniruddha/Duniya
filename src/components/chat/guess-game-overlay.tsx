@@ -16,6 +16,10 @@ interface GuessGameOverlayProps {
     attempts: number;
     hint?: "higher" | "lower" | "correct";
     winnerName?: string;
+    digits?: number;
+    min?: number;
+    max?: number;
+    reward?: number;
   };
   onClose?: () => void;
 }
@@ -39,7 +43,9 @@ export function GuessGameOverlay({ activeGame, onClose }: GuessGameOverlayProps)
               <div className="p-1.5 bg-primary/10 rounded-lg">
                 <Target className="h-3.5 w-3.5 text-primary animate-pulse" />
               </div>
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Guess Master Node</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">
+                Guess Master Node ({activeGame.digits || 2}D)
+              </span>
             </div>
             <Badge variant="secondary" className="bg-primary/5 text-primary text-[8px] font-black uppercase px-2 h-5 border-primary/10">
               Attempts: {activeGame.attempts || 0}
@@ -47,7 +53,7 @@ export function GuessGameOverlay({ activeGame, onClose }: GuessGameOverlayProps)
           </div>
 
           <div className="flex items-center gap-4 p-3 bg-muted/30 rounded-2xl border border-border/50">
-            <div className="h-12 w-12 rounded-xl bg-background border border-border flex items-center justify-center shrink-0 shadow-inner">
+            <div className="h-12 w-20 rounded-xl bg-background border border-border flex items-center justify-center shrink-0 shadow-inner">
               <AnimatePresence mode="wait">
                 <motion.span 
                   key={activeGame.lastGuess}
@@ -55,13 +61,13 @@ export function GuessGameOverlay({ activeGame, onClose }: GuessGameOverlayProps)
                   animate={{ scale: 1, opacity: 1 }}
                   className="text-2xl font-black text-foreground italic"
                 >
-                  {activeGame.lastGuess || "??"}
+                  {activeGame.lastGuess !== undefined ? activeGame.lastGuess : "???"}
                 </motion.span>
               </AnimatePresence>
             </div>
 
             <div className="flex-1 min-w-0">
-              {activeGame.lastGuess ? (
+              {activeGame.lastGuess !== undefined ? (
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Last Intel from</span>
@@ -84,7 +90,9 @@ export function GuessGameOverlay({ activeGame, onClose }: GuessGameOverlayProps)
               ) : (
                 <div className="space-y-1">
                   <span className="text-xs font-bold text-foreground uppercase tracking-tight">Awaiting Sync...</span>
-                  <p className="text-[9px] text-muted-foreground italic leading-none">Guess a number between 10-99</p>
+                  <p className="text-[9px] text-muted-foreground italic leading-none">
+                    Guess between {activeGame.min ?? 10}-{activeGame.max ?? 99}
+                  </p>
                 </div>
               )}
             </div>
