@@ -316,7 +316,6 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
           return true;
         }
         
-        // Strict difficulty selection
         const selectedDigits = parseInt(args[1]);
         let digits = 2;
         if (selectedDigits === 1) digits = 1;
@@ -362,7 +361,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
       if (!isNaN(num)) {
         const game = contextData?.activeGame;
         if (!game || game.status !== "active") {
-          toast({ title: "No Node Active", description: "Use `@guess start` to begin a game." });
+          toast({ title: "No Node Active", description: "Use `@guess start [1-3]` to begin a game." });
           return true;
         }
 
@@ -371,7 +370,7 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
           return true;
         }
 
-        const secret = game.secretNumber;
+        const secret = Number(game.secretNumber);
         const attempts = (game.attempts || 0) + 1;
         
         let hint: "higher" | "lower" | "correct" = "correct";
@@ -387,17 +386,18 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
               lastGuesserName: userData?.username || user?.displayName || "User",
               lastGuesserPhoto: userData?.photoURL || user?.photoURL || "",
               attempts,
-              winnerName: userData?.username || user?.displayName || "User"
+              winnerName: userData?.username || user?.displayName || "User",
+              hint: "correct"
             }
           });
           
           handleSendMessage(`cracked the Guess Master node! The secret number was **${num}**. Won **${game.reward} XP**!`, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, false, undefined, false, "game_win");
           awardXP(db, user!.uid, game.reward, "gaming", `Guess Master Victory: Node ${num} (${game.digits} digits)`);
           
-          // Clear game after a delay
+          // Clear game after a delay to allow citizens to see the victory state
           setTimeout(() => {
-            updateDocumentNonBlocking(contextRef!, { activeGame: deleteField() });
-          }, 5000);
+            if (contextRef) updateDocumentNonBlocking(contextRef, { activeGame: deleteField() });
+          }, 6000);
         } else {
           updateDocumentNonBlocking(contextRef!, {
             activeGame: {

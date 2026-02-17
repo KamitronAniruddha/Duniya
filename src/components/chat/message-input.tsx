@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -182,7 +183,8 @@ export function MessageInput({
     if (cmdMatch) {
       const cmd = cmdMatch[1].toLowerCase();
       const rawArgs = cmdMatch[2] || "";
-      const args = rawArgs ? rawArgs.split(" ") : [];
+      // Robust splitting to ignore extra whitespace
+      const args = rawArgs ? rawArgs.trim().split(/\s+/) : [];
       const handled = await onExecuteCommand?.(cmd, args);
       if (handled) {
         setText("");
