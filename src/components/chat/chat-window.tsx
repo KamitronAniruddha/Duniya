@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useRef, useEffect, useState, useMemo, useCallback } from "react";
@@ -315,7 +316,12 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
           return true;
         }
         
-        const digits = parseInt(args[1]) || 2;
+        // Strict difficulty selection
+        const selectedDigits = parseInt(args[1]);
+        let digits = 2;
+        if (selectedDigits === 1) digits = 1;
+        else if (selectedDigits === 3) digits = 3;
+        
         let min = 10, max = 99, reward = XP_REWARDS.GUESS_WIN_2;
         
         if (digits === 1) { min = 0; max = 9; reward = XP_REWARDS.GUESS_WIN_1; }
@@ -419,7 +425,9 @@ export function ChatWindow({ channelId, serverId, showMembers, onToggleMembers, 
       return true;
     }
     if (cmd === "logout") {
-      if (user?.uid) updateDocumentNonBlocking(doc(db, "users", user.uid), { onlineStatus: "offline", lastOnlineAt: new Date().toISOString() });
+      if (user?.uid && auth.currentUser) {
+        updateDocumentNonBlocking(doc(db, "users", user.uid), { onlineStatus: "offline", lastOnlineAt: new Date().toISOString() });
+      }
       auth.signOut();
       return true;
     }

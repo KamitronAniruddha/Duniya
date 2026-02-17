@@ -1,3 +1,4 @@
+
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
@@ -34,6 +35,7 @@ export function GuessGameOverlay({ activeGame, onClose, onEnd, isAdmin, currentU
 
   const isCreator = currentUserId === activeGame.creatorId;
   const canTerminate = isAdmin || isCreator;
+  const digits = Number(activeGame.digits || 2);
 
   return (
     <motion.div 
@@ -52,7 +54,7 @@ export function GuessGameOverlay({ activeGame, onClose, onEnd, isAdmin, currentU
                 <Target className="h-3.5 w-3.5 text-primary animate-pulse" />
               </div>
               <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">
-                Guess Master Node ({activeGame.digits || 2}D)
+                Guess Master Node ({digits}D)
               </span>
             </div>
             
@@ -62,7 +64,7 @@ export function GuessGameOverlay({ activeGame, onClose, onEnd, isAdmin, currentU
               </Badge>
               
               <div className="flex items-center gap-1">
-                {canTerminate && (
+                {canTerminate ? (
                   <Button 
                     variant="ghost" 
                     size="icon" 
@@ -72,16 +74,17 @@ export function GuessGameOverlay({ activeGame, onClose, onEnd, isAdmin, currentU
                   >
                     <Trash2 className="h-3 w-3" />
                   </Button>
+                ) : (
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-6 w-6 rounded-lg text-muted-foreground hover:bg-muted transition-colors"
+                    onClick={onClose}
+                    title="Dismiss Game (Local)"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
                 )}
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-6 w-6 rounded-lg text-muted-foreground hover:bg-muted transition-colors"
-                  onClick={onClose}
-                  title="Leave Game (Local)"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </Button>
               </div>
             </div>
           </div>
@@ -125,7 +128,7 @@ export function GuessGameOverlay({ activeGame, onClose, onEnd, isAdmin, currentU
                 <div className="space-y-1">
                   <span className="text-xs font-bold text-foreground uppercase tracking-tight">Awaiting Sync...</span>
                   <p className="text-[9px] text-muted-foreground italic leading-none">
-                    Guess between {activeGame.min ?? 10}-{activeGame.max ?? 99}
+                    Guess between {activeGame.min ?? (digits === 1 ? 0 : digits === 3 ? 100 : 10)}-{activeGame.max ?? (digits === 1 ? 9 : digits === 3 ? 999 : 99)}
                   </p>
                 </div>
               )}
@@ -145,12 +148,12 @@ export function GuessGameOverlay({ activeGame, onClose, onEnd, isAdmin, currentU
                 key={i}
                 animate={{ 
                   scale: [1, 1.2, 1],
-                  opacity: activeGame.attempts > i ? 1 : 0.2
+                  opacity: (activeGame.attempts || 0) > i ? 1 : 0.2
                 }}
                 transition={{ duration: 2, repeat: Infinity, delay: i * 0.1 }}
                 className={cn(
                   "h-1 flex-1 rounded-full",
-                  activeGame.attempts > i ? "bg-primary" : "bg-muted"
+                  (activeGame.attempts || 0) > i ? "bg-primary" : "bg-muted"
                 )}
               />
             ))}
