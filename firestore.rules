@@ -3,12 +3,12 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * Duniya Verse Security Rules v24.0
+     * Duniya Verse Security Rules v25.0
      * 
      * CORE PHILOSOPHY:
      * - Explicit 'list' and 'get' separation for query provability.
-     * - Unified Whisper Protocol for high-fidelity privacy.
-     * - Resilient field access using safe-default lookups.
+     * - High-fidelity read-receipt sync for authorized participants.
+     * - Secure Identity Handshakes for encrypted nodes.
      */
 
     function isSignedIn() {
@@ -26,7 +26,23 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && request.auth.uid == userId;
-      allow update: if isSignedIn() && request.auth.uid == userId;
+      allow update: if isSignedIn() && (
+        request.auth.uid == userId ||
+        (
+          // External Identity Tuning (Gift a Look)
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['photoURL', 'updatedAt']) &&
+          resource.data.get('allowExternalAvatarEdit', false) == true
+        ) ||
+        (
+          // Profile Access Handshakes (Request Key)
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['pendingProfileRequests']) &&
+          request.auth.uid != userId
+        ) ||
+        (
+          // Authorized Viewer updates (Removing self from authorized list when expired)
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['authorizedViewers'])
+        )
+      );
       
       match /xp_history/{activityId} {
         allow read: if isSignedIn() && request.auth.uid == userId;
@@ -38,7 +54,10 @@ service cloud.firestore {
     match /communities/{communityId} {
       allow read, list: if isSignedIn();
       allow create: if isSignedIn();
-      allow update, delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow update, delete: if isSignedIn() && (
+        resource.data.ownerId == request.auth.uid ||
+        request.auth.uid in resource.data.get('admins', [])
+      );
 
       match /channels/{channelId} {
         allow read, list: if isSignedIn();
@@ -59,7 +78,16 @@ service cloud.firestore {
             resource.data.senderId == request.auth.uid
           );
           allow create: if isSignedIn();
-          allow update, delete: if isSignedIn() && (
+          allow update: if isSignedIn() && (
+            resource.data.senderId == request.auth.uid ||
+            isCommunityAdmin(communityId) ||
+            (
+              // Allow participants to sync read status and Ghost Mode timers
+              request.resource.data.diff(resource.data).affectedKeys().hasOnly(['seenBy', 'viewerExpireAt']) &&
+              resource.data.get('visibleTo', ['all']).hasAny(['all', request.auth.uid])
+            )
+          );
+          allow delete: if isSignedIn() && (
             resource.data.senderId == request.auth.uid ||
             isCommunityAdmin(communityId)
           );
@@ -72,7 +100,7 @@ service cloud.firestore {
       }
     }
 
-    // --- Unified Recursive Message Access ---
+    // --- Unified Recursive Message Access (Lineage & Forwards) ---
     match /{path=**}/messages/{messageId} {
       allow list: if isSignedIn() && (
         resource.data.get('visibleTo', ['all']).hasAny(['all', request.auth.uid])
@@ -82,7 +110,14 @@ service cloud.firestore {
         resource.data.senderId == request.auth.uid
       );
       allow create: if isSignedIn();
-      allow update, delete: if isSignedIn() && (
+      allow update: if isSignedIn() && (
+        resource.data.senderId == request.auth.uid ||
+        (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['seenBy', 'viewerExpireAt']) &&
+          resource.data.get('visibleTo', ['all']).hasAny(['all', request.auth.uid])
+        )
+      );
+      allow delete: if isSignedIn() && (
         resource.data.senderId == request.auth.uid
       );
     }
